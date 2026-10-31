@@ -1,0 +1,49 @@
+:root {
+  --ink: #0d0c12;
+  --ink-2: #15131c;
+  --ink-3: #1e1b27;
+  --ink-4: #2a2635;
+  --line: #2f2b3b;
+  --paper: #f4f1ea;
+  --paper-2: #c9c4d6;
+  --paper-3: #8f89a3;
+
+  --spring: #ff7aa2;
+  --summer: #ffc23d;
+  --fall: #ff7340;
+  --winter: #63c7ff;
+  --season: var(--spring);
+
+  --good: #8be3a8;
+  --bad: #ff6b6b;
+
+  --display: 'Dela Gothic One', 'Zen Kaku Gothic New', system-ui, sans-serif;
+  --body: 'Zen Kaku Gothic New', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --r-cover: 6px;
+  --r-pill: 999px;
+  --r-panel: 14px;
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 72px;
+
+  --gutter: clamp(16px, 3vw, 40px);
+  --topbar: 64px;
+  --bottombar: 68px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-lift: 0 10px 30px -12px rgb(0 0 0 / 0.7), 0 2px 6px -2px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
+[data-season='SPRING'] { --season: var(--spring); }
+[data-season='SUMMER'] { --season: var(--summer); }
+[data-season='FALL'] { --season: var(--fall); }
+[data-season='WINTER'] { --season: var(--winter); }
