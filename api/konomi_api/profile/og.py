@@ -100,3 +100,30 @@ def og(username: str, db: Db) -> Response:
         _cache[key] = (time.time(), png)
     return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=600"})
 
+
+
+@router.get("/u/{username}", include_in_schema=False)
+def profile_html(username: str, db: Db) -> Response:
+    """Production entry for shared links: the SPA shell with link-preview tags filled in.
+    (In development Vite serves /u/* itself, so previews only render once the built app is served from here.)"""
+    from html import escape
+
+    from fastapi.responses import HTMLResponse
+
+    from ..config import get_settings
+
+    index = ROOT / "web" / "dist" / "index.html"
+    if not index.exists():
+        return HTMLResponse("Build the web app first (npm run build).", status_code=503)
+    shell = index.read_text(encoding="utf-8")
+    try:
+        u = visible_user(db, username, None)
+    except Exception:
+        return HTMLResponse(shell)
+    base = get_settings().public_url.rstrip("/")
+    title = escape(f"{u.display_name} on Konomi")
+    desc = escape((u.profile or {}).get("bio") or f"{u.display_name}'s anime chart, scored by comparison.")
+    meta = (f'<meta property="og:title" content="{title}"><meta property="og:description" content="{desc}">'
+            f'<meta property="og:image" content="{base}/og/u/{escape(u.username)}.png">'
+            f'<meta property="og:url" content="{base}/u/{escape(u.username)}"><meta name="twitter:card" content="summary_large_image">')
+    return HTMLResponse(shell.replace("</head>", meta + "</head>", 1))
