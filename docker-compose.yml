@@ -1,0 +1,24 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: konomi
+      POSTGRES_PASSWORD: konomi
+      POSTGRES_DB: konomi
+    ports:
+      - "5433:5432"
+    volumes:
+      - konomi-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konomi"]
+      interval: 2s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  konomi-db:

@@ -13,4 +13,7 @@ dist/
 # Raw datasets (large, not redistributable)
 archive/
 archive.zip
-data/raw/
+data/
+
+# Plan workspace
+.superpowers/
