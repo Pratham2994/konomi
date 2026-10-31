@@ -3,7 +3,7 @@
 .set-title { font-size: clamp(34px, 5vw, 64px); line-height: 1; }
 .set-sec { margin-top: var(--s6); display: grid; gap: var(--s3); }
 .set-sec h2 { font-size: 20px; }
-.set-grid { grid-template-columns: 1fr 1.4fr; gap: var(--s4); }
+.set-grid { grid-template-columns: 1fr 1.4fr; gap: var(--s4); align-items: start; }
 @media (max-width: 720px) { .set-grid { grid-template-columns: 1fr; } }
 .set-field { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
 .set-field em { font-style: normal; font-weight: 400; margin-left: 6px; }

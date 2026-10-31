@@ -171,8 +171,8 @@ export function SettingsPage() {
                 <span>{SECTION_LABEL[sec.id]}</span>
               </label>
               <span className="set-move">
-                <button className="btn btn-ghost" disabled={i === 0} onClick={() => moveSection(i, -1)} aria-label="Move up">↑</button>
-                <button className="btn btn-ghost" disabled={i === s.sections.length - 1} onClick={() => moveSection(i, 1)} aria-label="Move down">↓</button>
+                <button className="btn btn-ghost" disabled={i === 0} onClick={() => moveSection(i, -1)} aria-label="Move up"><Icon name="arrowUp" size={16} /></button>
+                <button className="btn btn-ghost" disabled={i === s.sections.length - 1} onClick={() => moveSection(i, 1)} aria-label="Move down"><Icon name="arrowDown" size={16} /></button>
               </span>
             </li>
           ))}

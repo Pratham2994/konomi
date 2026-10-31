@@ -9,6 +9,8 @@ const PATHS: Record<string, string> = {
   check: 'M5 12.5 10 17 19 7',
   arrowLeft: 'M15 5l-7 7 7 7',
   arrowRight: 'M9 5l7 7-7 7',
+  arrowUp: 'M5 15l7-7 7 7',
+  arrowDown: 'M5 9l7 7 7-7',
   undo: 'M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-3',
   sweep: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
   share: 'M7 12v7h10v-7M12 3v12M8 7l4-4 4 4',
