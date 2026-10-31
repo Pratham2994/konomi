@@ -1,0 +1,16 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Envs and builds
+.venv/
+__pycache__/
+node_modules/
+dist/
+*.log
+
+# Raw datasets (large, not redistributable)
+archive/
+archive.zip
+data/raw/
