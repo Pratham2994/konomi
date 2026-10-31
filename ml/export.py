@@ -95,7 +95,7 @@ def main() -> None:
     if (MODELS / "ease_topk.npz").exists():
         shutil.copy(MODELS / "ease_topk.npz", ART / "ease_topk.npz")
     results = json.loads((MODELS / "results.json").read_text())
-    manifest = {"ship": results["ship"], "d": int(d), "n_cf": int(n_items), "n_all": int(cat.height),
+    manifest = {"ship": results["ship"], "blend": results.get("serve_blend"), "d": int(d), "n_cf": int(n_items), "n_all": int(cat.height),
                 "version": time.strftime("%Y%m%d%H%M"), "bridge": {"cosine": cos, "overlap10": overlap, "random10": rand}}
     (ART / "manifest.json").write_text(json.dumps(manifest, indent=1))
 

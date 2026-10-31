@@ -73,6 +73,11 @@ class TasteEngine:
         manifest = json.loads((art / "manifest.json").read_text())
         self.calibration = np.array(json.loads((art / "calibration.json").read_text())["multvae"])
         self.version = manifest["version"]
+        self.blend = manifest.get("blend")
+        self.ease = None
+        if self.blend is not None and (art / "ease_topk.npz").exists():
+            import scipy.sparse as sp
+            self.ease = sp.load_npz(art / "ease_topk.npz").tocsr()
 
     # ---- folding a user in -------------------------------------------------------------------------------
     def input_vector(self, entries: list[UserEntry], exclude: int | None = None) -> np.ndarray:
@@ -105,8 +110,18 @@ class TasteEngine:
     def positives(self, entries: list[UserEntry]) -> int:
         return sum(1 for e in entries if entry_weight(e) >= 0.4 and e.anime_id in self.row_of)
 
-    def scores(self, z: np.ndarray) -> np.ndarray:
-        return self.emb @ z + self.bias
+    def scores(self, z: np.ndarray, x: np.ndarray | None = None) -> np.ndarray:
+        """Taste score for every catalogue title. With a served blend, rated titles mix in EASE (both z-scored)."""
+        s = self.emb @ z + self.bias
+        if self.ease is None or x is None:
+            return s
+        cf = s[self.cf_rows]
+        mu, sd = cf.mean(), cf.std() + 1e-9
+        s = (s - mu) / sd
+        e = np.asarray(self.ease.T.dot(x)).ravel()[self.cf_i[self.cf_rows]]
+        e = (e - e.mean()) / (e.std() + 1e-9)
+        s[self.cf_rows] = (1 - self.blend) * s[self.cf_rows] + self.blend * e
+        return s
 
     # ---- products ---------------------------------------------------------------------------------------
     def recommend(self, entries: list[UserEntry], k: int = 24, types: set[str] | None = None,
@@ -126,8 +141,8 @@ class TasteEngine:
             s = np.log1p(self.pop) + (self.year >= 2015) * 0.5
             mode = "popular"
         else:
-            z = self.user_z(self.input_vector(entries))
-            s = self.scores(z)
+            x = self.input_vector(entries)
+            s = self.scores(self.user_z(x), x)
             mode = "model"
         s = np.where(mask, s, -np.inf)
         top = np.argsort(-s)[:k]
@@ -150,8 +165,8 @@ class TasteEngine:
         rest = [e for e in entries if e.anime_id != anime_id]
         if self.positives(rest) < MIN_POSITIVES:
             return None
-        z = self.user_z(self.input_vector(rest, exclude=anime_id))
-        s = self.scores(z)
+        x = self.input_vector(rest, exclude=anime_id)
+        s = self.scores(self.user_z(x), x)
         ref = s[self.cf_rows]
         pct = float((ref < s[r]).mean())
         zval = float(np.interp(pct * 100, np.arange(101), self.calibration))
@@ -166,7 +181,8 @@ class TasteEngine:
         """Predictions for titles not on the list (one fold-in for all of them)."""
         if self.positives(entries) < MIN_POSITIVES:
             return {}
-        s = self.scores(self.user_z(self.input_vector(entries)))
+        x = self.input_vector(entries)
+        s = self.scores(self.user_z(x), x)
         ref = np.sort(s[self.cf_rows])
         scored = [e.score for e in entries if e.score is not None]
         mean, std = (float(np.mean(scored)), float(np.std(scored)) + 0.3) if len(scored) >= 5 else (DEFAULT_MEAN, DEFAULT_STD)
