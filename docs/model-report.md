@@ -34,3 +34,15 @@ Mult-VAE always runs in serving: it gives the shared user/item taste space behin
 4. Shounen · Action ↔ Cute girls doing cute things · Slice of life
 5. Shoujo · Slice of life ↔ Action · Ecchi
 6. Action · Science fiction ↔ Shoujo · Romance
+
+## Score prediction
+
+Predicting a held-out rating (1–10) for 310,284 test ratings:
+
+| Method | MAE |
+|---|---|
+| user's own mean | 1.092 |
+| served model rank, calibrated | 0.938 |
+| rank + title quality (served) | **0.886** |
+
+Title quality = a title's mean standardised rating among training users. Fitted on validation users: z = 0.66·rank + 0.69·quality + -0.04. Titles with no ratings estimate quality from their community score.

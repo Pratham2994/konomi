@@ -40,11 +40,18 @@ def entry_weight(e: UserEntry) -> float:
 
 
 class TasteEngine:
+    def z_pred(self, pct: float, row: int) -> float:
+        """Standardised predicted rating: calibrated taste rank, plus title quality when the fit exists."""
+        rank = float(np.interp(pct * 100, np.arange(101), self.calibration))
+        if not self.fit:
+            return rank
+        return self.fit["a"] * rank + self.fit["b"] * float(self.quality[row]) + self.fit["c"]
+
     def __init__(self, art: Path):
         items = pl.read_parquet(art / "items.parquet")
         with db_engine.connect() as c:
             ids = dict(c.execute(text("select aod_key, id from anime")).all())
-            meta = c.execute(text("select id, type, popularity, year from anime")).all()
+            meta = c.execute(text("select id, type, popularity, year, score from anime")).all()
         keep = np.array([k in ids for k in items["aod_key"].to_list()])
         items = items.filter(pl.Series(keep))
         self.anime_ids = np.array([ids[k] for k in items["aod_key"].to_list()], dtype=np.int64)
@@ -71,7 +78,15 @@ class TasteEngine:
         self.axes_meta = json.loads((art / "axes.json").read_text())
         self.clusters_meta = json.loads((art / "clusters.json").read_text())
         manifest = json.loads((art / "manifest.json").read_text())
-        self.calibration = np.array(json.loads((art / "calibration.json").read_text())["multvae"])
+        cal = json.loads((art / "calibration.json").read_text())
+        self.calibration = np.array(cal.get("blend_table") or cal["multvae"])
+        self.fit = cal.get("fit")
+        self.quality = np.zeros(len(self.anime_ids), dtype=np.float32)
+        if self.fit and (art / "item_quality.npy").exists():
+            q_cf = np.load(art / "item_quality.npy")
+            comm = np.array([m[int(a)].score or np.nan for a in self.anime_ids], dtype=np.float64)
+            est = np.nan_to_num(self.fit["alpha"] * comm + self.fit["beta"], nan=0.0)
+            self.quality = np.where(self.has_cf, q_cf[np.clip(self.cf_i, 0, None)], est).astype(np.float32)
         self.version = manifest["version"]
         self.blend = manifest.get("blend")
         self.ease = None
@@ -169,7 +184,7 @@ class TasteEngine:
         s = self.scores(self.user_z(x), x)
         ref = s[self.cf_rows]
         pct = float((ref < s[r]).mean())
-        zval = float(np.interp(pct * 100, np.arange(101), self.calibration))
+        zval = self.z_pred(pct, r)
         scored = [e.score for e in rest if e.score is not None]
         if len(scored) >= 5:
             mean, std = float(np.mean(scored)), float(np.std(scored)) + 0.3
@@ -192,7 +207,7 @@ class TasteEngine:
             if r is None:
                 continue
             pct = np.searchsorted(ref, s[r]) / len(ref)
-            out[a] = round(float(np.clip(mean + std * np.interp(pct * 100, np.arange(101), self.calibration), 1, 10)), 1)
+            out[a] = round(float(np.clip(mean + std * self.z_pred(float(pct), r), 1, 10)), 1)
         return out
 
     def dna(self, entries: list[UserEntry]) -> list[dict] | None:

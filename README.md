@@ -40,7 +40,9 @@ api/.venv/Scripts/python pipeline/ratings.py     # -> data/build/ratings.parquet
 cd ml && uv venv .venv --python 3.13 && uv pip install --python .venv torch --index-url https://download.pytorch.org/whl/cu128
 uv pip install --python .venv -r requirements.txt
 .venv/Scripts/python train.py                    # baselines, EASE, Mult-VAE -> docs/model-report.md
+.venv/Scripts/python ensemble.py                 # Mult-VAE + EASE blend weight
 .venv/Scripts/python export.py                   # bridge, taste axes, galaxy -> data/build/artifacts/
+.venv/Scripts/python calibrate.py                # score prediction (rank + title quality)
 cd ../api && .venv/Scripts/python seed.py
 ```
 
