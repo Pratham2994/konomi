@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { QuickAdd } from '../features/add/QuickAdd'
 import { api } from '../lib/api'
@@ -36,6 +36,7 @@ export function Layout() {
   const qc = useQueryClient()
   const nav = useNavigate()
   const { season } = currentSeason()
+  const { pathname } = useLocation()
 
   async function logout() {
     await api('/api/auth/logout', { method: 'POST' })
@@ -80,7 +81,7 @@ export function Layout() {
           </div>
         )}
       </header>
-      {me && <div className="mobile-add"><QuickAdd /></div>}
+      {me && pathname !== '/' && <div className="mobile-add"><QuickAdd /></div>}
 
       <main className="main">
         <Outlet />

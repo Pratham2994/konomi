@@ -52,6 +52,7 @@ export function HomePage() {
 
   return (
     <div className="page home">
+      <div className="home-top">
       <section className="home-add">
         <h1 className="display home-title">{empty ? `Welcome, ${me?.display_name}. What have you watched?` : 'Add what you watched'}</h1>
         <QuickAdd variant="hero" autoFocus={empty} />
@@ -74,9 +75,10 @@ export function HomePage() {
           <span className="btn btn-primary">Rate now</span>
         </Link>
       )}
+      </div>
 
       {recs && recs.items.length > 0 && (
-        <SeasonBand season={now.season} year={null} count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks — rate a few favourites to personalise'}
+        <SeasonBand season={now.season} year={null} label="For you" count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks — rate a few favourites to personalise'}
           aside={<Link to="/taste" className="btn btn-ghost">See your taste</Link>}>
           <h2 className="sr-only">For you</h2>
           <div className="recs">{recs.items.slice(0, 12).map((r) => <RecCard key={r.anime.id} r={r} />)}</div>
@@ -84,7 +86,7 @@ export function HomePage() {
       )}
 
       {recent.length > 0 && (
-        <SeasonBand season={now.season} year={now.year} count="recently on your chart"
+        <SeasonBand season={now.season} year={null} label="Recently added"
           aside={<Link to="/chart" className="btn btn-ghost">Whole chart</Link>}>
           <CoverGrid dense>{recent.map((e) => <Tile key={e.anime_id} e={e} />)}</CoverGrid>
         </SeasonBand>
