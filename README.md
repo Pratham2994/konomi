@@ -10,6 +10,31 @@ An anime list that never asks you for a number.
   It recommends with reasons, guesses your score *before* you answer (then shows how close it was), maps your
   taste DNA, draws your taste as a 3D galaxy, and compares you with friends. See [docs/model-report.md](docs/model-report.md).
 
+## Status — overnight build (2026-11-01)
+
+**Done and tested**
+- Accounts: email + password, 6-digit email code, reset, sessions. Sign-up credentials only become an account
+  when the code *and* the sign-up password are verified (no pre-verification takeover).
+- Quick add (whole catalogue searched in the browser), season walk, MAL/AniList import.
+- Rating: feeling → duels → score bands; rate session; the model's guess is revealed after you answer.
+- Taste model: EASE + Mult-VAE blend, content bridge for post-2020 titles, predicted scores, taste DNA, taste
+  match, galaxy, "how Konomi picks" network. Numbers in [docs/model-report.md](docs/model-report.md).
+- Profiles: private by default, public link, hidden sections removed server-side, hot takes, anime years, share
+  card / link preview, customise page.
+- Tests: API 40/40 (pytest), search ranking 17/17 (vitest), full journey E2E 2/2 (phone + desktop).
+
+**Not done yet**
+- Not deployed. Neon was not touched (see morning steps).
+- Emails go to Mailpit locally; Resend is wired but needs your key.
+- Profile ideas to pick from: [docs/profile-ideas.md](docs/profile-ideas.md).
+- Deferred minor: signing up again within 60 s for a still-unverified email returns 429 (reveals a pending sign-up).
+
+**Your morning steps**
+1. Rotate the Neon password (it was pasted in chat): Neon → Roles → `konomi_owner` → Reset, then update `.env`.
+2. Create a Resend account, verify a sending domain, and add `KONOMI_RESEND_API_KEY` + `KONOMI_MAIL_FROM`.
+3. Deploy together: migrate + seed Neon (`KONOMI_DATABASE_URL=<neon url> alembic upgrade head && python seed.py --no-demo`),
+   host the API and the built web app, set `KONOMI_PUBLIC_URL` and `KONOMI_SECRET`.
+
 ## Run it locally
 
 Needs Docker, Node 20+, [uv](https://docs.astral.sh/uv/).
