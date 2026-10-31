@@ -19,7 +19,8 @@ async function load(): Promise<void> {
   const refresh = fetch('/api/catalog/index', { credentials: 'include' })
     .then((r) => (r.ok ? r.json() : null))
     .then((data: { version: string; items: IndexRow[] } | null) => {
-      if (!data || data.version === cached?.version) return
+      if (!data) { if (!cached) postMessage({ type: 'error' }); return }
+      if (data.version === cached?.version) return
       idx = buildIndex(data.items)
       set('konomi-catalog', data).catch(() => undefined)
       postMessage({ type: 'ready', count: data.items.length })
