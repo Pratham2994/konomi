@@ -11,9 +11,9 @@
 @media (min-width: 1920px) { .anime-grid { grid-template-columns: 400px 860px; } }
 .anime-grid > * { min-width: 0; }
 .anime-cover { position: sticky; top: calc(var(--topbar) + 24px); align-self: start; }
-.anime-kicker-line { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--paper-2); font-size: 14px; font-weight: 700; }
-.anime-kicker-line a { color: var(--season); text-decoration: none; }
-.anime-title { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.04; margin-top: var(--s3); overflow-wrap: anywhere; }
+.anime-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--paper-2); font-size: 14px; font-weight: 700; margin-top: var(--s3); }
+.anime-meta a { color: var(--season); text-decoration: none; }
+.anime-title { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.04; overflow-wrap: anywhere; }
 .anime-alt { color: var(--paper-2); margin-top: var(--s2); }
 .anime-actions { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; margin-top: var(--s5); }
 .anime-score { margin-top: var(--s5); padding: var(--s4) var(--s4) var(--s2); border-radius: var(--r-panel); background: rgb(13 12 18 / 0.55); border: 1px solid var(--line); }

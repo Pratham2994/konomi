@@ -13,9 +13,8 @@
 
 .rp-head { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s4); }
 .rp-head .cover { flex: none; }
-.rp-head-text { min-width: 0; flex: 1; }
-.rp-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rp-sub { font-family: var(--display); font-size: 20px; line-height: 1.2; }
+.rp-sub { flex: 1; min-width: 0; font-family: var(--display); font-weight: 400; font-size: 20px; line-height: 1.2; }
+.rp-name { color: var(--season); }
 .rp-x { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--ink-3); color: var(--paper-2); }
 .rp-x:hover { color: var(--paper); background: var(--ink-4); }
 

@@ -44,14 +44,11 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
       transition={{ type: 'spring', stiffness: 420, damping: 36 }}>
       <header className="rp-head">
         <Cover id={anime.id} title={anime.title} src={anime.thumbnail} color={anime.color} size="s" status="completed" animateMark />
-        <div className="rp-head-text">
-          <p className="rp-name">{name}</p>
-          <p className="rp-sub">
-            {flow.phase.kind === 'tier' && 'How was it?'}
-            {flow.phase.kind === 'duel' && 'Which did you enjoy more?'}
-            {flow.phase.kind === 'reveal' && 'Placed on your chart'}
-          </p>
-        </div>
+        <h2 className="rp-sub">
+          {flow.phase.kind === 'tier' && <>How was <span className="rp-name">{name}</span>?</>}
+          {flow.phase.kind === 'duel' && 'Which did you enjoy more?'}
+          {flow.phase.kind === 'reveal' && <><span className="rp-name">{name}</span> is on your chart</>}
+        </h2>
         <button className="rp-x" onClick={onClose} aria-label="Close"><Icon name="close" size={18} /></button>
       </header>
 

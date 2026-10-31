@@ -60,14 +60,14 @@ export function AnimePage() {
             score={entry?.score} size="l" eager />
         </div>
         <div className="anime-main">
-          <p className="anime-kicker-line">
+          <h1 className="display anime-title">{name}</h1>
+          {a.title_en && a.title_en !== a.title && <p className="anime-alt">{a.title}</p>}
+          <p className="anime-meta">
             {a.season && a.year ? <Link to={`/sweep?year=${a.year}&season=${a.season}`}>{SEASON_LABEL[a.season]} {a.year}</Link> : a.year}
             <span>{TYPE[a.type] ?? a.type}</span>
             {a.episodes && a.episodes > 1 && <span>{a.episodes} episodes</span>}
             {minutes(a.duration_s) && <span>{minutes(a.duration_s)}{a.episodes && a.episodes > 1 ? ' each' : ''}</span>}
           </p>
-          <h1 className="display anime-title">{name}</h1>
-          {a.title_en && a.title_en !== a.title && <p className="anime-alt">{a.title}</p>}
 
           {me ? (
             <div className="anime-actions">
@@ -120,7 +120,7 @@ export function AnimePage() {
           <div className="grid grid-dense">
             {a.related.map((r) => (
               <Link key={r.id} to={`/anime/${r.id}`} className="tile">
-                <Cover id={r.id} title={r.title} src={r.thumbnail} color={r.color} status={onList.get(r.id)?.status} size="m" />
+                <Cover id={r.id} title={r.title} src={r.picture ?? r.thumbnail} color={r.color} status={onList.get(r.id)?.status} size="m" />
                 <span className="tile-title">{r.title_en ?? r.title}</span>
                 <span className="tile-sub">{[r.year, TYPE[r.type] ?? r.type].filter(Boolean).join(' · ')}</span>
               </Link>

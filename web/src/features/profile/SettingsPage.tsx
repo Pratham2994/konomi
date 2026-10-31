@@ -143,7 +143,7 @@ export function SettingsPage() {
               return (
                 <button key={e.anime_id} className={`set-pick${on ? ' is-on' : ''}`}
                   onClick={() => pickFor === 'banner' ? save.mutate({ banner_anime_id: e.anime_id }) : toggleFav(e.anime_id)}>
-                  <Cover id={e.anime_id} title={e.anime.title} src={e.anime.thumbnail} color={e.anime.color} status={on ? 'completed' : undefined} animateMark score={e.score} />
+                  <Cover id={e.anime_id} title={e.anime.title} src={e.anime.picture ?? e.anime.thumbnail} color={e.anime.color} status={on ? 'completed' : undefined} animateMark score={e.score} />
                   <span className="tile-title">{e.anime.title_en ?? e.anime.title}</span>
                 </button>
               )

@@ -71,8 +71,7 @@ export function RatePage() {
               <div className="rate-tier">
                 <div className="rate-cover"><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></div>
                 <div className="rate-tier-side">
-                  <p className="rate-name">{q.anime.title_en ?? q.anime.title}</p>
-                  <h2 className="display rate-ask">How was it?</h2>
+                  <h2 className="display rate-ask">How was <span className="rate-name">{q.anime.title_en ?? q.anime.title}</span>?</h2>
                   <div className="rp-tiers">
                     {TIERS.map((t) => (
                       <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={busy}
@@ -93,7 +92,7 @@ export function RatePage() {
               <div className="rate-tier">
                 <div className="rate-cover"><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></div>
                 <div className="rate-tier-side">
-                  <p className="rate-name">{q.anime.title_en ?? q.anime.title}</p>
+                  <p className="rate-facet-title display">{q.anime.title_en ?? q.anime.title}</p>
                   {FACETS.map((f, i) => (
                     <div key={f.key} className="rate-facet">
                       <h2 className="display rate-ask-s">{f.q}</h2>

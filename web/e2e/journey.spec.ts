@@ -21,16 +21,16 @@ async function addAndRate(page: Page, q: string, tier: string) {
   await expect(page.locator('.qa-hero .qa-row').first()).toBeVisible()
   await input.press('Enter')
   const panel = page.getByRole('dialog')
-  await expect(panel.getByText('How was it?')).toBeVisible()
+  await expect(panel.getByText(/How was/)).toBeVisible()
   await panel.getByRole('button', { name: tier }).click()
   // Answer any placement duels by preferring the new title (left side).
   for (let i = 0; i < 8; i++) {
-    if (await panel.getByText('Placed on your chart').isVisible()) break
+    if (await panel.getByText(/is on your chart/).isVisible()) break
     const duel = panel.locator('.duel-side').first()
     if (await duel.isVisible()) await duel.click()
     await page.waitForTimeout(300)
   }
-  await expect(panel.getByText('Placed on your chart')).toBeVisible()
+  await expect(panel.getByText(/is on your chart/)).toBeVisible()
   await panel.getByRole('button', { name: 'Done' }).click()
   await expect(panel).toBeHidden()
 }

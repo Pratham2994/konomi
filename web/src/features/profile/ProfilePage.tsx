@@ -3,7 +3,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
-import { CoverGrid, SeasonBand } from '../../components/SeasonBand'
+import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { useToast } from '../../components/Toast'
 import { api, ApiError } from '../../lib/api'
 import { SEASON_ORDER, useMe } from '../../lib/hooks'
@@ -158,21 +158,17 @@ export function ProfilePage() {
       <section key="hot" className="prof-sec">
         <h2 className="display prof-h">Hot takes</h2>
         <p className="muted prof-sub">Where {p.user.display_name} disagrees with everyone else the most.</p>
-        <div className="hot">
-          {p.hot_takes.map((h) => (
-            <Link key={h.anime.id} to={`/anime/${h.anime.id}`} className="hot-card" data-season={h.anime.season ?? undefined}>
-              <Cover id={h.anime.id} title={h.anime.title} src={h.anime.thumbnail} color={h.anime.color} size="s" />
-              <span className="hot-text">
-                <strong>{h.anime.title_en ?? h.anime.title}</strong>
-                <span className="hot-nums">
-                  <span className="display hot-you">{h.you.toFixed(1)}</span>
-                  <span className="faint">vs everyone’s {h.everyone.toFixed(1)}</span>
-                </span>
-                <span className="hot-dir">{h.you > h.everyone ? 'Underrated, apparently' : 'Not buying the hype'}</span>
-              </span>
-            </Link>
+        <ol className="hot">
+          {p.hot_takes.map((h, i) => (
+            <li key={h.anime.id} data-season={h.anime.season ?? undefined}>
+              <span className="hot-n display">{i + 1}</span>
+              <Link to={`/anime/${h.anime.id}`} className="hot-title">{h.anime.title_en ?? h.anime.title}</Link>
+              <span className="hot-you display">{h.you.toFixed(1)}</span>
+              <span className="hot-vs faint">everyone {h.everyone.toFixed(1)}</span>
+              <span className="hot-dir">{h.you > h.everyone ? 'Underrated, apparently' : 'Not buying the hype'}</span>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
     ) : null,
     years: show('years') && p.years.length > 0 ? (
@@ -208,18 +204,18 @@ export function ProfilePage() {
             ))}
           </div>
         </div>
-        {grouped.map((g) => (
-          <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`}>
+        <Bands>{grouped.map((g) => (
+          <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 12}>
             <CoverGrid dense>
               {g.items.map((e) => (
                 <Link key={e.anime.id} to={`/anime/${e.anime.id}`} className="tile" data-season={e.anime.season ?? undefined}>
-                  <Cover id={e.anime.id} title={e.anime.title} src={e.anime.thumbnail} color={e.anime.color} status={e.status} score={e.score} />
+                  <Cover id={e.anime.id} title={e.anime.title} src={e.anime.picture ?? e.anime.thumbnail} color={e.anime.color} status={e.status} score={e.score} />
                   <span className="tile-title">{e.anime.title_en ?? e.anime.title}</span>
                 </Link>
               ))}
             </CoverGrid>
           </SeasonBand>
-        ))}
+        ))}</Bands>
       </section>
     ) : null,
   }
@@ -250,15 +246,14 @@ export function ProfilePage() {
             </div>
           </div>
           {p.user.bio && <p className="prof-bio">{p.user.bio}</p>}
-          <dl className="prof-stats">
-            <div><dt>Watched</dt><dd className="display">{p.stats.watched}</dd></div>
-            <div><dt>Hours</dt><dd className="display">{p.stats.hours.toLocaleString()}</dd></div>
-            <div><dt>Watching</dt><dd className="display">{p.stats.watching}</dd></div>
-            {p.stats.top_studio && <div><dt>Most-watched studio</dt><dd className="prof-studio">{p.stats.top_studio}</dd></div>}
-            {p.track && <div title={`Over ${p.track.n} titles, Konomi's guess came before the answer`}>
-              <dt>Konomi knows {p.is_owner ? 'me' : 'them'}</dt>
-              <dd className="display">{Math.round(p.track.within1 * 100)}%</dd></div>}
-          </dl>
+          <p className="prof-line">
+            <span><strong className="display">{p.stats.watched}</strong> watched</span>
+            <span><strong className="display">{p.stats.hours.toLocaleString()}</strong> hours</span>
+            {p.stats.watching > 0 && <span><strong className="display">{p.stats.watching}</strong> watching now</span>}
+            {p.stats.top_studio && <span>mostly <strong className="prof-studio">{p.stats.top_studio}</strong></span>}
+            {p.track && <span title={`Over ${p.track.n} titles, Konomi guessed before the answer`}>
+              Konomi guesses {p.is_owner ? 'my' : 'their'} scores within a point <strong className="display">{Math.round(p.track.within1 * 100)}%</strong> of the time</span>}
+          </p>
           <div className="prof-actions">
             {p.user.is_public && <button className="btn btn-primary" onClick={share}><Icon name="share" size={18} /> Share</button>}
             {p.user.is_public && <a className="btn" href={`/og/u/${p.user.username}.png`} download={`${p.user.username}-konomi.png`}>

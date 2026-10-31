@@ -8,7 +8,8 @@
 .rate-q { display: grid; }
 .rate-ask { font-size: clamp(26px, 3.6vw, 44px); line-height: 1.1; margin-bottom: var(--s5); }
 .rate-ask-s { font-size: clamp(20px, 2.4vw, 28px); margin-bottom: var(--s3); }
-.rate-name { color: var(--paper-2); font-weight: 700; margin-bottom: var(--s2); }
+.rate-name { color: var(--season); }
+.rate-facet-title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.1; margin-bottom: var(--s5); }
 .rate-tier { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 460px); gap: clamp(24px, 5vw, 72px); align-items: center; justify-content: center; }
 .rate-tier .rp-tier { min-height: 56px; font-size: 17px; }
 .rate-facet + .rate-facet { margin-top: var(--s5); }

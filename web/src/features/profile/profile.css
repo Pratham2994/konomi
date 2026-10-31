@@ -21,10 +21,10 @@
 .prof-name { font-size: clamp(34px, 6vw, 80px); line-height: 1; overflow-wrap: anywhere; }
 .prof-handle { color: var(--paper-2); margin-top: 6px; }
 .prof-bio { max-width: 60ch; font-size: 17px; }
-.prof-stats { display: flex; flex-wrap: wrap; gap: var(--s5) clamp(24px, 4vw, 56px); margin: var(--s2) 0 0; }
-.prof-stats dt { font-size: 13px; color: var(--paper-2); }
-.prof-stats dd { margin: 0; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.1; color: var(--season); }
-.prof-studio { font-size: 18px !important; font-weight: 700; color: var(--paper) !important; text-transform: capitalize; padding-top: 8px; }
+.prof-line { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 16px; color: var(--paper-2); max-width: 60%; }
+.prof-line strong.display { color: var(--season); font-size: 22px; font-weight: 400; margin-right: 4px; }
+.prof-studio { color: var(--paper); text-transform: capitalize; }
+@media (max-width: 1099px) { .prof-line { max-width: none; } }
 .prof-actions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
 .prof-note { display: inline-flex; gap: 6px; align-items: center; color: var(--paper-2); font-size: 14px; }
 
@@ -43,18 +43,18 @@
 .favs li:first-child .favs-n { font-size: clamp(40px, 5vw, 72px); color: var(--season); }
 .favs li:first-child .tile-title { font-size: 16px; }
 
-.hot { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); margin-top: var(--s4); }
-.hot-card {
-  display: flex; gap: var(--s3); align-items: center; padding: var(--s3); border-radius: var(--r-panel);
-  background: var(--ink-2); border: 1px solid var(--line); text-decoration: none; transition: border-color 0.2s;
+.hot { list-style: none; margin: var(--s4) 0 0; padding: 0; max-width: 980px; }
+.hot li {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 4px var(--s4); align-items: baseline;
+  padding: 14px 0; border-bottom: 1px solid var(--line);
 }
-.hot-card:hover { border-color: var(--season); }
-.hot-card .cover { flex: none; }
-.hot-text { display: grid; gap: 2px; min-width: 0; }
-.hot-text strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hot-nums { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
-.hot-you { font-size: 26px; color: var(--season); line-height: 1.1; }
-.hot-dir { font-size: 12px; font-weight: 700; color: var(--paper-2); }
+.hot-n { font-size: 22px; color: var(--paper-3); }
+.hot-title { font-weight: 700; font-size: 17px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hot-title:hover { color: var(--season); }
+.hot-you { font-size: 28px; color: var(--season); line-height: 1; }
+.hot-vs { font-size: 13px; white-space: nowrap; }
+.hot-dir { grid-column: 2 / -1; font-size: 13px; font-weight: 700; color: var(--paper-2); }
+@media (max-width: 560px) { .hot li { grid-template-columns: 32px minmax(0, 1fr) auto; } .hot-vs { grid-column: 2; } }
 
 .years { display: flex; align-items: flex-end; gap: 3px; height: 180px; margin-top: var(--s5); padding-bottom: 22px; }
 .years-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 3px; }

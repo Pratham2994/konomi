@@ -30,3 +30,7 @@
 
 .chart-empty { display: grid; gap: var(--s4); justify-items: start; max-width: 620px; padding-top: 12vh; }
 .chart-empty h1 { font-size: clamp(32px, 5vw, 56px); }
+
+@media (max-width: 640px) {
+  .seg { flex-wrap: wrap; border-radius: 18px; overflow: visible; }
+}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
-import { CoverGrid, SeasonBand } from '../../components/SeasonBand'
+import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { SEASON_ORDER, STATUS_LABEL, useList } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
 import './chart.css'
@@ -13,7 +13,7 @@ export function Tile({ e, sub }: { e: Entry; sub?: string }) {
   const a = e.anime
   return (
     <Link to={`/anime/${a.id}`} className="tile" data-season={a.season ?? undefined}>
-      <Cover id={a.id} title={a.title} src={a.thumbnail} color={a.color} status={e.status} score={e.score} />
+      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={e.status} score={e.score} />
       <span className="tile-title">{a.title_en ?? a.title}</span>
       {sub && <span className="tile-sub">{sub}</span>}
     </Link>
@@ -85,11 +85,11 @@ export function ChartPage() {
         </div>
       </div>
 
-      {sort === 'season' ? groups.map((g) => (
-        <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`}>
+      {sort === 'season' ? <Bands>{groups.map((g) => (
+        <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 12}>
           <CoverGrid>{g.items.map((e) => <Tile key={e.anime_id} e={e} />)}</CoverGrid>
         </SeasonBand>
-      )) : (
+      ))}</Bands> : (
         <ol className="ranked">
           {byScore.map((e, i) => (
             <li key={e.anime_id} data-season={e.anime.season ?? undefined}>
