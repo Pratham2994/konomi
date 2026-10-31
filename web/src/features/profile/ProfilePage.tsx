@@ -233,6 +233,15 @@ export function ProfilePage() {
           </div>
         )}
         <div className="page prof-head-inner">
+          {p.favourites.length >= 3 && (
+            <div className="prof-fan" aria-hidden="true">
+              {p.favourites.slice(0, 3).reverse().map((f, i) => (
+                <div key={f.id} className={`prof-fan-card prof-fan-${i}`}>
+                  <Cover id={f.id} title={f.title} src={f.picture ?? f.thumbnail} color={f.color} score={f.score} eager />
+                </div>
+              ))}
+            </div>
+          )}
           <div className="prof-id">
             <span className="prof-avatar display" aria-hidden="true">{p.user.display_name.slice(0, 1).toUpperCase()}</span>
             <div>
