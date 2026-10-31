@@ -42,6 +42,14 @@ def clean_synopsis(text: str | None) -> str | None:
     return text
 
 
+def pick_synopsis(kaggle: str | None, anilist: str | None) -> str | None:
+    """Kaggle text is often mojibake-damaged ('�'); prefer AniList when that happens."""
+    k, a = clean_synopsis(kaggle), clean_synopsis(anilist)
+    if k and "�" in k and a:
+        return a
+    return (k.replace("�", "—") if k else None) or a
+
+
 def load_anilist() -> dict[int, dict]:
     out: dict[int, dict] = {}
     for path in CACHE.glob("*.json"):
@@ -127,7 +135,7 @@ def build() -> pl.DataFrame:
             "studios": e.get("studios", []),
             "tags": tags,
             "genres": (al or {}).get("genres") or (kg or {}).get("genres") or [],
-            "synopsis": clean_synopsis((kg or {}).get("synopsis")) or clean_synopsis((al or {}).get("description")),
+            "synopsis": pick_synopsis((kg or {}).get("synopsis"), (al or {}).get("description")),
             "popularity": popularity,
             "color": ((al or {}).get("coverImage") or {}).get("color"),
             "related_urls": e.get("relatedAnime", []),
