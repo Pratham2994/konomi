@@ -18,10 +18,11 @@ export function useMe() {
 }
 
 export function useList(enabled = true) {
+  const { data: me } = useMe()
   return useQuery<Entry[]>({
     queryKey: ['list'],
     queryFn: async () => (await api<{ entries: Entry[] }>('/api/list')).entries,
-    enabled,
+    enabled: enabled && !!me,
     staleTime: 30_000,
   })
 }
