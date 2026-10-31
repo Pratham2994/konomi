@@ -88,3 +88,9 @@ def test_mail_failure_does_not_block_resend(client, monkeypatch):
 
 def test_negative_limits_rejected(client):
     assert client.get("/api/sweep?year=2020&season=FALL&limit=-1").status_code == 422
+
+
+def test_og_fetcher_refuses_unknown_hosts():
+    from konomi_api.profile.og import fetch_image
+    assert fetch_image("http://169.254.169.254/latest/meta-data") is None
+    assert fetch_image("http://localhost:8000/api/me") is None

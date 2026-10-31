@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import io
 import time
-from functools import lru_cache
 
 import httpx
 from fastapi import APIRouter, Response
@@ -29,14 +28,35 @@ def font(size: int, display: bool = False) -> ImageFont.FreeTypeFont | ImageFont
         return ImageFont.load_default(size)
 
 
-@lru_cache(maxsize=512)
+IMAGE_HOSTS = {"cdn.myanimelist.net", "cdn.anime-planet.com", "cdn.animenewsnetwork.com", "cdn.anisearch.com",
+               "media.kitsu.app", "s4.anilist.co", "raw.githubusercontent.com", "cdn.anidb.net", "u.livechart.me",
+               "simkl.in"}
+MAX_IMAGE = 5 * 1024 * 1024
+_images: dict[str, Image.Image] = {}
+
+
 def fetch_image(url: str) -> Image.Image | None:
+    """Cover art for share cards: catalogue CDNs only, no redirects off them, at most 5 MB. Only successes are
+    cached, so a CDN hiccup doesn't blank an image until restart."""
+    if url in _images:
+        return _images[url]
+    if httpx.URL(url).host not in IMAGE_HOSTS:
+        return None
     try:
-        r = httpx.get(url, timeout=6, follow_redirects=True)
-        r.raise_for_status()
-        return Image.open(io.BytesIO(r.content)).convert("RGB")
+        with httpx.stream("GET", url, timeout=6, follow_redirects=False) as r:
+            r.raise_for_status()
+            data = b""
+            for chunk in r.iter_bytes():
+                data += chunk
+                if len(data) > MAX_IMAGE:
+                    return None
+        im = Image.open(io.BytesIO(data)).convert("RGB")
     except Exception:
         return None
+    if len(_images) >= 512:
+        _images.pop(next(iter(_images)))
+    _images[url] = im
+    return im
 
 
 def cover(im: Image.Image, w: int, h: int) -> Image.Image:
@@ -97,6 +117,8 @@ def og(username: str, db: Db) -> Response:
         png = hit[1]
     else:
         png = render(public_view(profile_payload(db, u)))
+        if len(_cache) >= 256:
+            _cache.pop(next(iter(_cache)))
         _cache[key] = (time.time(), png)
     return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=600"})
 
