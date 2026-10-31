@@ -234,15 +234,15 @@ together afterwards.
   public/private profile). **Owner's rule: run E2E only when absolutely required** (feature complete /
   major milestone), not after every change. Few or no unit tests except for score maths and model
   evaluation.
-- **Score bands** (proposed to owner, no objection): the feeling answer sets a band, duels order titles
-  within and across bands — Loved it 8.5–10, Really liked 7–8.9, Fine 5–7, Not for me 3–5,
-  Regret 1–3. A short or all-"Loved" list stays honest (no forced low scores). Older scores in a band
-  may shift slightly when new titles arrive. Predicted scores are in this same scale; taste match
+- **Score scale and bands** (owner left this to Claude): 1.0–10.0 with one decimal. Feeling answer sets
+  a non-overlapping band — One of my favourites 9.0–10.0, Loved it 8.0–8.9, Liked it 6.5–7.9, It was
+  okay 5.0–6.4, Didn't like it 1.0–4.9 (top-heavy because most completed shows were enjoyed); duels
+  order titles inside the band; the very best title is exactly 10.0. A short or all-"Loved" list stays
+  honest (no forced low scores). Older scores in a band may shift slightly when new titles arrive. Predicted scores are in this same scale; taste match
   compares rank/embedding, not raw scores.
-- **Adult content line** (proposed, no objection): remove hentai / MAL "Rx" titles from catalog *and*
+- **Adult content line** (owner confirmed): remove hentai / MAL "Rx" titles from catalog *and*
   training data; keep ecchi ("R+") titles.
-- **Time budget**: assume ~8 hours unattended. GPU training may keep running after the owner wakes.
-  Train baselines + 2–3 strongest candidates rather than everything; time-box each run.
+- **Time budget** (owner): no time limit; never force-stop training — early stopping on validation only.
 - **Git**: commit often with short one-line messages, no description, no co-author or AI trailer; push to
   `origin` (github.com/Pratham2994/konomi) whenever useful. Branch: `master`.
 - **Installs**: Claude installs everything itself (owner approved): PyTorch CUDA (cu128 wheel, Python
