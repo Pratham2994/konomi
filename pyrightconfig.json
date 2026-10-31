@@ -1,0 +1,8 @@
+{
+  "executionEnvironments": [
+    { "root": "api", "extraPaths": ["api/.venv/Lib/site-packages"] },
+    { "root": "pipeline", "extraPaths": ["api/.venv/Lib/site-packages"] },
+    { "root": "ml", "extraPaths": ["ml/.venv/Lib/site-packages"] }
+  ],
+  "exclude": ["**/node_modules", "**/.venv", "web", "data", "archive"]
+}
