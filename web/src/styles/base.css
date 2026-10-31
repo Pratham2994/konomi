@@ -3,6 +3,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
+/* Hand-drawn marks deliberately spill past covers; never let that become sideways scrolling. */
+html, body { overflow-x: clip; }
 
 body {
   margin: 0;

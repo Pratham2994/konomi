@@ -9,6 +9,7 @@
   padding-bottom: var(--s6);
 }
 @media (min-width: 1920px) { .anime-grid { grid-template-columns: 400px 860px; } }
+.anime-grid > * { min-width: 0; }
 .anime-cover { position: sticky; top: calc(var(--topbar) + 24px); align-self: start; }
 .anime-kicker-line { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--paper-2); font-size: 14px; font-weight: 700; }
 .anime-kicker-line a { color: var(--season); text-decoration: none; }

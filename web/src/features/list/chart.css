@@ -3,6 +3,7 @@
 .chart-stats { color: var(--paper-2); }
 .chart-stats strong { color: var(--paper); font-weight: 700; }
 .chart-controls { display: flex; gap: var(--s3); flex-wrap: wrap; justify-content: space-between; margin-top: var(--s5); }
+.chart-controls > .seg, .prof-chart-head > .seg, .anime-actions > .seg { min-width: 0; }
 
 .seg {
   display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill);
