@@ -9,6 +9,7 @@ from .rating.routes import router as rate_router
 from .taste.routes import router as taste_router
 from .profile.routes import router as profile_router
 from .profile.og import router as og_router
+from .imports.routes import router as import_router
 
 app = FastAPI(title="Konomi")
 app.include_router(auth_router)
@@ -20,6 +21,7 @@ app.include_router(rate_router)
 app.include_router(taste_router)
 app.include_router(profile_router)
 app.include_router(og_router)
+app.include_router(import_router)
 
 
 @app.get("/api/health")

@@ -6,6 +6,8 @@ import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { api } from '../../lib/api'
 import { useList } from '../../lib/hooks'
+import { ImportPanel } from './ImportPanel'
+import '../auth/auth.css'
 import './settings.css'
 
 interface Settings {
@@ -149,6 +151,12 @@ export function SettingsPage() {
           </div>
         </section>
       )}
+
+      <section className="set-sec" id="import">
+        <h2>Bring your list over</h2>
+        <p className="muted">From MyAnimeList (Profile → Export → Anime list) or a public AniList profile. Nothing already on your chart is changed.</p>
+        <ImportPanel />
+      </section>
 
       <section className="set-sec">
         <h2>Sections</h2>

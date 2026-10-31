@@ -58,7 +58,8 @@ export function HomePage() {
         {empty && (
           <p className="muted home-hint">
             Type a title and press Enter — it lands on your chart. Have years of anime behind you?{' '}
-            <Link to="/sweep">Walk back through past seasons</Link> and tap what you’ve seen.
+            <Link to="/sweep">Walk back through past seasons</Link> and tap what you’ve seen,
+            or <Link to="/settings#import">import your MyAnimeList or AniList list</Link>.
           </p>
         )}
       </section>
