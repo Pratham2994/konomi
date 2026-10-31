@@ -53,7 +53,7 @@ def catalog_index(request: Request) -> Response:
 def brief(a: Anime) -> dict:
     return {"id": a.id, "title": a.title, "title_en": a.title_en, "type": a.type, "year": a.year,
             "season": a.season, "episodes": a.episodes, "thumbnail": a.thumbnail, "picture": a.picture,
-            "color": a.color, "popularity": a.popularity}
+            "color": a.color, "popularity": a.popularity, "duration_s": a.duration_s}
 
 
 def detail(a: Anime) -> dict:

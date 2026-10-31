@@ -1,9 +1,13 @@
+import os
 import re
 
-import httpx
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import text
+# Tests truncate user tables, so they run against their own database (created + seeded once, see README).
+os.environ.setdefault("KONOMI_DATABASE_URL", "postgresql+psycopg://konomi:konomi@localhost:5433/konomi_test")
+
+import httpx  # noqa: E402
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 from konomi_api.auth import ratelimit
 from konomi_api.db import engine

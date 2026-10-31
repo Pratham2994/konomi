@@ -27,13 +27,13 @@ export function Cover({ id, title, src, color, status, score, animateMark, size 
         ) : (
           <span className="cover-fallback" aria-hidden="true">{title.slice(0, 1)}</span>
         )}
-        {score != null && (
-          <span className="obi" aria-label={`Your score ${score.toFixed(1)}`}>
-            <span className="obi-num">{score.toFixed(1)}</span>
-          </span>
-        )}
       </div>
       {status && <Mark status={status} animate={animateMark} seed={id} />}
+      {score != null && (
+        <span className="obi" aria-label={`Your score ${score.toFixed(1)}`}>
+          <span className="obi-num">{score.toFixed(1)}</span>
+        </span>
+      )}
     </div>
   )
 }

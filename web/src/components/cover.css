@@ -16,7 +16,7 @@
 
 /* Obi: the paper band wrapped around a boxed release, carrying the score. */
 .obi {
-  position: absolute; left: 0; right: 0; bottom: 9%;
+  position: absolute; z-index: 2; left: -3px; right: -3px; bottom: 9%;
   display: flex; align-items: center; justify-content: flex-end;
   padding: 2px 8px;
   background: var(--paper); color: var(--ink);

@@ -1,0 +1,51 @@
+.rp {
+  position: fixed; z-index: 70;
+  left: 8px; right: 8px; bottom: calc(var(--bottombar) + 8px + env(safe-area-inset-bottom));
+  max-height: calc(100dvh - var(--bottombar) - 80px); overflow-y: auto;
+  background: var(--ink-2); border: 1px solid var(--line); border-radius: 20px;
+  box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.95);
+  padding: var(--s4);
+}
+@media (min-width: 900px) {
+  .rp { left: auto; right: 24px; bottom: 24px; width: 400px; max-height: calc(100dvh - 120px); }
+}
+@media (min-width: 1920px) { .rp { width: 440px; right: 40px; bottom: 40px; } }
+
+.rp-head { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s4); }
+.rp-head .cover { flex: none; }
+.rp-head-text { min-width: 0; flex: 1; }
+.rp-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-sub { font-family: var(--display); font-size: 20px; line-height: 1.2; }
+.rp-x { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--ink-3); color: var(--paper-2); }
+.rp-x:hover { color: var(--paper); background: var(--ink-4); }
+
+.rp-body { display: grid; gap: var(--s3); }
+.rp-tiers { display: grid; gap: 6px; }
+.rp-tier {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 48px; padding: 0 var(--s4);
+  border-radius: 12px; border: 1px solid var(--line); background: var(--ink-3);
+  font-weight: 700; text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s var(--ease-out);
+}
+.rp-tier kbd { font-family: var(--body); font-size: 12px; color: var(--paper-3); }
+@media (hover: none) { .rp-tier kbd { display: none; } }
+.rp-tier:hover { border-color: var(--season); transform: translateX(2px); }
+.rp-tier:active { transform: scale(0.98); }
+.rp-tier-5 { background: var(--season); color: var(--ink); border-color: transparent; }
+.rp-tier-5 kbd { color: color-mix(in oklab, var(--ink) 70%, var(--season)); }
+.rp-tier-5:hover { border-color: var(--paper); }
+.rp-tier-4 { background: color-mix(in oklab, var(--season) 22%, var(--ink-3)); }
+.rp-later { justify-self: center; color: var(--paper-2); min-height: 40px; }
+
+.rp-verdict { text-align: center; color: var(--paper-2); font-size: 14px; }
+.rp-facets { display: grid; gap: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--line); }
+.rp-facet { display: grid; gap: 6px; font-size: 14px; color: var(--paper-2); }
+.rp-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  min-height: 34px; padding: 0 14px; border-radius: var(--r-pill);
+  border: 1px solid var(--line); background: var(--ink-3); color: var(--paper); font-size: 13px; font-weight: 700;
+}
+.chip:hover { border-color: var(--paper-3); }
+.chip.is-on { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.rp-done { width: 100%; }

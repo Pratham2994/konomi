@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     public_url: str = "http://localhost:5173"
     smtp_host: str = "localhost"
     smtp_port: int = 1025
-    mail_from: str = "Konomi <hello@konomi.local>"
+    mail_from: str = "Konomi <hello@konomi.app>"
     resend_api_key: str | None = None
     artifacts_dir: Path = ROOT / "data" / "build" / "artifacts"
     session_days: int = 30

@@ -1,0 +1,19 @@
+.rail { position: relative; height: 84px; margin: 0 14px; }
+.rail-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--paper-3); }
+.rail-tick { position: absolute; top: 50%; width: 1px; height: 8px; background: var(--paper-3); transform: translate(-50%, -50%); }
+.rail-tick span {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; color: var(--paper-3);
+}
+.rail-mark { position: absolute; top: 14px; bottom: 14px; width: 0; transform: translateX(-50%); }
+.rail-mark::before { content: ''; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px; }
+.rail-you::before { background: var(--season); width: 3px; left: -1.5px; }
+.rail-guess::before {
+  background: repeating-linear-gradient(to bottom, var(--paper) 0 4px, transparent 4px 8px);
+}
+.rail-label {
+  position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  font-size: 12px; font-weight: 700;
+}
+.rail-you .rail-label { bottom: calc(100% + 2px); color: var(--season); }
+.rail-guess .rail-label { top: calc(100% + 2px); color: var(--paper); }

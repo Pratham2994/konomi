@@ -13,6 +13,7 @@ export interface AnimeBrief {
   picture: string | null
   color: string | null
   popularity: number
+  duration_s?: number | null
 }
 
 export interface AnimeDetail extends AnimeBrief {

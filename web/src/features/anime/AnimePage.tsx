@@ -1,0 +1,124 @@
+import { useQuery } from '@tanstack/react-query'
+import { Link, useParams } from 'react-router-dom'
+import { Cover } from '../../components/Cover'
+import { ScoreRail } from '../../components/ScoreRail'
+import { api } from '../../lib/api'
+import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemove, useSetStatus } from '../../lib/hooks'
+import type { AnimeDetail, Status } from '../../lib/types'
+import { useRater } from '../rate/RaterContext'
+import './anime.css'
+
+const TYPE: Record<string, string> = { TV: 'TV series', MOVIE: 'Movie', ONA: 'Web series', OVA: 'OVA', SPECIAL: 'Special' }
+
+function minutes(s: number | null) {
+  if (!s) return null
+  return s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.round(s / 60)} min`
+}
+
+export function AnimePage() {
+  const { id } = useParams()
+  const { data: me } = useMe()
+  const { data: a } = useQuery({ queryKey: ['anime', id], queryFn: () => api<AnimeDetail>(`/api/anime/${id}`) })
+  const { data: pred } = useQuery({
+    queryKey: ['predict', id],
+    queryFn: () => api<{ predicted: number | null }>(`/api/taste/predict/${id}`),
+    enabled: !!me,
+    retry: false,
+  })
+  const onList = useListIndex()
+  const setStatus = useSetStatus()
+  const remove = useRemove()
+  const rater = useRater()
+  if (!a) return <div className="page" />
+
+  const entry = onList.get(a.id)
+  const name = a.title_en ?? a.title
+  const tierLabel = entry?.tier ? TIERS.find((t) => t.tier === entry.tier)?.label : null
+
+  function set(s: Status) {
+    if (!a) return
+    if (entry?.status === s) return
+    setStatus.mutate({ anime: a, status: s })
+    if (s === 'completed') rater.prompt(a)
+  }
+
+  return (
+    <div className="anime" data-season={a.season ?? undefined} style={{ ['--tint' as string]: a.color ?? 'var(--season)' }}>
+      <div className="anime-wash" aria-hidden="true" />
+      <div className="page anime-grid">
+        <div className="anime-cover">
+          <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={entry?.status}
+            score={entry?.score} size="l" eager />
+        </div>
+        <div className="anime-main">
+          <p className="anime-kicker-line">
+            {a.season && a.year ? <Link to={`/sweep?year=${a.year}&season=${a.season}`}>{SEASON_LABEL[a.season]} {a.year}</Link> : a.year}
+            <span>{TYPE[a.type] ?? a.type}</span>
+            {a.episodes && a.episodes > 1 && <span>{a.episodes} episodes</span>}
+            {minutes(a.duration_s) && <span>{minutes(a.duration_s)}{a.episodes && a.episodes > 1 ? ' each' : ''}</span>}
+          </p>
+          <h1 className="display anime-title">{name}</h1>
+          {a.title_en && a.title_en !== a.title && <p className="anime-alt">{a.title}</p>}
+
+          {me ? (
+            <div className="anime-actions">
+              <div className="seg" role="group" aria-label="Your status">
+                {(['completed', 'watching', 'planned', 'dropped'] as Status[]).map((s) => (
+                  <button key={s} className={entry?.status === s ? 'is-on' : ''} onClick={() => set(s)} aria-pressed={entry?.status === s}>
+                    {STATUS_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+              {entry && <button className="btn btn-ghost" onClick={() => remove.mutate(a.id)}>Remove</button>}
+            </div>
+          ) : (
+            <div className="anime-actions"><Link to="/signup" className="btn btn-primary">Add it to your chart</Link></div>
+          )}
+
+          {entry?.status === 'completed' && (
+            <div className="anime-score">
+              {entry.score != null ? (
+                <>
+                  <p className="anime-score-head"><span className="display anime-score-num">{entry.score.toFixed(1)}</span>
+                    <span className="muted">{tierLabel}</span>
+                    <button className="btn btn-ghost" onClick={() => rater.prompt(a)}>Re-rate</button></p>
+                  <ScoreRail score={entry.score} predicted={entry.predicted} />
+                </>
+              ) : (
+                <button className="btn btn-primary" onClick={() => rater.prompt(a)}>Rate it</button>
+              )}
+            </div>
+          )}
+          {me && entry?.status !== 'completed' && pred?.predicted != null && (
+            <p className="anime-guess">
+              Konomi thinks you’d give this <strong className="display">{pred.predicted.toFixed(1)}</strong>
+            </p>
+          )}
+
+          {a.synopsis && <p className="anime-synopsis">{a.synopsis}</p>}
+
+          <dl className="anime-facts">
+            {a.studios.length > 0 && <><dt>Studio</dt><dd>{a.studios.slice(0, 3).join(', ')}</dd></>}
+            {a.genres.length > 0 && <><dt>Genres</dt><dd>{a.genres.join(', ')}</dd></>}
+            {a.score && <><dt>Community</dt><dd>{a.score.toFixed(2)} average across sites</dd></>}
+          </dl>
+        </div>
+      </div>
+
+      {a.related.length > 0 && (
+        <section className="page anime-related">
+          <h2 className="display">Seasons and related</h2>
+          <div className="grid grid-dense">
+            {a.related.map((r) => (
+              <Link key={r.id} to={`/anime/${r.id}`} className="tile">
+                <Cover id={r.id} title={r.title} src={r.thumbnail} color={r.color} status={onList.get(r.id)?.status} size="m" />
+                <span className="tile-title">{r.title_en ?? r.title}</span>
+                <span className="tile-sub">{[r.year, TYPE[r.type] ?? r.type].filter(Boolean).join(' · ')}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}

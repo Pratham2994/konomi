@@ -1,0 +1,25 @@
+.duel { display: grid; gap: var(--s3); }
+.duel-pair { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
+.duel-side {
+  position: relative; display: grid; gap: var(--s2); align-content: start;
+  padding: 0; border: 0; background: none; text-align: left;
+  transition: transform 0.25s var(--ease-out);
+}
+.duel-side:hover:not(:disabled) { transform: translateY(-3px); }
+.duel-side:hover:not(:disabled) .cover-art { outline: 3px solid var(--season); outline-offset: 3px; }
+.duel-title { font-weight: 700; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.duel-key {
+  position: absolute; top: 8px; left: 8px; width: 26px; height: 26px; display: grid; place-items: center;
+  border-radius: 50%; background: rgb(13 12 18 / 0.75); color: var(--paper); font-size: 13px;
+}
+@media (hover: none) { .duel-key { display: none; } }
+.duel-vs {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--paper); color: var(--ink); font-size: 14px; pointer-events: none;
+  box-shadow: var(--shadow-lift);
+}
+.duel-tie { justify-self: center; color: var(--paper-2); }
+.duel-big .duel-pair { gap: clamp(16px, 4vw, 56px); }
+.duel-big .duel-title { font-size: clamp(15px, 1.4vw, 19px); }
+.duel-big .duel-vs { width: 60px; height: 60px; font-size: 18px; }

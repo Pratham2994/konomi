@@ -1,0 +1,33 @@
+.anime { position: relative; isolation: isolate; }
+.anime-wash {
+  position: absolute; inset: 0 0 auto; height: min(70vh, 640px); z-index: -1;
+  background: color-mix(in oklab, var(--tint) 28%, var(--ink));
+  mask-image: linear-gradient(to bottom, black 30%, transparent);
+}
+.anime-grid {
+  display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 760px); gap: clamp(24px, 5vw, 80px);
+  padding-bottom: var(--s6);
+}
+@media (min-width: 1920px) { .anime-grid { grid-template-columns: 400px 860px; } }
+.anime-cover { position: sticky; top: calc(var(--topbar) + 24px); align-self: start; }
+.anime-kicker-line { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--paper-2); font-size: 14px; font-weight: 700; }
+.anime-kicker-line a { color: var(--season); text-decoration: none; }
+.anime-title { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.04; margin-top: var(--s3); overflow-wrap: anywhere; }
+.anime-alt { color: var(--paper-2); margin-top: var(--s2); }
+.anime-actions { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; margin-top: var(--s5); }
+.anime-score { margin-top: var(--s5); padding: var(--s4) var(--s4) var(--s2); border-radius: var(--r-panel); background: rgb(13 12 18 / 0.55); border: 1px solid var(--line); }
+.anime-score-head { display: flex; align-items: baseline; gap: var(--s3); }
+.anime-score-head .btn { margin-left: auto; min-height: 36px; }
+.anime-score-num { font-size: 44px; color: var(--season); line-height: 1; }
+.anime-guess { margin-top: var(--s4); font-size: 18px; }
+.anime-guess strong { color: var(--season); font-size: 26px; font-weight: 400; margin-left: 4px; }
+.anime-synopsis { margin-top: var(--s5); max-width: 68ch; white-space: pre-line; color: var(--paper-2); line-height: 1.65; }
+.anime-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: var(--s5) 0 0; font-size: 14px; }
+.anime-facts dt { color: var(--paper-3); }
+.anime-facts dd { margin: 0; text-transform: capitalize; }
+.anime-related h2 { font-size: clamp(22px, 2.4vw, 30px); margin-bottom: var(--s4); }
+.anime-related { padding-top: 0; }
+@media (max-width: 760px) {
+  .anime-grid { grid-template-columns: 1fr; }
+  .anime-cover { position: relative; top: 0; width: 56%; max-width: 260px; }
+}

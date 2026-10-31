@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "D:\\02_Code\\Konomi\\api\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "konomi_api.main:app", "--port", "8000", "--reload", "--app-dir", "D:\\02_Code\\Konomi\\api"],
+      "port": 8000
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "D:\\02_Code\\Konomi\\web", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}
