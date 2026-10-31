@@ -6,6 +6,7 @@ Usage: python ensemble.py      (after train.py)
 from __future__ import annotations
 
 import json
+import sys
 
 import numpy as np
 import scipy.sparse as sp
@@ -33,6 +34,7 @@ class Blend:
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
     split = load_split()
     state = torch.load(MODELS / "multvae.pt", map_location="cpu")
     n_items, d = state["dec.weight"].shape
@@ -53,8 +55,9 @@ def main() -> None:
 
     res = json.loads((MODELS / "results.json").read_text())
     res["results"][f"blend (Mult-VAE + EASE-top200, w={best_w})"] = test
-    single = max(res["results"]["multvae"]["ndcg@20"], res["results"]["ease-top200"]["ndcg@20"])
-    res["serve_blend"] = best_w if test["ndcg@20"] > single * 1.02 else None
+    # Mult-VAE always runs (taste space, bridge), so the question is only whether adding EASE helps it.
+    single = res["results"]["multvae"]["ndcg@20"]
+    res["serve_blend"] = best_w if best_w > 0 and test["ndcg@20"] > single else None
     (MODELS / "results.json").write_text(json.dumps(res, indent=2))
 
     report = ROOT / "docs" / "model-report.md"
@@ -65,8 +68,8 @@ def main() -> None:
     last_row = max(i for i, l in enumerate(lines) if l.startswith("| ") and "---" not in l)
     lines.insert(last_row + 1, row)
     verdict = (f"\n**Serving:** {'blend' if res['serve_blend'] is not None else 'Mult-VAE alone'} — the blend "
-               f"{'beats' if res['serve_blend'] is not None else 'does not beat'} the best single servable model "
-               f"by more than 2% on NDCG@20 ({test['ndcg@20']:.4f} vs {single:.4f}).\n")
+               f"{'beats' if res['serve_blend'] is not None else 'does not beat'} Mult-VAE alone "
+               f"on NDCG@20 ({test['ndcg@20']:.4f} vs {single:.4f}).\n")
     text = "\n".join(lines)
     marker = "\n## Content bridge"
     text = text.replace(marker, verdict + marker) if marker in text else text + verdict

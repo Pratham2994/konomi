@@ -5,6 +5,7 @@ Usage: python train.py
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -83,6 +84,7 @@ def rating_mae(model, h: Heldout, table: np.ndarray, n_users: int = 6000) -> tup
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
     MODELS.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     split = load_split()
@@ -167,9 +169,10 @@ def write_report(results: dict, ship: str, split) -> None:
         lines.append(f"| {name} | {f('recall@20')} | {f('ndcg@20')} | {f('recall@100')} | {f('ndcg@100')} "
                      f"| {f('mae')} |")
     pop, best = results["popularity"]["ndcg@20"], results[ship]["ndcg@20"]
-    lines += ["", f"**Shipped: {ship}.** NDCG@20 is {best / pop:.1f}× the popularity baseline.",
-              "Rule: EASE ships only if it beats Mult-VAE by more than 2% (Mult-VAE gives a shared user/item "
-              "taste space that powers the galaxy, taste DNA and taste match)."]
+    lines += ["", f"**Best single model: {ship}** — NDCG@20 is {best / pop:.1f}× the popularity baseline.",
+              "Mult-VAE always runs in serving: it gives the shared user/item taste space behind the galaxy, "
+              "taste DNA, taste match and the content bridge. EASE joins it as a blend only when the blend wins "
+              "(see below)."]
     (ROOT / "docs" / "model-report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

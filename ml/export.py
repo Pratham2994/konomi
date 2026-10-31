@@ -6,6 +6,7 @@ Writes data/build/artifacts/ and appends the bridge evaluation to docs/model-rep
 from __future__ import annotations
 
 import json
+import sys
 import shutil
 import time
 
@@ -27,6 +28,7 @@ def log(msg: str) -> None:
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
     ART.mkdir(parents=True, exist_ok=True)
     cat = pl.read_parquet(BUILD / "catalog.parquet")
     cf = pl.read_parquet(BUILD / "items_cf.parquet").sort("i")
