@@ -33,6 +33,11 @@ def seed_catalog() -> None:
     with engine.begin() as c:
         c.execute(text(f"insert into anime ({cols}) values ({params}) "
                        f"on conflict (aod_key) do update set {updates}"), rows)
+        # Titles that left the catalog (e.g. newly flagged adult) are removed, list entries included.
+        gone = c.execute(text("delete from anime where not (aod_key = any(:keys))"),
+                         {"keys": df["aod_key"].to_list()}).rowcount
+        if gone:
+            print(f"removed {gone} titles no longer in the catalog")
         ids = dict(c.execute(text("select aod_key, id from anime")).all())
         rel = [{"id": ids[r["aod_key"]], "rel": [ids[k] for k in r["related_keys"] if k in ids]}
                for r in df.select("aod_key", "related_keys").to_dicts()]
