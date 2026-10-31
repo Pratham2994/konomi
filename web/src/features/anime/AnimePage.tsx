@@ -18,7 +18,7 @@ function minutes(s: number | null) {
 export function AnimePage() {
   const { id } = useParams()
   const { data: me } = useMe()
-  const { data: a } = useQuery({ queryKey: ['anime', id], queryFn: () => api<AnimeDetail>(`/api/anime/${id}`) })
+  const { data: a, error } = useQuery({ queryKey: ['anime', id], queryFn: () => api<AnimeDetail>(`/api/anime/${id}`), retry: false })
   const { data: pred } = useQuery({
     queryKey: ['predict', id],
     queryFn: () => api<{ predicted: number | null }>(`/api/taste/predict/${id}`),
@@ -29,6 +29,15 @@ export function AnimePage() {
   const setStatus = useSetStatus()
   const remove = useRemove()
   const rater = useRater()
+  if (error) {
+    return (
+      <div className="page prof-private">
+        <h1 className="display">Not in the catalogue</h1>
+        <p className="muted">This title doesn’t exist, or it was removed.</p>
+        <Link to="/" className="btn">Back home</Link>
+      </div>
+    )
+  }
   if (!a) return <div className="page" />
 
   const entry = onList.get(a.id)

@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
@@ -44,9 +43,7 @@ function Years({ years }: { years: [number, number][] }) {
         const n = map.get(y) ?? 0
         return (
           <div key={y} className="years-col" title={`${y}: ${n}`}>
-            <motion.span className="years-bar" style={{ ['--h' as string]: `${(n / max) * 100}%` }}
-              initial={{ scaleY: 0 }} whileInView={{ scaleY: 1 }} viewport={{ once: true }}
-              transition={{ delay: i * 0.015, type: 'spring', stiffness: 200, damping: 24 }} />
+            <span className="years-bar" style={{ ['--h' as string]: `${(n / max) * 100}%`, animationDelay: `${i * 15}ms` }} />
             {(y % 5 === 0 || all.length < 12) && <span className="years-label">{y}</span>}
           </div>
         )

@@ -50,7 +50,8 @@
 
 .years { display: flex; align-items: flex-end; gap: 3px; height: 180px; margin-top: var(--s5); padding-bottom: 22px; }
 .years-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 3px; }
-.years-bar { display: block; width: 100%; height: var(--h); min-height: 2px; background: var(--season); border-radius: 2px 2px 0 0; transform-origin: bottom; }
+.years-bar { display: block; width: 100%; height: var(--h); min-height: 2px; background: var(--season); border-radius: 2px 2px 0 0; transform-origin: bottom; animation: grow 0.6s var(--ease-out) both; }
+@keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .years-label { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--paper-3); }
 
 .prof-chart-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); flex-wrap: wrap; }
