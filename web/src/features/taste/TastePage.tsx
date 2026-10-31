@@ -123,7 +123,7 @@ export default function TastePage() {
     <div className="taste" data-season="FALL">
       <section className="g-stage">
         {galaxy.data && (
-          <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
+          <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} clusters={galaxy.data.clusters} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
             accent={ACCENT} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
             onPick={(id) => nav(`/anime/${id}`)} /></div>
         )}

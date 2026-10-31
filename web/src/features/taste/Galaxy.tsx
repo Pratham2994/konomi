@@ -1,4 +1,4 @@
-import { OrbitControls } from '@react-three/drei'
+import { Html, OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -115,8 +115,32 @@ function Glow({ at, color }: { at: [number, number, number]; color: string }) {
   )
 }
 
-export function GalaxyCanvas({ points, mine, recs, centroid, accent, onHover, onPick }: {
-  points: Point[]; mine: Map<number, number | null>; recs: Set<number>; centroid: [number, number, number] | null
+function ClusterLabels({ points, clusters }: { points: Point[]; clusters: ClusterMeta[] }) {
+  const labels = useMemo(() => {
+    const sum = new Map<number, [number, number, number, number]>()
+    for (const p of points) {
+      const s = sum.get(p[4]) ?? [0, 0, 0, 0]
+      sum.set(p[4], [s[0] + p[1], s[1] + p[2], s[2] + p[3], s[3] + 1])
+    }
+    return [...clusters].sort((a, b) => b.size - a.size).slice(0, 9).map((c) => {
+      const s = sum.get(c.id) ?? [0, 0, 0, 1]
+      return { id: c.id, label: c.label, at: [s[0] / s[3] * SCALE, s[1] / s[3] * SCALE, s[2] / s[3] * SCALE] as [number, number, number] }
+    })
+  }, [points, clusters])
+  return (
+    <>
+      {labels.map((l) => (
+        <Html key={l.id} position={l.at} center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
+          <span className="g-label" style={{ color: `#${clusterColor(l.id).getHexString()}` }}>{l.label}</span>
+        </Html>
+      ))}
+    </>
+  )
+}
+
+export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, onHover, onPick }: {
+  points: Point[]; clusters: ClusterMeta[]; mine: Map<number, number | null>; recs: Set<number>
+  centroid: [number, number, number] | null
   accent: string; onHover: (id: number | null, e?: { x: number; y: number }) => void; onPick: (id: number) => void
 }) {
   const [moving, setMoving] = useState(false)
@@ -127,6 +151,7 @@ export function GalaxyCanvas({ points, mine, recs, centroid, accent, onHover, on
       onPointerMissed={() => onHover(null)}>
       <Stars points={points} mine={mine} recs={recs} accent={accent} onHover={moving ? () => undefined : onHover} onPick={onPick} />
       {centroid && <Glow at={centroid} color={accent} />}
+      <ClusterLabels points={points} clusters={clusters} />
       <OrbitControls enableDamping dampingFactor={0.08} autoRotate autoRotateSpeed={0.35} target={target}
         minDistance={2.5} maxDistance={22} onStart={() => setMoving(true)} onEnd={() => setMoving(false)} />
     </Canvas>
