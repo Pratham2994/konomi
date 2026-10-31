@@ -3,7 +3,8 @@
   background: radial-gradient(ellipse at 50% 60%, #191524 0%, var(--ink) 70%);
   border-bottom: 3px solid var(--season);
 }
-.g-stage canvas { position: absolute !important; inset: 0; touch-action: none; }
+.g-canvas { position: absolute; inset: 0; }
+.g-stage canvas { touch-action: none; }
 .g-overlay { position: relative; z-index: 2; pointer-events: none; max-width: 720px; margin: 0; padding-top: var(--s6); }
 .g-title { font-size: clamp(40px, 7vw, 96px); line-height: 1; }
 .g-lead { margin-top: var(--s3); color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 12px var(--ink); }

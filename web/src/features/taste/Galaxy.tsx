@@ -25,10 +25,10 @@ const vert = /* glsl */ `
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     float pulse = aPulse > 0.5 ? 1.0 + 0.35 * sin(uTime * 2.4 + position.x * 3.0) : 1.0;
-    gl_PointSize = aSize * pulse * uPx * (9.0 / -mv.z);
+    gl_PointSize = aSize * pulse * uPx * (14.0 / -mv.z);
     gl_Position = projectionMatrix * mv;
     vColor = aColor;
-    vAlpha = aSize > 2.5 ? 1.0 : 0.55;
+    vAlpha = aSize > 2.5 ? 1.0 : 0.8;
   }
 `
 const frag = /* glsl */ `
@@ -59,7 +59,7 @@ function Stars({ points, mine, recs, accent, onHover, onPick }: {
     points.forEach((p, i) => {
       pos.set([p[1] * SCALE, p[2] * SCALE, p[3] * SCALE], i * 3)
       let c = clusterColor(p[4])
-      let s = 1.6
+      let s = 2.0
       if (mine.has(p[0])) { c = paper; s = 3.2 + ((mine.get(p[0]) ?? 7) - 5) * 0.35 }
       else if (recs.has(p[0])) { c = acc; s = 3.4; pulse[i] = 1 }
       col.set([c.r, c.g, c.b], i * 3)
@@ -122,7 +122,7 @@ export function GalaxyCanvas({ points, mine, recs, centroid, accent, onHover, on
   const [moving, setMoving] = useState(false)
   const target = centroid ? (centroid.map((v) => v * SCALE * 0.5) as [number, number, number]) : [0, 0, 0] as [number, number, number]
   return (
-    <Canvas camera={{ position: [0, 2, 12], fov: 55, near: 0.1, far: 100 }} dpr={[1, 2]}
+    <Canvas camera={{ position: [0, 1.5, 9], fov: 55, near: 0.1, far: 100 }} dpr={[1, 2]}
       raycaster={{ params: { Points: { threshold: 0.09 } } } as never} gl={{ antialias: false, alpha: true }}
       onPointerMissed={() => onHover(null)}>
       <Stars points={points} mine={mine} recs={recs} accent={accent} onHover={moving ? () => undefined : onHover} onPick={onPick} />
