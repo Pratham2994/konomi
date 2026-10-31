@@ -19,7 +19,7 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const [open, setOpen] = useState(false)
-  const { hits, ready } = useSearch(q, 8)
+  const { hits, ready, failed } = useSearch(q, 8)
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
   const onList = useListIndex()
@@ -101,7 +101,8 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
       </label>
       {showList && (
         <div className="qa-pop">
-          {!ready && <p className="qa-empty">Loading the catalogue…</p>}
+          {!ready && !failed && <p className="qa-empty">Loading the catalogue…</p>}
+          {failed && <p className="qa-empty">Can’t load the catalogue. Check your connection and reload.</p>}
           {ready && hits.length === 0 && <p className="qa-empty">Nothing matches “{q}”. Try the Japanese or English title.</p>}
           <ul id={listId} role="listbox" className="qa-list">
             {hits.map((h, i) => {

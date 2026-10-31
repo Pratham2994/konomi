@@ -98,6 +98,9 @@ def profile_payload(db, u: User) -> dict:
     studios = Counter(st for _, a in done for st in (a.studios or [])[:1])
     eng = get_engine()
     dna = eng.dna(user_entries(db, u.id)) if eng else None
+    guesses = [(e.predicted, e.score) for e, _ in done if e.predicted is not None and e.score is not None]
+    track = ({"n": len(guesses), "within1": round(sum(abs(p - s) <= 1 for p, s in guesses) / len(guesses), 3)}
+             if len(guesses) >= 3 else None)
     banner = db.get(Anime, s["banner_anime_id"]) if s["banner_anime_id"] else (
         by_id.get(fav_ids[0]) if fav_ids and fav_ids[0] in by_id else None)
     return {
@@ -109,7 +112,7 @@ def profile_payload(db, u: User) -> dict:
                   "hours": round(hours), "top_studio": studios.most_common(1)[0][0] if studios else None,
                   "rated": sum(1 for e, _ in done if e.score is not None)},
         "favourites": favourites, "hot_takes": hot_takes,
-        "years": sorted([[y, n] for y, n in years.items()]), "dna": dna, "entries": entries,
+        "years": sorted([[y, n] for y, n in years.items()]), "dna": dna, "entries": entries, "track": track,
     }
 
 

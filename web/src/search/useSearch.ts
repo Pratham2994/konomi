@@ -15,6 +15,9 @@ function getWorker(): Worker {
       if (m.type === 'result') {
         pending.get(m.id)?.(m.hits)
         pending.delete(m.id)
+      } else if (m.type === 'error') {
+        readyCount = -1
+        readyListeners.forEach((f) => f(-1))
       } else if (m.type === 'ready') {
         readyCount = m.count
         readyListeners.forEach((f) => f(m.count))
@@ -57,5 +60,5 @@ export function useSearch(q: string, limit = 8) {
       if (mine === latest.current) setHits(h)
     })
   }, [q, limit, count])
-  return { hits, ready: count > 0, count }
+  return { hits, ready: count > 0, failed: count < 0, count }
 }

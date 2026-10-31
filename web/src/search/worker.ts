@@ -24,6 +24,7 @@ async function load(): Promise<void> {
       set('konomi-catalog', data).catch(() => undefined)
       postMessage({ type: 'ready', count: data.items.length })
     })
+    .catch(() => { if (!cached) postMessage({ type: 'error' }) })
   if (!cached) await refresh
   else postMessage({ type: 'ready', count: cached.items.length })
 }

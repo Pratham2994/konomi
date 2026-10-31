@@ -20,6 +20,7 @@ interface Profile {
   years: [number, number][]
   dna: { id: number; neg: string[]; pos: string[]; value: number }[] | null
   entries: { anime: AnimeBrief; status: Status; score: number | null }[]
+  track: { n: number; within1: number } | null
   is_owner: boolean
 }
 
@@ -245,6 +246,9 @@ export function ProfilePage() {
             <div><dt>Hours</dt><dd className="display">{p.stats.hours.toLocaleString()}</dd></div>
             <div><dt>Watching</dt><dd className="display">{p.stats.watching}</dd></div>
             {p.stats.top_studio && <div><dt>Most-watched studio</dt><dd className="prof-studio">{p.stats.top_studio}</dd></div>}
+            {p.track && <div title={`Over ${p.track.n} titles, Konomi's guess came before the answer`}>
+              <dt>Konomi knows {p.is_owner ? 'me' : 'them'}</dt>
+              <dd className="display">{Math.round(p.track.within1 * 100)}%</dd></div>}
           </dl>
           <div className="prof-actions">
             {p.user.is_public && <button className="btn btn-primary" onClick={share}><Icon name="share" size={18} /> Share</button>}
