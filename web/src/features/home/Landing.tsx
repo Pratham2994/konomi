@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { ScoreRail } from '../../components/ScoreRail'
 import { api } from '../../lib/api'
+import { currentSeason } from '../../lib/hooks'
 import type { AnimeBrief, Status } from '../../lib/types'
 import './landing.css'
 
@@ -26,7 +27,7 @@ export function Landing() {
   }, [drawn, wall.length])
 
   return (
-    <div className="landing" data-season="SPRING">
+    <div className="landing" data-season={currentSeason().season}>
       <section className="l-hero page">
         <div className="l-copy">
           <h1 className="display l-title">Your anime,<br />ranked by you.<br /><span>Never by a number.</span></h1>
@@ -51,7 +52,7 @@ export function Landing() {
       </section>
 
       {a && b && (
-        <section className="l-demo page" data-season="FALL">
+        <section className="l-demo page" data-season="WINTER">
           <div className="l-demo-text">
             <h2 className="display">Try it. Which did you enjoy more?</h2>
             <p className="muted">That’s the whole rating system. A feeling picks the band, a few of these place the show inside it,
@@ -78,7 +79,7 @@ export function Landing() {
         </section>
       )}
 
-      <section className="l-steps page" data-season="WINTER">
+      <section className="l-steps page" data-season="SPRING">
         <div className="l-step">
           <h3 className="display">Add without searching</h3>
           <p className="muted">The whole catalogue — 39,000+ anime — lives in your browser. Type two letters, press Enter, done.
