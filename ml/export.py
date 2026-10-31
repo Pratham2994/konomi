@@ -17,7 +17,7 @@ import torch
 from konomi_ml.bridge import featurize, neighbour_overlap, predict, synopsis_embeddings, train_bridge
 from konomi_ml.data import BUILD, ROOT
 from konomi_ml.models import MultVAENet
-from konomi_ml.space import clusters, galaxy, taste_axes, unit
+from konomi_ml.space import clusters, galaxy, label_tags, taste_axes, unit
 
 ART = BUILD / "artifacts"
 MODELS = BUILD / "models"
@@ -76,7 +76,7 @@ def main() -> None:
     b_all[cf_rows] = b_cf[cat["cf_i"].to_numpy()[cf_rows]]
 
     pop = cat["popularity"].to_numpy().astype(np.float64)
-    tags = cat["tags"].to_list()
+    tags = [label_tags(t, g) for t, g in zip(cat["tags"].to_list(), cat["genres"].to_list())]
     axes_mat, axes = taste_axes(w_all[cf_rows], [tags[i] for i in cf_rows], np.log1p(pop[cf_rows]) + 1)
     log("axes: " + " | ".join(f"{' · '.join(a['neg'])} ↔ {' · '.join(a['pos'])}" for a in axes))
     log("umap galaxy…")

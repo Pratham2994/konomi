@@ -5,11 +5,42 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
-STOP_TAGS = {"anime", "tv", "present", "time", "asia", "earth", "japan", "japanese production", "tropes",
-             "based on a manga", "based on a light novel", "based on a visual novel", "original work",
-             "new", "female protagonist", "male protagonist", "ensemble cast", "cast", "setting",
-             "themes", "technical", "elements", "storytelling", "cgi", "manga", "4-koma", "full cgi",
-             "adapted into other media", "adapted into japanese movie", "adapted into jdrama"}
+# Only these tags may name an axis or a cluster: real genres and themes a fan would recognise, merged
+# with AniList genres. Everything else in AOD (metadata like "place", "remastered version available") is ignored.
+ALIASES = {"sci-fi": "science fiction", "sci fi": "science-fiction", "science-fiction": "science fiction",
+           "cgdct": "cute girls doing cute things", "mahou shoujo": "magical girl", "superpowers": "super power",
+           "demons": "demon", "robots": "robot", "post apocalypse": "post-apocalyptic", "boys' love": "boys love",
+           "splatter & gore": "gore", "idols": "idol", "idols (female)": "idol", "slice of life drama": "slice of life",
+           "school life": "school", "high school": "school", "superheroes": "superhero", "vampire": "vampires",
+           "dystopian": "dystopia", "aliens": "alien", "cyborgs": "cyborg", "monsters": "monster"}
+LABEL_TAGS = {
+    "action", "adventure", "comedy", "drama", "ecchi", "fantasy", "horror", "magical girl", "mecha", "music",
+    "mystery", "psychological", "romance", "science fiction", "slice of life", "sports", "supernatural",
+    "thriller", "shounen", "shoujo", "seinen", "josei", "kids", "school", "isekai", "iyashikei", "historical",
+    "military", "war", "space", "post-apocalyptic", "dystopia", "cyberpunk", "time travel", "harem",
+    "female harem", "idol", "detective", "samurai", "martial arts", "vampires", "magic", "gore", "tragedy",
+    "coming of age", "family life", "cute girls doing cute things", "cute boys doing cute things", "boys love",
+    "yuri", "parody", "super power", "gag humor", "romantic comedy", "survival", "revenge", "politics",
+    "philosophy", "otaku culture", "video games", "food", "travel", "mythology", "demon", "ninja", "superhero",
+    "dark fantasy", "slapstick", "swordplay", "crime", "conspiracy", "time manipulation", "reincarnation",
+    "tournament", "cooking", "dancing", "band", "baseball", "racing", "kaiju", "tokusatsu", "monster",
+    "alien", "robot", "cyborg", "gods", "youkai", "zombie", "elf", "dragons", "witch", "assassins",
+    "delinquents", "virtual world", "artificial intelligence", "surreal comedy", "absurdist humour",
+    "heart-warming", "unrequited love", "love triangle", "found family", "anti-hero", "avant garde",
+    "experimental", "rural", "medieval", "urban fantasy", "contemporary fantasy", "magical girl",
+}
+
+
+def label_tags(tags: list[str] | None, genres: list[str] | None) -> list[str]:
+    out = set()
+    for t in list(tags or []) + [g.lower() for g in (genres or [])]:
+        t = ALIASES.get(t, t)
+        t = ALIASES.get(t, t)
+        if t in LABEL_TAGS:
+            out.add(t)
+    return sorted(out)
+
+
 
 
 def unit(v: np.ndarray) -> np.ndarray:
@@ -20,8 +51,7 @@ def tag_matrix(tags: list[list[str]], min_count: int) -> tuple[np.ndarray, list[
     counts: dict[str, int] = {}
     for ts in tags:
         for t in set(ts or []):
-            if t not in STOP_TAGS:
-                counts[t] = counts.get(t, 0) + 1
+            counts[t] = counts.get(t, 0) + 1
     vocab = sorted(t for t, c in counts.items() if c >= min_count)
     idx = {t: k for k, t in enumerate(vocab)}
     m = np.zeros((len(tags), len(vocab)), dtype=np.float32)

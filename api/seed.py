@@ -51,7 +51,7 @@ def seed_artifacts() -> None:
         print("artifacts: none yet")
         return
     items = pl.read_parquet(items_path)
-    rows = [{"k": r["aod_key"], "e": str(list(np.round(np.asarray(r["emb"], dtype=np.float32), 5))),
+    rows = [{"k": r["aod_key"], "e": "[" + ",".join(f"{v:.5f}" for v in np.asarray(r["emb"], dtype=np.float32)) + "]",
              "x": r["x"], "y": r["y"], "z": r["z"], "cl": r["cluster"], "cf": r["has_cf"]}
             for r in items.to_dicts()]
     with engine.begin() as c:
