@@ -53,13 +53,16 @@ export function search(idx: ReturnType<typeof buildIndex>, q: string, limit = 8)
     combineWith: 'AND',
   })
   const hits: Hit[] = []
-  for (const r of raw.slice(0, 200)) {
+  // Popular shows carry dozens of alternate titles, which drags their BM25 down; so match quality is
+  // compressed (sqrt of the share of the best match) and popularity decides between good matches.
+  const best = raw[0]?.score ?? 1
+  for (const r of raw.slice(0, 300)) {
     const row = idx.byId.get(r.id as number)
     if (!row) continue
     const exact =
       normalize(row[1]) === query || (row[2] && normalize(row[2]) === query) ? 1.6 : 1
-    const pop = 1 + Math.log10(row[7] + 10) / 2.2
-    const score = r.score * exact * pop * (TYPE_WEIGHT[row[4]] ?? 0.6)
+    const pop = Math.log10(row[7] + 10) ** 2
+    const score = Math.sqrt(r.score / best) * exact * pop * (TYPE_WEIGHT[row[4]] ?? 0.6)
     hits.push({
       id: row[0], title: row[1], title_en: row[2], type: row[4], year: row[5], thumbnail: row[6],
       popularity: row[7], color: row[8], episodes: row[9], score,
