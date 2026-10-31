@@ -12,7 +12,7 @@ Season = Literal["WINTER", "SPRING", "SUMMER", "FALL"]
 
 
 @router.get("/sweep")
-def sweep(db: Db, year: int = Query(ge=1960, le=2100), season: Season = "FALL", limit: int = Query(48, le=96)) -> dict:
+def sweep(db: Db, year: int = Query(ge=1960, le=2100), season: Season = "FALL", limit: int = Query(48, ge=1, le=96)) -> dict:
     """The season's chart: its most popular TV / movie / ONA / OVA titles."""
     rows = db.scalars(
         select(Anime).where(Anime.year == year, Anime.season == season, Anime.popularity > 0,

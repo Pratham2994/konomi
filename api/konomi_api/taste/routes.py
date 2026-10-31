@@ -32,7 +32,7 @@ ERAS = {"new": (2020, 2100), "2010s": (2010, 2019), "2000s": (2000, 2009), "clas
 
 @router.get("/recs")
 def recs(user: CurrentUser, db: Db, type: str | None = None, era: str | None = None, gems: bool = False,
-         k: int = Query(24, le=60)) -> dict:
+         k: int = Query(24, ge=1, le=60)) -> dict:
     eng = _engine()
     entries = user_entries(db, user.id)
     types = {type} if type in {"TV", "MOVIE", "ONA", "OVA"} else None

@@ -46,6 +46,11 @@ uv pip install --python .venv -r requirements.txt
 cd ../api && .venv/Scripts/python seed.py
 ```
 
+## Deploying behind a proxy
+
+Rate limits key on the client IP. Behind a reverse proxy, run the API with
+`uvicorn konomi_api.main:app --proxy-headers --forwarded-allow-ips=<proxy ip>` so the real client address is used.
+
 ## Tests
 
 ```bash

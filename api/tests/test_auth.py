@@ -11,7 +11,7 @@ def test_signup_verify_login(client):
     r = client.post("/api/auth/signup", json={"email": E, "username": "Aki_9", "password": P})
     assert r.status_code == 202
     assert client.get("/api/me").status_code == 401
-    r = client.post("/api/auth/verify", json={"email": E, "code": last_code(E)})
+    r = client.post("/api/auth/verify", json={"email": E, "code": last_code(E), "password": P})
     assert r.status_code == 200 and r.json()["username"] == "aki_9"
     assert client.get("/api/me").json()["email"] == E
     client.post("/api/auth/logout")
@@ -26,8 +26,8 @@ def test_wrong_code_five_times_locks(client):
     code = last_code(E)
     wrong = "000000" if code != "000000" else "111111"
     for _ in range(5):
-        assert client.post("/api/auth/verify", json={"email": E, "code": wrong}).status_code == 400
-    assert client.post("/api/auth/verify", json={"email": E, "code": code}).status_code == 400
+        assert client.post("/api/auth/verify", json={"email": E, "code": wrong, "password": P}).status_code == 400
+    assert client.post("/api/auth/verify", json={"email": E, "code": code, "password": P}).status_code == 400
 
 
 def test_expired_code_rejected(client):
@@ -35,7 +35,7 @@ def test_expired_code_rejected(client):
     code = last_code(E)
     with engine.begin() as c:
         c.execute(text("update email_otps set expires_at = now() - interval '1 minute'"))
-    assert client.post("/api/auth/verify", json={"email": E, "code": code}).status_code == 400
+    assert client.post("/api/auth/verify", json={"email": E, "code": code, "password": P}).status_code == 400
 
 
 def test_resend_rate_limited(client):

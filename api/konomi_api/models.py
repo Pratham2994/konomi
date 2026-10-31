@@ -39,6 +39,10 @@ class EmailOtp(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Sign-up credentials travel with their own code; the account is created only when that code is verified
+    # together with this password, so a second sign-up for the same email can never swap them.
+    pending_hash: Mapped[str | None] = mapped_column(String)
+    pending_username: Mapped[str | None] = mapped_column(CITEXT)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (CheckConstraint("purpose in ('verify','reset')"),)
 

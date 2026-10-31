@@ -116,10 +116,22 @@ def profile_payload(db, u: User) -> dict:
     }
 
 
+def public_view(p: dict) -> dict:
+    """What visitors may see: sections the owner hid are removed server-side, not just hidden in the UI."""
+    hidden = {s["id"] for s in p["sections"] if not s["visible"]}
+    empty = {"favourites": [], "hot_takes": [], "years": [], "dna": None, "chart": []}
+    out = dict(p)
+    for sec in hidden:
+        out["entries" if sec == "chart" else sec] = empty[sec]
+    return out
+
+
 @router.get("/u/{username}")
 def public_profile(username: str, db: Db, viewer: OptionalUser) -> dict:
     u = visible_user(db, username, viewer)
-    return profile_payload(db, u) | {"is_owner": bool(viewer and viewer.id == u.id)}
+    owner = bool(viewer and viewer.id == u.id)
+    p = profile_payload(db, u)
+    return (p if owner else public_view(p)) | {"is_owner": owner}
 
 
 @router.get("/u/{username}/match")

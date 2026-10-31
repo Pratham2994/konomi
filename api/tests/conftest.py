@@ -39,6 +39,6 @@ def last_code(email: str) -> str:
 
 def signup_verified(client: TestClient, email="a@x.dev", username="aki", password="password123") -> dict:
     client.post("/api/auth/signup", json={"email": email, "username": username, "password": password})
-    r = client.post("/api/auth/verify", json={"email": email, "code": last_code(email)})
+    r = client.post("/api/auth/verify", json={"email": email, "code": last_code(email), "password": password})
     assert r.status_code == 200, r.text
     return r.json()

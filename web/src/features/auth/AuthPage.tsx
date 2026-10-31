@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../../lib/api'
 import type { Me } from '../../lib/types'
 import './auth.css'
@@ -9,7 +9,8 @@ type Mode = 'login' | 'signup' | 'verify' | 'reset'
 
 const ERR: Record<string, string> = {
   bad_credentials: 'That email and password don’t match.',
-  bad_code: 'That code is wrong or has expired. Check the latest email, or send a new code.',
+  bad_code: 'That code is wrong or has expired — or the password doesn’t match the one you signed up with.',
+  mail_failed: 'We couldn’t send the email just now. Try again in a minute.',
   username_taken: 'That username is taken. Try another.',
   bad_username: 'Usernames use 3–20 lowercase letters, numbers or underscores.',
   rate_limited: 'Too many tries. Wait a minute and try again.',
@@ -47,7 +48,8 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const [params] = useSearchParams()
   const [email, setEmail] = useState(params.get('email') ?? '')
   const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const carried = (useLocation().state as { password?: string } | null)?.password ?? ''
+  const [password, setPassword] = useState(carried)
   const [code, setCode] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -72,7 +74,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'unverified') {
         await api('/api/auth/resend', { method: 'POST', json: { email } }).catch(() => undefined)
-        nav(`/verify?email=${encodeURIComponent(email)}`)
+        nav(`/verify?email=${encodeURIComponent(email)}`, { state: { password } })
         return
       }
       setErr(e instanceof ApiError ? (ERR[e.code] ?? 'Something went wrong. Try again.') : 'Can’t reach Konomi. Check your connection.')
@@ -92,9 +94,9 @@ export function AuthPage({ mode }: { mode: Mode }) {
     if (mode === 'login') run(async () => signedIn(await api<Me>('/api/auth/login', { method: 'POST', json: { email, password } })))
     if (mode === 'signup') run(async () => {
       await api('/api/auth/signup', { method: 'POST', json: { email, username, password } })
-      nav(`/verify?email=${encodeURIComponent(email)}`)
+      nav(`/verify?email=${encodeURIComponent(email)}`, { state: { password } })
     })
-    if (mode === 'verify') run(async () => signedIn(await api<Me>('/api/auth/verify', { method: 'POST', json: { email, code } })))
+    if (mode === 'verify') run(async () => signedIn(await api<Me>('/api/auth/verify', { method: 'POST', json: { email, code, password } })))
     if (mode === 'reset' && !sent) run(async () => {
       await api('/api/auth/reset/request', { method: 'POST', json: { email } })
       setSent(true)
@@ -140,6 +142,13 @@ export function AuthPage({ mode }: { mode: Mode }) {
           </label>
         )}
         {(mode === 'verify' || (mode === 'reset' && sent)) && <OtpInput value={code} onChange={setCode} />}
+        {mode === 'verify' && !carried && (
+          <label className="auth-field">
+            <span>The password you signed up with</span>
+            <input className="field" type="password" autoComplete="current-password" required value={password}
+              onChange={(e) => setPassword(e.target.value)} />
+          </label>
+        )}
         {(mode === 'login' || mode === 'signup' || (mode === 'reset' && sent)) && (
           <label className="auth-field">
             <span>{mode === 'reset' ? 'New password' : 'Password'} {mode !== 'login' && <em className="faint">— 8+ characters</em>}</span>

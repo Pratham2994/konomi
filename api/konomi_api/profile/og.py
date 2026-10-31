@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from ..config import ROOT
 from ..deps import Db
-from .routes import profile_payload, visible_user
+from .routes import profile_payload, public_view, visible_user
 
 router = APIRouter(tags=["og"])
 FONT_DIR = ROOT / "api" / "fonts"
@@ -96,7 +96,7 @@ def og(username: str, db: Db) -> Response:
     if hit and time.time() - hit[0] < 600:
         png = hit[1]
     else:
-        png = render(profile_payload(db, u))
+        png = render(public_view(profile_payload(db, u)))
         _cache[key] = (time.time(), png)
     return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=600"})
 

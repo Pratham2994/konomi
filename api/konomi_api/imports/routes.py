@@ -5,7 +5,7 @@ the reason Konomi exists); duels in the rate session place them properly. Existi
 """
 from __future__ import annotations
 
-import gzip
+import zlib
 
 import httpx
 from defusedxml import ElementTree
@@ -68,12 +68,17 @@ def apply(db, user, rows: list[tuple[str, int, str, float]]) -> dict:
 
 
 @router.post("/mal")
-async def import_mal(file: UploadFile, user: CurrentUser, db: Db) -> dict:
-    raw = await file.read(MAX_BYTES + 1)
+def import_mal(file: UploadFile, user: CurrentUser, db: Db) -> dict:
+    raw = file.file.read(MAX_BYTES + 1)
     if len(raw) > MAX_BYTES:
         raise HTTPException(413, {"code": "too_large"})
     if raw[:2] == b"\x1f\x8b":
-        raw = gzip.decompress(raw)[: MAX_BYTES * 5]
+        # Inflate with a ceiling: a small gzip can expand to gigabytes.
+        d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        out = d.decompress(raw, MAX_BYTES * 5)
+        if d.unconsumed_tail:
+            raise HTTPException(413, {"code": "too_large"})
+        raw = out
     try:
         root = ElementTree.fromstring(raw)
     except Exception:

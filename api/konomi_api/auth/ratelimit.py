@@ -22,6 +22,13 @@ def hit(key: str, limit: int, window_s: int) -> None:
         q.append(now)
 
 
+def undo(key: str) -> None:
+    """Forget the latest hit for key (the guarded action failed on our side, e.g. mail down)."""
+    with _lock:
+        if _hits.get(key):
+            _hits[key].pop()
+
+
 def reset() -> None:
     with _lock:
         _hits.clear()

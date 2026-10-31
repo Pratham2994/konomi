@@ -36,6 +36,8 @@ class UserEntry:
 
 
 def entry_weight(e: UserEntry) -> float:
+    if e.status in ("dropped", "planned"):
+        return 0.0  # a feeling given before dropping a show no longer says "this is my taste"
     return TIER_WEIGHT[e.tier] if e.tier is not None else STATUS_WEIGHT.get(e.status, 0.0)
 
 
@@ -71,6 +73,7 @@ class TasteEngine:
         self.W1, self.b1, self.Wmu, self.bmu = z["W1"], z["b1"], z["Wmu"], z["bmu"]
         self.n_cf = self.W1.shape[1]
         self.cf_rows = np.where(self.has_cf)[0]
+        self.unit_cf = self.unit[self.cf_rows]
         self.row_of_cf = np.full(self.n_cf, -1)
         self.row_of_cf[self.cf_i[self.cf_rows]] = self.cf_rows
         ax = np.load(art / "axes.npy")
@@ -108,7 +111,7 @@ class TasteEngine:
                 x[self.cf_i[r]] = max(x[self.cf_i[r]], w)
             else:
                 # No ratings for this title: lend its weight to its 5 nearest rated neighbours.
-                sims = self.unit[self.cf_rows] @ self.unit[r]
+                sims = self.unit_cf @ self.unit[r]
                 top = np.argpartition(-sims, 5)[:5]
                 for t in top:
                     ci = self.cf_i[self.cf_rows[t]]
@@ -136,7 +139,8 @@ class TasteEngine:
         e = np.asarray(self.ease.T.dot(x)).ravel()[self.cf_i[self.cf_rows]]
         e = (e - e.mean()) / (e.std() + 1e-9)
         s[self.cf_rows] = (1 - self.blend) * s[self.cf_rows] + self.blend * e
-        return s
+        cf = s[self.cf_rows]  # re-standardise so blended rated titles and bridge-only titles share one scale
+        return (s - cf.mean()) / (cf.std() + 1e-9)
 
     # ---- products ---------------------------------------------------------------------------------------
     def recommend(self, entries: list[UserEntry], k: int = 24, types: set[str] | None = None,

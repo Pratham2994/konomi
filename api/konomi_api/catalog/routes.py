@@ -2,7 +2,9 @@ import gzip
 import hashlib
 import json
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from typing import Annotated
+
+from fastapi import APIRouter, Body, HTTPException, Request, Response
 from sqlalchemy import select, text
 
 from ..db import engine
@@ -75,6 +77,6 @@ def get_anime(anime_id: int, db: Db) -> dict:
 
 
 @router.post("/anime/batch")
-def anime_batch(ids: list[int], db: Db) -> list[dict]:
+def anime_batch(ids: Annotated[list[int], Body(max_length=500)], db: Db) -> list[dict]:
     rows = db.scalars(select(Anime).where(Anime.id.in_(ids[:500]))).all()
     return [brief(a) for a in rows]

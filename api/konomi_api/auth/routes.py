@@ -30,6 +30,7 @@ class EmailIn(BaseModel):
 class VerifyIn(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=6)
+    password: str = Field(min_length=1, max_length=200)
 
 
 class LoginIn(BaseModel):
@@ -52,37 +53,46 @@ def _set_cookie(response: Response, token: str) -> None:
                         samesite="lax", secure=secure, path="/")
 
 
+def _ip(request: Request) -> str:
+    # Behind a proxy, run uvicorn with --proxy-headers --forwarded-allow-ips=<proxy> so this is the client.
+    return request.client.host if request.client else "-"
+
+
+_DUMMY_HASH = hash_password("timing-equaliser-not-a-password")
+
+
 @router.post("/signup", status_code=202)
 def signup(body: SignupIn, db: Db, request: Request) -> dict:
-    hit(f"signup:{request.client.host if request.client else '-'}", 20, 3600)
     username = body.username.strip().lower()
     if not USERNAME_RE.match(username):
         raise HTTPException(422, {"code": "bad_username"})
     email = body.email.lower()
-    existing = db.scalars(select(User).where(User.email == email)).first()
-    if existing and existing.verified_at:
+    hit(f"signup:{_ip(request)}", 20, 3600)
+    if db.scalars(select(User).where(User.email == email)).first():
         # Don't reveal the account exists; the owner can log in or reset.
         return {"ok": True}
-    taken = db.scalars(select(User).where(User.username == username)).first()
-    if taken and taken is not existing:
+    if db.scalars(select(User).where(User.username == username)).first():
         raise HTTPException(409, {"code": "username_taken"})
-    if existing:
-        existing.username, existing.password_hash = username, hash_password(body.password)
-    else:
-        db.add(User(email=email, username=username, display_name=username,
-                    password_hash=hash_password(body.password)))
-    db.commit()
-    otp.issue(db, email, "verify")
+    # Nothing is created yet: the credentials ride on this code and become an account only at /verify.
+    otp.issue(db, email, "verify", pending_hash=hash_password(body.password), pending_username=username)
     return {"ok": True}
 
 
 @router.post("/verify")
-def verify(body: VerifyIn, db: Db, response: Response) -> dict:
+def verify(body: VerifyIn, db: Db, request: Request, response: Response) -> dict:
+    hit(f"verify:{_ip(request)}", 20, 900)
     email = body.email.lower()
-    if not otp.check(db, email, "verify", body.code):
+    row = otp.check(db, email, "verify", body.code,
+                    accept=lambda r: bool(r.pending_hash) and verify_password(r.pending_hash, body.password))
+    if row is None:
         raise HTTPException(400, {"code": "bad_code"})
-    user = db.scalars(select(User).where(User.email == email)).one()
-    user.verified_at = user.verified_at or datetime.now(UTC)
+    if db.scalars(select(User).where(User.email == email)).first():
+        raise HTTPException(400, {"code": "bad_code"})
+    if db.scalars(select(User).where(User.username == row.pending_username)).first():
+        raise HTTPException(409, {"code": "username_taken"})
+    user = User(email=email, username=row.pending_username, display_name=row.pending_username,
+                password_hash=row.pending_hash, verified_at=datetime.now(UTC))
+    db.add(user)
     db.commit()
     _set_cookie(response, new_session(db, user))
     return me_out(user)
@@ -91,21 +101,25 @@ def verify(body: VerifyIn, db: Db, response: Response) -> dict:
 @router.post("/resend", status_code=202)
 def resend(body: EmailIn, db: Db) -> dict:
     email = body.email.lower()
-    user = db.scalars(select(User).where(User.email == email)).first()
-    if user and not user.verified_at:
-        otp.issue(db, email, "verify")
+    pending = otp.latest_pending(db, email)
+    if pending and not db.scalars(select(User).where(User.email == email)).first():
+        otp.issue(db, email, "verify", pending_hash=pending.pending_hash, pending_username=pending.pending_username)
     return {"ok": True}
 
 
 @router.post("/login")
 def login(body: LoginIn, db: Db, request: Request, response: Response) -> dict:
     email = body.email.lower()
-    hit(f"login:{email}:{request.client.host if request.client else '-'}", 10, 900)
+    hit(f"login:{email}:{_ip(request)}", 10, 900)
     user = db.scalars(select(User).where(User.email == email)).first()
-    if user is None or not verify_password(user.password_hash, body.password):
+    if user is None:
+        pending = otp.latest_pending(db, email)
+        if pending and verify_password(pending.pending_hash, body.password):
+            raise HTTPException(403, {"code": "unverified"})
+        verify_password(_DUMMY_HASH, body.password)  # same cost as a real check: no account-existence timing
         raise HTTPException(401, {"code": "bad_credentials"})
-    if not user.verified_at:
-        raise HTTPException(403, {"code": "unverified"})
+    if not verify_password(user.password_hash, body.password):
+        raise HTTPException(401, {"code": "bad_credentials"})
     _set_cookie(response, new_session(db, user))
     return me_out(user)
 
@@ -126,7 +140,8 @@ def reset_request(body: EmailIn, db: Db) -> dict:
 
 
 @router.post("/reset/confirm")
-def reset_confirm(body: ResetIn, db: Db, response: Response) -> dict:
+def reset_confirm(body: ResetIn, db: Db, request: Request, response: Response) -> dict:
+    hit(f"verify:{_ip(request)}", 20, 900)
     email = body.email.lower()
     if not otp.check(db, email, "reset", body.code):
         raise HTTPException(400, {"code": "bad_code"})
