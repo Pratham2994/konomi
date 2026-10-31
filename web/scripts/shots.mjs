@@ -31,8 +31,10 @@ for (const w of widths) {
   for (const p of pages) {
     await page.goto('http://localhost:5173' + p, { waitUntil: 'networkidle' })
     await page.waitForTimeout(1500)
+    if (full) await page.addStyleTag({ content: '.bottombar{display:none!important}.topbar,.mobile-add{position:static!important}' })
     const name = (p.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home') + `-${w}.png`
-    await page.screenshot({ path: join(out, name), fullPage: full })
+    const docH = await page.evaluate(() => document.documentElement.scrollHeight)
+    await page.screenshot({ path: join(out, name), fullPage: full, clip: full ? { x: 0, y: 0, width: w, height: docH } : undefined })
     console.log(name)
   }
   await ctx.close()
