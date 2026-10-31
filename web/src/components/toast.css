@@ -4,6 +4,7 @@
   display: grid; gap: var(--s2); width: min(440px, calc(100vw - 32px));
 }
 @media (min-width: 900px) { .toasts { bottom: 24px; } }
+@media (max-width: 899px) { .toasts { bottom: auto; top: calc(var(--topbar) + 8px); } }
 .toast {
   display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
   padding: 12px 12px 12px 18px; border-radius: var(--r-panel);

@@ -44,9 +44,8 @@
 .qa-on {
   margin-left: auto; flex: none; font-size: 12px; font-weight: 700; color: var(--season);
 }
-.qa-alts { display: flex; gap: 4px; padding-right: var(--s2); opacity: 0; transition: opacity 0.15s; }
-.qa-row.is-sel .qa-alts, .qa-row:focus-within .qa-alts { opacity: 1; }
-@media (hover: none) { .qa-alts { opacity: 1; } }
+.qa-alts { display: none; gap: 4px; padding-right: var(--s2); }
+.qa-row.is-sel .qa-alts, .qa-row:focus-within .qa-alts { display: flex; }
 .qa-alts button {
   border: 1px solid var(--line); background: var(--ink-2); color: var(--paper-2);
   border-radius: var(--r-pill); font-size: 12px; font-weight: 700; padding: 6px 10px; min-height: 32px;
