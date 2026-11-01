@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { api, ApiError } from './api'
 import type { AnimeBrief, Entry, Me, Season, Status } from './types'
 import { dropFromProfiles, listChanged, moveInProfiles } from './sync'
+import { useToast } from '../components/Toast'
 
 export function useMe() {
   return useQuery<Me | null>({
@@ -103,4 +104,32 @@ export const TIERS = [
 
 export const STATUS_LABEL: Record<Status, string> = {
   completed: 'Watched', watching: 'Watching', dropped: 'Dropped', planned: 'Want to watch',
+}
+
+/**
+ * Remove with a way back: the toast's Undo restores the status and, for a rated title, the feeling too.
+ * (The comparisons are never deleted, so with the feeling back the score comes back as it was.)
+ */
+export function useRemoveWithUndo() {
+  const qc = useQueryClient()
+  const remove = useRemove()
+  const setStatus = useSetStatus()
+  const toast = useToast()
+  return (e: Entry) => {
+    remove.mutate(e.anime_id)
+    toast({
+      title: e.anime.title_en ?? e.anime.title,
+      text: e.tier != null ? 'Removed, with its feeling' : 'Removed from your chart',
+      action: {
+        label: 'Undo',
+        run: async () => {
+          await setStatus.mutateAsync({ anime: e.anime, status: e.status })
+          if (e.tier != null) {
+            await api(`/api/rate/${e.anime_id}/tier`, { method: 'POST', json: { tier: e.tier, between: !!e.between } })
+            listChanged(qc)
+          }
+        },
+      },
+    })
+  }
 }

@@ -128,14 +128,14 @@ export function RatePage() {
           {data && data.unrated > 0 ? `${data.unrated} watched title${data.unrated === 1 ? '' : 's'} still need a feeling` : 'Every answer sharpens your scores and Konomi’s guesses.'}
         </p>
       </header>
-      <p className="rate-lead">
+      {answered === 0 && <p className="rate-lead">
         Konomi asks how each title felt, then which of two you enjoyed more. Your scores come from these answers,
         never from a slider.
-      </p>
+      </p>}
 
       {!roundDone && q && (
         <div className="rate-progress" role="progressbar" aria-label="This round" aria-valuemin={0} aria-valuemax={ROUND} aria-valuenow={inRound}>
-          <span className="rate-progress-bar"><span style={{ width: `${(inRound / ROUND) * 100}%` }} /></span>
+          <span className="rate-progress-bar"><span style={{ transform: `scaleX(${inRound / ROUND})` }} /></span>
           <span className="faint">Question {inRound + 1} of {ROUND}</span>
         </div>
       )}

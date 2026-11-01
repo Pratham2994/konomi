@@ -20,7 +20,7 @@ class EntryIn(BaseModel):
 
 def entry_out(e: ListEntry) -> dict:
     return {"anime_id": e.anime_id, "status": e.status, "episodes_watched": e.episodes_watched,
-            "tier": e.tier, "score": e.score, "predicted": e.predicted, "facets": e.facets,
+            "tier": e.tier, "between": e.between, "score": e.score, "predicted": e.predicted, "facets": e.facets,
             "source": e.source, "updated_at": e.updated_at.isoformat() if e.updated_at else None}
 
 

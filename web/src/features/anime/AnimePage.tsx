@@ -5,7 +5,7 @@ import { Cover } from '../../components/Cover'
 import { ScoreRail } from '../../components/ScoreRail'
 import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
-import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemove, useSetStatus } from '../../lib/hooks'
+import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
 import type { AnimeDetail, Status } from '../../lib/types'
 import { useRater } from '../rate/RaterContext'
 import './anime.css'
@@ -36,7 +36,7 @@ export function AnimePage() {
   })
   const onList = useListIndex()
   const setStatus = useSetStatus()
-  const remove = useRemove()
+  const removeWithUndo = useRemoveWithUndo()
   const rater = useRater()
   if (error) {
     return (
@@ -66,7 +66,7 @@ export function AnimePage() {
       <div className="page anime-grid">
         <div className="anime-back"><BackButton /></div>
         <div className="anime-cover">
-          <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={entry?.status}
+          <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color}
             score={entry?.score} size="l" eager vt />
         </div>
         <div className="anime-main">
@@ -88,7 +88,7 @@ export function AnimePage() {
                   </button>
                 ))}
               </div>
-              {entry && <button className="btn btn-ghost" onClick={() => remove.mutate(a.id)}>Remove</button>}
+              {entry && <button className="btn btn-ghost" onClick={() => removeWithUndo(entry)}>Remove</button>}
             </div>
           ) : (
             <div className="anime-actions"><Link to="/signup" className="btn btn-primary">Add it to your chart</Link></div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Cover } from '../../components/Cover'
-import { STATUS_LABEL, useListIndex, useRemove, useSetStatus } from '../../lib/hooks'
+import { STATUS_LABEL, useListIndex, useRemove, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
 import type { AnimeBrief, Status } from '../../lib/types'
 import './sweep.css'
 
@@ -10,9 +10,17 @@ export function SeasonGrid({ items, compact }: { items: AnimeBrief[]; compact?: 
   const onList = useListIndex()
   const setStatus = useSetStatus()
   const remove = useRemove()
+  const removeWithUndo = useRemoveWithUndo()
+
+  // Untapping is silent for a quick correction; a title that already has a feeling gets an Undo, so it is never lost.
+  function unmark(id: number) {
+    const e = onList.get(id)
+    if (e?.tier != null) removeWithUndo(e)
+    else remove.mutate(id)
+  }
 
   function mark(a: AnimeBrief, status: Status) {
-    if (onList.get(a.id)?.status === status) remove.mutate(a.id)
+    if (onList.get(a.id)?.status === status) unmark(a.id)
     else setStatus.mutate({ anime: a, status })
   }
 
@@ -25,7 +33,7 @@ export function SeasonGrid({ items, compact }: { items: AnimeBrief[]; compact?: 
       if (k === 's') mark(a, 'completed')
       else if (k === 'd') mark(a, 'dropped')
       else if (k === 'w') mark(a, 'planned')
-      else if (k === 'x' && onList.get(a.id)) remove.mutate(a.id)
+      else if (k === 'x' && onList.get(a.id)) unmark(a.id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

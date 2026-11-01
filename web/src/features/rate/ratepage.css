@@ -26,7 +26,7 @@
 }
 .rate-progress { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s5); max-width: 520px; font-size: 13px; }
 .rate-progress-bar { flex: 1; height: 6px; border-radius: 6px; background: var(--ink-3); overflow: hidden; }
-.rate-progress-bar span { display: block; height: 100%; background: var(--season); border-radius: 6px; transition: width 0.4s var(--ease-out); }
+.rate-progress-bar span { display: block; height: 100%; background: var(--season); border-radius: 6px; transform-origin: left; transition: transform 0.4s var(--ease-out); }
 .rate-moved { list-style: none; margin: var(--s3) 0 0; padding: 0; width: min(520px, 100%); display: grid; gap: 6px; text-align: left; }
 .rate-moved li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: 6px 10px; border-radius: 12px; background: var(--ink-2); }
 .rate-moved-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

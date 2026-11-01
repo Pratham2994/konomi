@@ -11,11 +11,14 @@ import './chart.css'
 type Filter = 'all' | Status
 type Sort = 'season' | 'score'
 
+/** On a chart, "watched" is the norm and its score strip already says so: pen marks are kept for the exceptions. */
+const markFor = (s: Status) => (s === 'completed' ? undefined : s)
+
 export function Tile({ e, sub }: { e: Entry; sub?: string }) {
   const a = e.anime
   return (
     <VtLink animeId={a.id} className="tile" data-season={a.season ?? undefined}>
-      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={e.status} score={e.score} vt />
+      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={markFor(e.status)} score={e.score} vt />
       <span className="tile-title">{a.title_en ?? a.title}</span>
       {sub && <span className="tile-sub">{sub}</span>}
     </VtLink>
@@ -63,6 +66,8 @@ export function ChartPage() {
     )
   }
 
+  const shownFilters = (['all', 'completed', 'watching', 'dropped', 'planned'] as Filter[])
+    .filter((f) => f === 'all' || f === filter || (counts[f] ?? 0) > 0)
   return (
     <div className="page chart">
       <header className="chart-head">
@@ -73,14 +78,15 @@ export function ChartPage() {
         </p>
       </header>
       <div className="chart-controls">
-        <div className="seg" role="tablist" aria-label="Filter by status">
-          {(['all', 'completed', 'watching', 'dropped', 'planned'] as Filter[]).map((f) => (
+        {/* Only statuses you have; with everything in one status there is nothing to filter. */}
+        {shownFilters.length > 2 && <div className="seg" role="tablist" aria-label="Filter by status">
+          {shownFilters.map((f) => (
             <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'is-on' : ''}
               onClick={() => setFilter(f)}>
               {f === 'all' ? 'All' : STATUS_LABEL[f]} <span className="seg-n">{counts[f] ?? 0}</span>
             </button>
           ))}
-        </div>
+        </div>}
         <div className="seg" role="tablist" aria-label="Arrange">
           <button role="tab" aria-selected={sort === 'season'} className={sort === 'season' ? 'is-on' : ''} onClick={() => setSort('season')}>By season</button>
           <button role="tab" aria-selected={sort === 'score'} className={sort === 'score' ? 'is-on' : ''} onClick={() => setSort('score')}>By score</button>

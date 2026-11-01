@@ -307,7 +307,7 @@ export function ProfilePage() {
               {g.items.map((e) => (
                 <Link key={e.anime.id} to={`/anime/${e.anime.id}`} className="tile" data-season={e.anime.season ?? undefined}>
                   <Cover id={e.anime.id} title={e.anime.title} src={e.anime.picture ?? e.anime.thumbnail} color={e.anime.color}
-                    status={e.status} score={sc(e.score)} fmt={fmt} />
+                    status={e.status === 'completed' ? undefined : e.status} score={sc(e.score)} fmt={fmt} />
                   <span className="tile-title">{e.anime.title_en ?? e.anime.title}</span>
                 </Link>
               ))}

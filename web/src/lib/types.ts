@@ -33,6 +33,7 @@ export interface Entry {
   status: Status
   episodes_watched: number | null
   tier: number | null
+  between?: boolean
   score: number | null
   predicted: number | null
   facets: Record<string, string>
