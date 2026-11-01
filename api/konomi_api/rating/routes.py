@@ -5,7 +5,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -233,6 +233,16 @@ def _session(db: Session, st: RatingState) -> dict:
     b = _briefs(db, [q["anime_id"], *queue])
     return {"question": {"kind": q["kind"], "anime": b[q["anime_id"]]}, "unrated": remaining,
             "queue": [b[a] for a in queue if a in b]}
+
+
+@router.post("/reset")
+def reset(user: CurrentUser, db: Db) -> dict:
+    """Start rating over: every feeling, comparison and answer goes. Titles and their statuses stay."""
+    n = db.execute(update(ListEntry).where(ListEntry.user_id == user.id, ListEntry.tier.is_not(None))
+                   .values(tier=None, between=False, predicted=None, score=None, facets={})).rowcount
+    d = db.execute(delete(Duel).where(Duel.user_id == user.id)).rowcount
+    db.commit()
+    return {"cleared": n, "comparisons": d}
 
 
 @router.get("/session/next")

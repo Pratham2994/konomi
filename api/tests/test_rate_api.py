@@ -97,3 +97,20 @@ def test_feeling_questions_come_with_the_next_titles(client):
     s = client.get("/api/rate/session/next").json()
     assert s["question"]["kind"] == "tier"
     assert [x["id"] for x in s["queue"]] == [i for i in ids if i != s["question"]["anime"]["id"]][:4]
+
+
+def test_start_over_clears_ratings_and_keeps_titles(client):
+    signup_verified(client)
+    a, b, c = top_ids(3)
+    client.put(f"/api/list/{c}", json={"status": "watching"})
+    for aid in (a, b):
+        client.post(f"/api/rate/{aid}/tier", json={"tier": 4})
+    client.post(f"/api/rate/{a}/facets", json={"facets": {"rewatch": "Yes"}})
+    client.post("/api/rate/duel", json={"a": a, "b": b, "outcome": "a"})
+    assert client.post("/api/rate/reset").json() == {"cleared": 2, "comparisons": 1}
+    entries = {e["anime_id"]: e for e in client.get("/api/list").json()["entries"]}
+    assert set(entries) == {a, b, c} and entries[c]["status"] == "watching"
+    assert all(e["tier"] is None and e["score"] is None and e["predicted"] is None and not e["facets"] for e in entries.values())
+    # Rated again, a title starts from its feeling alone: the old comparison is gone.
+    client.post(f"/api/rate/{a}/tier", json={"tier": 4})
+    assert client.get("/api/rate/session/next").json()["unrated"] == 1

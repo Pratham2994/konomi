@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react'
 import './howscoring.css'
 
 /** The scoring model in four plain sentences, folded until someone asks. */
-export function HowScoring() {
+export function HowScoring({ children }: { children?: ReactNode }) {
   return (
     <details className="how">
       <summary>How scores work</summary>
@@ -15,6 +16,7 @@ export function HowScoring() {
         <li><strong>Nothing is thrown away.</strong> Comparisons are kept even when you remove a title, so putting it back
           brings its score back.</li>
       </ol>
+      {children}
     </details>
   )
 }

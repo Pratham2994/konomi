@@ -13,6 +13,7 @@ import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
 import { Feelings } from './Feelings'
 import { HowScoring } from './HowScoring'
+import { StartOver } from './StartOver'
 import './ratepage.css'
 
 type Session = { question: Question | null; unrated: number; queue?: AnimeBrief[] }
@@ -151,7 +152,7 @@ export function RatePage() {
           {data && data.unrated > 0 ? `${data.unrated} watched title${data.unrated === 1 ? '' : 's'} still need a feeling` : 'Every answer sharpens your scores and Konomi’s guesses.'}
         </p>
       </header>
-      <div className="rate-how"><HowScoring /></div>
+      <div className="rate-how"><HowScoring><StartOver /></HowScoring></div>
       {answered === 0 && <p className="rate-lead">
         Konomi asks how each title felt, then which of two you enjoyed more. Your scores come from these answers,
         never from a slider.

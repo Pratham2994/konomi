@@ -8,3 +8,10 @@
 .how > summary:focus-visible { outline: 2px solid var(--season); outline-offset: 3px; border-radius: 4px; }
 .how ol { margin: var(--s3) 0 0; padding-left: 1.2em; display: grid; gap: var(--s2); line-height: 1.5; }
 .how strong { color: var(--paper); }
+.how-reset {
+  margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--ink-3);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2);
+}
+.how-reset > span { flex: 1 1 24ch; }
+.btn-bad { background: var(--bad); border-color: var(--bad); color: #1a0505; font-weight: 700; }
+.btn-bad:hover { filter: brightness(1.08); }
