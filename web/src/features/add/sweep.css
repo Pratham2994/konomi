@@ -32,3 +32,6 @@
 @media (hover: none) { .sweep-keys { display: none; } }
 .sweep-views { width: fit-content; margin-top: var(--s4); }
 .sweep-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--s4) 0 var(--s2); }
+.sweep-switches { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); margin-top: var(--s4); }
+.sweep-switches .sweep-views { margin-top: 0; }
+.sweep-hide { font-size: 14px; font-weight: 700; }

@@ -33,3 +33,8 @@
 .rate-moved-n { color: var(--paper-2); font-size: 14px; white-space: nowrap; }
 .rate-moved-n strong { color: var(--season); font-weight: 400; font-size: 20px; }
 .rate-how { margin-top: var(--s3); }
+.rate-which { margin: calc(var(--s4) * -1) 0 var(--s4); color: var(--paper-2); font-size: 14px; font-weight: 700; }
+a.rate-name { text-decoration: none; }
+a.rate-name:hover { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+a.rate-cover { display: block; border-radius: var(--r-cover); }
+a.rate-cover:focus-visible { outline: 2px solid var(--season); outline-offset: 4px; }

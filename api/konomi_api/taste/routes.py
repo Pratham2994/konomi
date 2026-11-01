@@ -83,6 +83,14 @@ def predict(anime_id: int, user: CurrentUser, db: Db) -> dict:
     return {"predicted": _engine().predict(user_entries(db, user.id), anime_id)}
 
 
+@router.get("/similar/{anime_id}")
+def similar(anime_id: int, db: Db, k: int = Query(6, ge=1, le=12)) -> dict:
+    eng = _engine()
+    ids = _remembered(("similar", eng.version, anime_id, k), lambda: eng.similar(anime_id, k))
+    b = _briefs(db, ids)
+    return {"items": [b[i] for i in ids if i in b]}
+
+
 @router.get("/dna")
 def dna(user: CurrentUser, db: Db) -> dict:
     eng = _engine()

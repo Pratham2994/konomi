@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useEffect, useId, useState } from 'react'
 import { Cover } from '../../components/Cover'
+import { entryLine } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import './duel.css'
 
@@ -44,6 +45,7 @@ export function Duel({ a, b, onPick, busy, big }: {
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}>
             <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color} eager />
             <span className="duel-title">{x.title_en ?? x.title}</span>
+            <span className="duel-which">{entryLine(x)}</span>
             <span className="duel-key" aria-hidden="true">{i === 0 ? '←' : '→'}</span>
           </motion.button>
         ))}

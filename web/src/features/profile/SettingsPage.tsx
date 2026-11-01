@@ -63,6 +63,16 @@ const ALL_LISTS: Status[] = ['completed', 'watching', 'planned', 'dropped']
 
 type Opt<T extends string> = { id: T; label: string }
 
+/** Save `value` 700 ms after the last keystroke, when it differs from what is saved. */
+function useAutosave(value: string, saved: string | undefined, save: (v: string) => void, ready: boolean) {
+  useEffect(() => {
+    if (!ready || saved === undefined || value.trim() === saved) return
+    const t = setTimeout(() => save(value.trim()), 700)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, ready])
+}
+
 function Choice<T extends string>({ value, options, onChange, label }: { value: T; options: readonly Opt<T>[]; onChange: (v: T) => void; label: string }) {
   return (
     <div className="seg set-seg" role="radiogroup" aria-label={label}>
@@ -154,11 +164,25 @@ export function SettingsPage() {
     },
   })
 
+  // Fill the text boxes once, when the settings first arrive. Refilling on every save would overwrite letters
+  // typed while that save was on its way.
+  const filled = useRef(false)
   useEffect(() => {
-    if (!s) return
+    if (!s || filled.current) return
+    filled.current = true
     setName(s.display_name); setBio(s.bio); setPronouns(s.pronouns); setLocation(s.location); setFavTitle(s.fav_title)
     setLinks([...s.links, '', '', '', ''].slice(0, 4)); setHillText(s.hill?.text ?? '')
   }, [s])
+
+  const set = (patch: Partial<Settings>) => save.mutate(patch)
+
+  // Text saves itself a moment after you stop typing, so the preview and your profile follow along.
+  useAutosave(name, s?.display_name, (v) => v && set({ display_name: v }), filled.current)
+  useAutosave(bio, s?.bio, (v) => set({ bio: v }), filled.current)
+  useAutosave(pronouns, s?.pronouns, (v) => set({ pronouns: v }), filled.current)
+  useAutosave(location, s?.location, (v) => set({ location: v }), filled.current)
+  useAutosave(favTitle, s?.fav_title, (v) => set({ fav_title: v }), filled.current)
+  useAutosave(hillText, s?.hill?.text, (v) => s?.hill && set({ hill: { anime_id: s.hill.anime_id, text: v } }), filled.current)
   if (!s) return <PageLoading />
 
   // Every title on your chart can be picked: watched ones first, best scores first, then the rest.
@@ -166,7 +190,6 @@ export function SettingsPage() {
   const pickable = [...entries].sort((a, b) => rank(a) - rank(b) || (b.score ?? 0) - (a.score ?? 0))
     .filter((e) => !pickQ.trim() || `${e.anime.title} ${e.anime.title_en ?? ''}`.toLowerCase().includes(pickQ.trim().toLowerCase()))
   const byId = new Map(entries.map((e) => [e.anime_id, e]))
-  const set = (patch: Partial<Settings>) => save.mutate(patch)
   const hillAnime = s.hill ? byId.get(s.hill.anime_id) : undefined
 
   function toggleFav(id: number) {

@@ -172,3 +172,12 @@ def test_dna_sliders_have_plain_names(client):
     assert "Gore" not in str(axes) and "Avant garde" not in str(axes)
     r = client.get("/api/taste/galaxy")
     assert r.headers["cache-control"] == "no-cache"  # always revalidated: renamed areas show up at once
+
+
+def test_similar_titles_skip_the_same_series(client):
+    signup_verified(client)
+    aid = cf_ids(1)[0]
+    near = client.get(f"/api/taste/similar/{aid}?k=6").json()["items"]
+    eng = get_engine()
+    assert len(near) == 6 and aid not in [n["id"] for n in near]
+    assert all(eng.series_key(n["id"]) != eng.series_key(aid) for n in near)

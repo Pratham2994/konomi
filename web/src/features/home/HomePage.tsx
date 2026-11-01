@@ -6,7 +6,7 @@ import { VtLink } from '../../components/VtLink'
 import { CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { api } from '../../lib/api'
 import { useToast } from '../../components/Toast'
-import { currentSeason, useList, useMe, useSetStatus } from '../../lib/hooks'
+import { currentSeason, useList, useListIndex, useMe, useSetStatus } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { QuickAdd } from '../add/QuickAdd'
 import { SeasonGrid } from '../add/SeasonGrid'
@@ -21,12 +21,16 @@ export interface Rec {
 }
 
 export function useRecs(params = '') {
-  return useQuery({
+  const onList = useListIndex()
+  const q = useQuery({
     queryKey: ['recs', params],
     queryFn: () => api<{ items: Rec[]; mode: 'model' | 'popular'; need: number }>(`/api/taste/recs${params}`),
     retry: false,
     staleTime: 60_000,
   })
+  // Something you just added leaves the list at once, before the server's next recommendations arrive.
+  const data = q.data && { ...q.data, items: q.data.items.filter((r) => !onList.has(r.anime.id)) }
+  return { ...q, data }
 }
 
 export function RecCard({ r }: { r: Rec }) {

@@ -120,9 +120,20 @@ export default function TastePage() {
 
   const mine = useMemo(() => new Map((me.data?.mine ?? []).map((m) => [m.id, m.score])), [me.data])
   const { data: entries = [] } = useList()
+  // Pick one of your titles to see where it sits and which titles its fans also love.
+  const [focusId, setFocusId] = useState<number | null>(null)
+  const near = useQuery({
+    queryKey: ['similar', focusId], enabled: focusId != null, staleTime: Infinity,
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/taste/similar/${focusId}?k=6`),
+  })
+  const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 10), [entries])
+  const focus = focusId != null && near.data ? { id: focusId, near: near.data.items.map((a) => a.id) } : null
+  const focused = entries.find((e) => e.anime_id === focusId)
   // Your three best-rated titles get name tags on the map.
-  const named = useMemo(() => entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 3)
-    .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title })), [entries])
+  const named = useMemo(() => (focus && focused && near.data
+    ? [{ id: focus.id, label: focused.anime.title_en ?? focused.anime.title }, ...near.data.items.map((a) => ({ id: a.id, label: a.title_en ?? a.title }))]
+    : entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 3)
+      .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title }))), [entries, focus, focused, near.data])
   // The neighbourhoods you watch most in, by the cluster each of your titles sits in.
   const hoods = useMemo(() => {
     if (!galaxy.data || mine.size === 0) return []
@@ -141,7 +152,7 @@ export default function TastePage() {
         {galaxy.data ? (
           <Suspense fallback={<p className="g-loading faint">Placing the stars…</p>}>
             <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} clusters={galaxy.data.clusters} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
-              accent={ACCENT} named={named} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
+              accent={ACCENT} named={named} focus={focus} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
               onPick={(id) => nav(`/anime/${id}`)} /></div>
           </Suspense>
         ) : <p className="g-loading faint">{galaxy.isError ? 'The galaxy didn’t load. Refresh to try again.' : 'Placing the stars…'}</p>}
@@ -161,6 +172,29 @@ export default function TastePage() {
               You watch most in{' '}
               {hoods.map((h, i) => <span key={h.label}>{i > 0 && (i === hoods.length - 1 ? ' and ' : ', ')}<strong>{h.label}</strong> ({h.n})</span>)}.
             </p>
+          )}
+          {mineTop.length > 0 && (
+            <div className="g-pick">
+              <p className="g-pick-ask">Pick one of yours to see its neighbours:</p>
+              <div className="g-pick-list">
+                {mineTop.map((e) => (
+                  <button key={e.anime_id} className={`chip${focusId === e.anime_id ? ' is-on' : ''}`} aria-pressed={focusId === e.anime_id}
+                    onClick={() => setFocusId(focusId === e.anime_id ? null : e.anime_id)}>
+                    {e.anime.title_en ?? e.anime.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {focused && near.data && (
+            <div className="g-near">
+              <p>People who loved <strong>{focused.anime.title_en ?? focused.anime.title}</strong> also loved:</p>
+              <ol>
+                {near.data.items.map((a) => (
+                  <li key={a.id}><Link to={`/anime/${a.id}`}>{a.title_en ?? a.title}</Link>{mine.has(a.id) ? <span className="g-near-seen"> · on your chart</span> : null}</li>
+                ))}
+              </ol>
+            </div>
           )}
           {track.data && track.data.n >= 3 && track.data.within1 != null && (
             <p className="g-track">
@@ -185,7 +219,11 @@ export default function TastePage() {
         {dna.data?.axes && (
           <section className="taste-sec">
             <h2 className="display taste-h">Taste DNA</h2>
-            <p className="muted taste-sub">Six directions the model found in 56 million ratings. Nobody named them. The labels are the tags that cluster at each end.</p>
+            <p className="muted taste-sub">
+              The model found six big ways anime fans differ, from 56 million ratings. Each line is one of them, with
+              the kind of show at each end. Your dot shows which way your rated titles lean: near the middle means you
+              like both ends, near an end means that side is clearly yours.
+            </p>
             <Dna axes={dna.data.axes} />
           </section>
         )}
@@ -193,7 +231,12 @@ export default function TastePage() {
         {net.data?.network && (
           <section className="taste-sec">
             <h2 className="display taste-h">How Konomi picks</h2>
-            <p className="muted taste-sub">Your strongest titles pull on the taste directions; those directions push the picks. Thicker lines carry more weight.</p>
+            <p className="muted taste-sub">
+              How your picks are made, left to right. On the left are the titles you rated highest. In the middle are
+              the taste directions from Taste DNA. On the right are the shows Konomi suggests. A line means “this pulls
+              on that”: an orange line pushes towards it, a grey one pushes away, and thicker lines matter more. So you
+              can follow any suggestion back to the titles that led to it.
+            </p>
             <ModelView net={net.data.network} />
           </section>
         )}

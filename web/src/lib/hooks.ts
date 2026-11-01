@@ -154,3 +154,12 @@ export function useBulk() {
     onSettled: () => settledListWrite(qc),
   })
 }
+
+const KIND: Record<string, string> = { TV: 'TV series', MOVIE: 'Film', ONA: 'Web series', OVA: 'OVA', SPECIAL: 'Special' }
+
+/** Which entry this is, so seasons and films of one series can be told apart: "TV series · Spring 2013 · 25 episodes". */
+export function entryLine(a: AnimeBrief): string {
+  const when = a.season && a.year ? `${SEASON_LABEL[a.season]} ${a.year}` : a.year ? String(a.year) : null
+  const eps = a.episodes && a.episodes > 1 ? `${a.episodes} episodes` : null
+  return [KIND[a.type ?? ''] ?? a.type, when, eps].filter(Boolean).join(' · ')
+}

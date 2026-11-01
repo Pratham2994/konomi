@@ -28,7 +28,8 @@
 .rec-why { font-size: 12px; color: var(--paper-3); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 
-.home-grid { display: grid; gap: var(--s5); }
+.home-grid { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); } /* never wider than the screen */
+.home-rail { min-width: 0; }
 .home-main { min-width: 0; }
 .home-rail { display: grid; gap: var(--s5); align-content: start; }
 .home-guesses h2 { font-size: 22px; }

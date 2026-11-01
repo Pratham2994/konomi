@@ -21,10 +21,13 @@
 .prof-name { font-size: clamp(34px, 6vw, 80px); line-height: 1; overflow-wrap: anywhere; }
 .prof-handle { color: var(--paper-2); margin-top: 6px; }
 .prof-bio { max-width: 60ch; font-size: 17px; }
-.prof-line { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 16px; color: var(--paper-2); max-width: 60%; }
+.prof-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; font-size: 16px; color: var(--paper-2); }
+.prof-line > span { white-space: nowrap; }
+.prof-line > span[title] { white-space: normal; } /* the long "Konomi guesses…" sentence may wrap */
+/* Only leave room on the right when the fanned covers are actually there. */
+@media (min-width: 1100px) { .prof-head-inner:has(.prof-fan) .prof-line { max-width: 60%; } }
 .prof-line strong.display { color: var(--season); font-size: 22px; font-weight: 400; margin-right: 4px; }
 .prof-studio { color: var(--paper); text-transform: capitalize; }
-@media (max-width: 1099px) { .prof-line { max-width: none; } }
 .prof-actions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
 .prof-note { display: inline-flex; gap: 6px; align-items: center; color: var(--paper-2); font-size: 14px; }
 

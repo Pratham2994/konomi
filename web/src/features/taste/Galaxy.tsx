@@ -142,6 +142,19 @@ function Constellation({ byId, top }: { byId: Map<number, Point>; top: number[] 
   return line ? <primitive object={line} /> : null
 }
 
+/** Lines from a picked title to the titles its fans also love. */
+function Spokes({ byId, focus }: { byId: Map<number, Point>; focus: { id: number; near: number[] } | null }) {
+  const lines = useMemo(() => {
+    if (!focus) return null
+    const from = at3(byId, focus.id)
+    if (!from) return null
+    const pts = focus.near.map((id) => at3(byId, id)).filter((v): v is THREE.Vector3 => v != null).flatMap((v) => [from, v])
+    const g = new THREE.BufferGeometry().setFromPoints(pts)
+    return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: '#ff7340', transparent: true, opacity: 0.8, depthWrite: false }))
+  }, [byId, focus])
+  return lines ? <primitive object={lines} /> : null
+}
+
 /** A label pinned to a point in space, drawn as plain HTML over the canvas. */
 interface Tag { key: string; at: THREE.Vector3; text: string; kind: 'cluster' | 'name'; color?: string; sub?: string }
 
@@ -165,7 +178,7 @@ function Projector({ tags, els }: { tags: Tag[]; els: React.MutableRefObject<Map
 }
 
 /** On arrival, fly from the wide view to your part of the galaxy. */
-function FlyTo({ to }: { to: THREE.Vector3 | null }) {
+function FlyTo({ to, close }: { to: THREE.Vector3 | null; close?: boolean }) {
   const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: { target: THREE.Vector3; update: () => void } | null }
   const t = useRef(0)
   const from = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null)
@@ -177,7 +190,8 @@ function FlyTo({ to }: { to: THREE.Vector3 | null }) {
     const k = 1 - Math.pow(1 - t.current, 3)
     // On wide screens the intro text sits on the left, so aim a little left of your area: it lands right of the text.
     const aim = to.clone().add(new THREE.Vector3(window.innerWidth >= 900 ? -2.4 : 0, window.innerWidth >= 900 ? 0 : 2.4, 0))
-    const goal = aim.clone().add(new THREE.Vector3(0, 1.4, 7.5))
+    // A picked title is shown close up, so its neighbours' names spread apart; your whole area is shown wider.
+    const goal = aim.clone().add(close ? new THREE.Vector3(0, 0.6, 3.2) : new THREE.Vector3(0, 1.4, 7.5))
     camera.position.lerpVectors(from.current.pos, goal, k)
     controls.target.lerpVectors(from.current.target, aim, k)
     controls.update()
@@ -204,15 +218,20 @@ function clusterTags(points: Point[], clusters: ClusterMeta[]): Tag[] {
   return placed
 }
 
-export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, named, onHover, onPick }: {
+export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, named, focus, onHover, onPick }: {
   points: Point[]; clusters: ClusterMeta[]; mine: Map<number, number | null>; recs: Set<number>
   centroid: [number, number, number] | null; named: { id: number; label: string }[]
+  /** A title you picked, and the titles its fans also love: the camera flies there and lines join them. */
+  focus: { id: number; near: number[] } | null
   accent: string; onHover: (id: number | null, e?: { x: number; y: number }) => void; onPick: (id: number) => void
 }) {
   const [moving, setMoving] = useState(false)
   const byId = useMemo(() => new Map(points.map((p) => [p[0], p])), [points])
   const top = useMemo(() => [...mine].filter(([, s]) => s != null).sort((a, b) => b[1]! - a[1]!).slice(0, 12).map(([id]) => id), [mine])
-  const home = useMemo(() => (centroid ? new THREE.Vector3(...centroid).multiplyScalar(SCALE) : null), [centroid])
+  const home = useMemo(() => {
+    const f = focus ? at3(byId, focus.id) : null
+    return f ?? (centroid ? new THREE.Vector3(...centroid).multiplyScalar(SCALE) : null)
+  }, [centroid, focus, byId])
   const tags = useMemo<Tag[]>(() => [
     ...clusterTags(points, clusters),
     ...named.flatMap((n) => { const at = at3(byId, n.id); return at ? [{ key: `n${n.id}`, at, text: n.label, kind: 'name' as const }] : [] }),
@@ -225,11 +244,11 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
       onPointerMissed={() => onHover(null)}>
       <Stars points={points} mine={mine} recs={recs} accent={accent} onHover={moving ? () => undefined : onHover} onPick={onPick} />
       {centroid && <Glow at={centroid} color={accent} />}
-      <Constellation byId={byId} top={top} />
+      {focus ? <Spokes byId={byId} focus={focus} /> : <Constellation byId={byId} top={top} />}
       <Projector tags={tags} els={els} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} autoRotate={!home} autoRotateSpeed={0.35}
         minDistance={2.5} maxDistance={22} onStart={() => setMoving(true)} onEnd={() => setMoving(false)} />
-      <FlyTo to={home} />
+      <FlyTo to={home} close={!!focus} />
     </Canvas>
     <div className="g-tags" aria-hidden="true">
       {tags.map((t) => (

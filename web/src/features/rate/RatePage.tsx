@@ -7,7 +7,7 @@ import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
 import { asked } from '../../lib/ask'
 import { listChanged, scoresChanged } from '../../lib/sync'
-import { useList } from '../../lib/hooks'
+import { entryLine, useList } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
 import { Feelings } from './Feelings'
@@ -158,9 +158,10 @@ export function RatePage() {
               </div>
             ) : q.kind === 'tier' ? (
               <div className="rate-tier">
-                <div className="rate-cover"><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></div>
+                <Link to={`/anime/${q.anime.id}`} className="rate-cover" aria-label={`Open ${q.anime.title_en ?? q.anime.title}`}><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></Link>
                 <div className="rate-tier-side">
-                  <h2 className="display rate-ask">How was <span className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</span>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
+                  <h2 className="display rate-ask">How was <Link to={`/anime/${q.anime.id}`} className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</Link>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
+                  <p className="rate-which">{entryLine(q.anime)}</p>
                   <Feelings busy={busy} onPick={(t, between) => tier(q.anime.id, t, between)} keys />
                 </div>
               </div>
@@ -172,7 +173,7 @@ export function RatePage() {
               </div>
             ) : (
               <div className="rate-tier">
-                <div className="rate-cover"><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></div>
+                <Link to={`/anime/${q.anime.id}`} className="rate-cover" aria-label={`Open ${q.anime.title_en ?? q.anime.title}`}><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></Link>
                 <div className="rate-tier-side">
                   <p className="rate-facet-title display">{q.anime.title_en ?? q.anime.title}</p>
                   {FACETS.map((f, i) => (

@@ -37,7 +37,7 @@
 
 /* Select mode: covers toggle a tick; one bar along the bottom changes them all. */
 .chart-tools { display: flex; gap: var(--s2); align-items: center; }
-.tile-pick { position: relative; padding: 0; border: 0; background: none; text-align: left; color: inherit; cursor: pointer; }
+.tile-pick { position: relative; width: 100%; padding: 0; border: 0; background: none; text-align: left; color: inherit; font: inherit; cursor: pointer; }
 .tile-pick .cover-art { transition: transform 0.15s var(--ease-out), filter 0.15s; }
 .tile-pick:not(.is-picked) .cover-art { filter: brightness(0.75); }
 .tile-pick.is-picked .cover-art { transform: scale(0.94); outline: 3px solid var(--season); outline-offset: 3px; }
@@ -54,8 +54,9 @@
   animation: pick-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @media (min-width: 900px) { .pick-bar { bottom: 24px; } }
-.pick-count { padding: 0 6px; white-space: nowrap; }
-.pick-count strong { font-weight: 400; font-size: 22px; color: var(--season); margin-right: 4px; }
+.pick-count { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; white-space: nowrap; line-height: 1; }
+.pick-count strong { font-weight: 400; font-size: 22px; line-height: 1; color: var(--season); }
+.pick-bar .btn { line-height: 1; }
 .pick-moves { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .pick-bar .btn { min-height: 40px; padding: 0 14px; font-size: 14px; }
 .pick-remove:not(:disabled):hover { color: var(--bad); border-color: var(--bad); }

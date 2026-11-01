@@ -371,6 +371,22 @@ class TasteEngine:
         del x
         return {"axes": dna, "inputs": ins, "outputs": outs}
 
+    def similar(self, anime_id: int, k: int = 6) -> list[int]:
+        """Titles rated most like this one by the same people, its own series left out (sequels are a given)."""
+        row = self.row_of.get(anime_id)
+        if row is None:
+            return []
+        sims = self.unit_cf @ self.unit(row)
+        own = self.series_key(anime_id)
+        out: list[int] = []
+        for j in np.argsort(-sims):
+            other = int(self.anime_ids[self.cf_rows[j]])
+            if other != anime_id and self.series_key(other) != own:
+                out.append(other)
+                if len(out) == k:
+                    break
+        return out
+
     def galaxy_points(self) -> list[list]:
         return [[int(a), round(float(p[0]), 4), round(float(p[1]), 4), round(float(p[2]), 4), int(c)]
                 for a, p, c in zip(self.anime_ids, self.xyz, self.cluster)]

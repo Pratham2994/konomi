@@ -23,6 +23,7 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: 'romance', label: 'Romance' }, { id: 'films', label: 'Films' },
 ]
 const MOST = 500
+const HIDE_KEY = 'konomi-hide-watched'
 
 const ERAS = [2025, 2020, 2015, 2010, 2005, 2000, 1995, 1990]
 
@@ -42,6 +43,21 @@ export function SweepPage() {
   const season = (params.get('season') as Season) || now.season
   const [walked, setWalked] = useState(0)
   const onList = useListIndex()
+
+  // Hide watched: titles already on your chart when you open a page (or switch filter) are hidden. A cover you
+  // tap now stays put, so you see the mark land and can tap again to undo.
+  const [hideWatched, setHideWatched] = useState(() => { try { return localStorage.getItem(HIDE_KEY) === '1' } catch { return false } })
+  const [hiddenIds, setHiddenIds] = useState<Set<number>>(new Set())
+  useEffect(() => {
+    setHiddenIds(hideWatched ? new Set(onList.keys()) : new Set())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideWatched, view, kind, year, season, onList.size === 0])
+  function toggleHide() {
+    const next = !hideWatched
+    setHideWatched(next)
+    try { localStorage.setItem(HIDE_KEY, next ? '1' : '0') } catch { /* storage blocked: fine */ }
+  }
+  const visible = (xs: AnimeBrief[]) => (hideWatched ? xs.filter((a) => !hiddenIds.has(a.id)) : xs)
 
   const { data, isLoading } = useQuery({
     queryKey: ['sweep', year, season],
@@ -84,11 +100,18 @@ export function SweepPage() {
               ? 'Tap every one you’ve seen. Most people have watched a few dozen of these.'
               : 'Seeing the covers brings back what you watched. Tap everything you’ve seen, then step back a season.'}
           </p>
+          <div className="sweep-switches">
           <div className="seg sweep-views" role="tablist" aria-label="How to browse">
             <button role="tab" aria-selected={view === 'popular'} className={view === 'popular' ? 'is-on' : ''}
               onClick={() => setParams({ view: 'popular' })}>Most popular</button>
             <button role="tab" aria-selected={view === 'season'} className={view === 'season' ? 'is-on' : ''}
               onClick={() => setParams({ view: 'season', year: String(year), season })}>By season</button>
+          </div>
+          <label className="toggle toggle-s sweep-hide">
+            <input type="checkbox" checked={hideWatched} onChange={toggleHide} />
+            <span className="toggle-ui" aria-hidden="true" />
+            <span>Hide watched</span>
+          </label>
           </div>
         </div>
         {view === 'season' && <div className="sweep-eras" role="group" aria-label="Jump to a year">
@@ -111,7 +134,8 @@ export function SweepPage() {
           <SeasonBand season={null} year={null} neutral label={kind === 'all' ? 'Most popular of all time' : `Most popular ${KINDS.find((k) => k.id === kind)!.label.toLowerCase()}`}
             count={popular.isLoading ? '' : `${seenPop} of ${pop.length} watched`}>
             {popular.isError && <p className="muted">Couldn’t load the list. Try again in a moment.</p>}
-            <SeasonGrid items={pop} />
+            <SeasonGrid items={visible(pop)} />
+            {hideWatched && pop.length > 0 && visible(pop).length === 0 && <p className="muted">You’ve watched all of these. Show more below.</p>}
           </SeasonBand>
           <footer className="sweep-foot">
             {shown < MOST && pop.length >= shown && !popular.isError && (
@@ -134,7 +158,8 @@ export function SweepPage() {
           </button>
         </span>}>
         {!isLoading && items.length === 0 && <p className="muted">Nothing charted for this season.</p>}
-        <SeasonGrid items={items} />
+        <SeasonGrid items={visible(items)} />
+        {hideWatched && items.length > 0 && visible(items).length === 0 && <p className="muted">You’ve watched everything here. Try an earlier season.</p>}
       </SeasonBand>
 
       <footer className="sweep-foot">
