@@ -9,12 +9,12 @@ type Mode = 'login' | 'signup' | 'verify' | 'reset'
 
 const ERR: Record<string, string> = {
   bad_credentials: 'That email and password don’t match.',
-  bad_code: 'That code is wrong or has expired — or the password doesn’t match the one you signed up with.',
+  bad_code: 'That code is wrong or expired, or the password doesn’t match the one you signed up with.',
   mail_failed: 'We couldn’t send the email just now. Try again in a minute.',
   username_taken: 'That username is taken. Try another.',
-  bad_username: 'Usernames use 3–20 lowercase letters, numbers or underscores.',
+  bad_username: 'Usernames use 3 to 20 lowercase letters, numbers or underscores.',
   rate_limited: 'Too many tries. Wait a minute and try again.',
-  http_422: 'Check the fields — the email looks wrong or the password is under 8 characters.',
+  http_422: 'Check the fields. The email looks wrong, or the password is under 8 characters.',
 }
 
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -136,7 +136,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
         )}
         {mode === 'signup' && (
           <label className="auth-field">
-            <span>Username <em className="faint">— your public link: konomi/u/{username || 'name'}</em></span>
+            <span>Username <em className="faint">(your link: /u/{username || 'name'})</em></span>
             <input className="field" autoComplete="username" required value={username} pattern="[a-z0-9_]{3,20}"
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} maxLength={20} />
           </label>
@@ -151,7 +151,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
         )}
         {(mode === 'login' || mode === 'signup' || (mode === 'reset' && sent)) && (
           <label className="auth-field">
-            <span>{mode === 'reset' ? 'New password' : 'Password'} {mode !== 'login' && <em className="faint">— 8+ characters</em>}</span>
+            <span>{mode === 'reset' ? 'New password' : 'Password'} {mode !== 'login' && <em className="faint">(8+ characters)</em>}</span>
             <input className="field" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>

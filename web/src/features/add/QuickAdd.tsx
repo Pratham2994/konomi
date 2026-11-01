@@ -54,7 +54,7 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
     }
     setStatus.mutate({ anime, status })
     toast({
-      text: `${h.title_en ?? h.title} — ${STATUS_LABEL[status].toLowerCase()}`,
+      text: `${h.title_en ?? h.title}: ${STATUS_LABEL[status].toLowerCase()}`,
       action: existing ? undefined : { label: 'Undo', run: () => remove.mutate(h.id) },
     })
     if (status === 'completed') rater.prompt(anime)

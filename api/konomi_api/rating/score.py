@@ -1,10 +1,10 @@
-"""Konomi score: feeling tier picks a band, Bradley–Terry strengths from duels order titles inside it."""
+"""Konomi score: feeling tier picks a band, Bradley-Terry strengths from duels order titles inside it."""
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
 
-# tier -> (low, high) on the 1.0–10.0 scale. Non-overlapping, top-heavy.
+# tier -> (low, high) on the 1.0 to 10.0 scale. Non-overlapping, top-heavy.
 BANDS: dict[int, tuple[float, float]] = {5: (9.0, 10.0), 4: (8.0, 8.9), 3: (6.5, 7.9), 2: (5.0, 6.4), 1: (1.0, 4.9)}
 
 
@@ -16,7 +16,7 @@ class DuelRec:
 
 
 def strengths(items: list[int], duels: list[DuelRec], iters: int = 200) -> dict[int, float]:
-    """Bradley–Terry via MM iterations. Each item also plays one virtual tie against a phantom of strength 1,
+    """Bradley-Terry via MM iterations. Each item also plays one virtual tie against a phantom of strength 1,
     a weak prior that keeps unbeaten / winless items finite."""
     present = set(items)
     wins: dict[int, float] = {i: 0.5 for i in items}

@@ -79,11 +79,11 @@ export const SEASON_LABEL: Record<Season, string> = { WINTER: 'Winter', SPRING: 
 export const SEASON_KANJI: Record<Season, string> = { WINTER: '冬', SPRING: '春', SUMMER: '夏', FALL: '秋' }
 
 export const TIERS = [
-  { tier: 5, label: 'One of my favourites', band: '9.0–10' },
-  { tier: 4, label: 'Loved it', band: '8.0–8.9' },
-  { tier: 3, label: 'Liked it', band: '6.5–7.9' },
-  { tier: 2, label: 'It was okay', band: '5.0–6.4' },
-  { tier: 1, label: "Didn't like it", band: '1.0–4.9' },
+  { tier: 5, label: 'One of my favourites', band: '9.0 to 10' },
+  { tier: 4, label: 'Loved it', band: '8.0 to 8.9' },
+  { tier: 3, label: 'Liked it', band: '6.5 to 7.9' },
+  { tier: 2, label: 'It was okay', band: '5.0 to 6.4' },
+  { tier: 1, label: "Didn't like it", band: '1.0 to 4.9' },
 ] as const
 
 export const STATUS_LABEL: Record<Status, string> = {

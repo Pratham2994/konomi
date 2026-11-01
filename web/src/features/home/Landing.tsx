@@ -1,104 +1,135 @@
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { ScoreRail } from '../../components/ScoreRail'
+import { SeasonBand } from '../../components/SeasonBand'
 import { api } from '../../lib/api'
-import { currentSeason } from '../../lib/hooks'
-import type { AnimeBrief, Status } from '../../lib/types'
+import { currentSeason, SEASON_ORDER } from '../../lib/hooks'
+import type { AnimeBrief, Season } from '../../lib/types'
 import './landing.css'
 
-const MARKS: (Status | undefined)[] = ['completed', undefined, 'completed', 'watching', undefined, 'completed',
-  'dropped', 'completed', undefined, 'planned', 'completed', undefined]
+/** Titles a visitor taps before signing up; HomePage adds them to the new chart after sign-up. */
+export const PENDING_KEY = 'konomi-pending-marks'
+
+function back(year: number, season: Season, n: number): { year: number; season: Season } {
+  let i = SEASON_ORDER.indexOf(season) - n
+  let y = year
+  while (i < 0) { i += 4; y -= 1 }
+  return { year: y, season: SEASON_ORDER[i] }
+}
+
+function useSeason(year: number, season: Season) {
+  return useQuery({
+    queryKey: ['sweep', year, season],
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${year}&season=${season}&limit=12`),
+    staleTime: Infinity,
+  }).data?.items ?? []
+}
 
 export function Landing() {
-  const { data } = useQuery({ queryKey: ['showcase'], queryFn: () => api<{ items: AnimeBrief[] }>('/api/showcase'), staleTime: Infinity })
-  const items = data?.items ?? []
-  const wall = items.slice(0, 12)
-  const [drawn, setDrawn] = useState(0)
+  const now = currentSeason()
+  const s1 = now, s2 = back(now.year, now.season, 1), s3 = back(now.year, now.season, 4)
+  const a = useSeason(s1.year, s1.season), b = useSeason(s2.year, s2.season), c = useSeason(s3.year, s3.season)
+  const [marked, setMarked] = useState<AnimeBrief[]>([])
   const [pick, setPick] = useState<'a' | 'b' | null>(null)
-  const a = items[14], b = items[17]
+  const isOn = (id: number) => marked.some((m) => m.id === id)
 
-  useEffect(() => {
-    if (!wall.length || drawn >= wall.length) return
-    const t = setTimeout(() => setDrawn((d) => d + 1), drawn === 0 ? 500 : 260)
-    return () => clearTimeout(t)
-  }, [drawn, wall.length])
+  function toggle(x: AnimeBrief) {
+    const next = isOn(x.id) ? marked.filter((m) => m.id !== x.id) : [...marked, x]
+    setMarked(next)
+    setPick(null)
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify(next)) } catch { /* storage blocked: fine */ }
+  }
+
+  const pair = useMemo(() => {
+    if (marked.length >= 2) return [marked[marked.length - 2], marked[marked.length - 1]]
+    const pool = [...c, ...b]
+    return pool.length >= 2 ? [pool[0], pool[1]] : null
+  }, [marked, b, c])
+
+  const bands: [typeof s1, AnimeBrief[], string][] = [
+    [s1, a, 'airing now'], [s2, b, 'last season'], [s3, c, 'a year ago'],
+  ]
 
   return (
-    <div className="landing" data-season={currentSeason().season}>
-      <section className="l-hero page">
-        <div className="l-copy">
-          <h1 className="display l-title">Your anime,<br />ranked by you.<br /><span>Never by a number.</span></h1>
+    <div className="landing" data-season={now.season}>
+      <section className="l-top page">
+        <h1 className="display l-title">
+          Every anime you’ve watched, <span>ranked by you.</span>
+        </h1>
+        <div className="l-side">
           <p className="l-lead">
-            Konomi is an anime list that never asks for a 1–10. Add a show in one keystroke, answer “which did you enjoy more?”,
-            and your scores work themselves out — then a taste model trained on 56 million real ratings guesses what you’ll love next.
+            No 1 to 10 sliders. You pick a feeling, answer a couple of “which did you enjoy more?” questions,
+            and your scores sort themselves out. Then a taste model trained on 56 million real ratings finds what
+            you’ll love next.
           </p>
           <div className="l-cta">
             <Link to="/signup" className="btn btn-primary l-btn">Start your chart</Link>
-            <Link to="/login" className="btn btn-ghost l-btn">I have an account</Link>
+            <Link to="/login" className="btn l-btn">Log in</Link>
           </div>
-        </div>
-        <div className="l-wall" aria-hidden="true">
-          {wall.map((x, i) => (
-            <motion.div key={x.id} className="l-wall-cell" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04, type: 'spring', stiffness: 260, damping: 26 }}>
-              <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color}
-                status={i < drawn ? MARKS[i] : undefined} animateMark eager />
-            </motion.div>
-          ))}
         </div>
       </section>
 
-      {a && b && (
-        <section className="l-demo page" data-season="WINTER">
-          <div className="l-demo-text">
-            <h2 className="display">Try it. Which did you enjoy more?</h2>
-            <p className="muted">That’s the whole rating system. A feeling picks the band, a few of these place the show inside it,
-              and your best ever lands on exactly 10.0.</p>
-          </div>
-          <div className="l-demo-duel">
-            {[a, b].map((x, i) => (
-              <button key={x.id} className={`l-demo-side${pick && pick !== (i ? 'b' : 'a') ? ' is-out' : ''}`}
+      <section className="l-try page" aria-label="Try it">
+        <p className="l-try-ask display">Tap what you’ve seen.</p>
+        {bands.map(([s, items, label]) => items.length > 0 && (
+          <SeasonBand key={`${s.year}-${s.season}`} season={s.season} year={s.year} count={label}>
+            <div className="l-grid">
+              {items.map((x) => (
+                <button key={x.id} type="button" className="l-tile" onClick={() => toggle(x)} aria-pressed={isOn(x.id)}>
+                  <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color}
+                    status={isOn(x.id) ? 'completed' : undefined} animateMark />
+                  <span className="tile-title">{x.title_en ?? x.title}</span>
+                </button>
+              ))}
+            </div>
+          </SeasonBand>
+        ))}
+      </section>
+
+      {pair && (
+        <section className="l-duel page" data-season="WINTER">
+          <h2 className="display l-duel-ask">
+            {marked.length >= 2 ? 'Of those two, which did you enjoy more?' : 'Which did you enjoy more?'}
+          </h2>
+          <div className="l-duel-pair">
+            {pair.map((x, i) => (
+              <button key={x.id} type="button" className={`l-duel-side${pick && pick !== (i ? 'b' : 'a') ? ' is-out' : ''}`}
                 onClick={() => setPick(i ? 'b' : 'a')}>
                 <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color}
-                  status={pick === (i ? 'b' : 'a') ? 'completed' : undefined} animateMark score={pick === (i ? 'b' : 'a') ? 9.4 : null} />
+                  status={pick === (i ? 'b' : 'a') ? 'completed' : undefined} animateMark />
                 <span className="tile-title">{x.title_en ?? x.title}</span>
               </button>
             ))}
           </div>
-          <div className="l-demo-rail">
+          <div className="l-duel-out">
             {pick ? (
               <>
-                <ScoreRail score={9.4} predicted={9.1} />
-                <p className="faint l-demo-note">Example: after you answer, Konomi shows the score it guessed next to yours.</p>
+                <ScoreRail score={9.2} predicted={8.9} />
+                <p className="l-note">That answer moved one title above the other. A few of these and every score on your
+                  chart is honest. The dashed line is Konomi’s guess, shown only after you answer. (Example numbers.)</p>
               </>
-            ) : <p className="faint l-demo-note">Tap one.</p>}
+            ) : <p className="l-note">Pick one.</p>}
           </div>
         </section>
       )}
 
-      <section className="l-steps page" data-season="SPRING">
-        <div className="l-step">
-          <h3 className="display">Add without searching</h3>
-          <p className="muted">The whole catalogue — 39,000+ anime — lives in your browser. Type two letters, press Enter, done.
-            Or walk back through past seasons and tap everything you’ve seen.</p>
-        </div>
-        <div className="l-step" data-season="SUMMER">
-          <h3 className="display">Scores you can trust</h3>
-          <p className="muted">“One of my favourites”, “Loved it”, “Liked it”… then a couple of quick comparisons. No more list where everything is a 10.</p>
-        </div>
-        <div className="l-step" data-season="FALL">
-          <h3 className="display">A model that knows you</h3>
-          <p className="muted">Trained on 56.5 million MyAnimeList ratings from 293,000 people. It recommends with reasons and draws your taste as a galaxy.</p>
-        </div>
-      </section>
-
       <footer className="l-foot page">
         <span className="display">好み Konomi</span>
-        <span className="faint">Catalogue: anime-offline-database (ODbL) · ratings: MyAnimeList via Kaggle · metadata: AniList</span>
+        <span className="faint">Catalogue: anime-offline-database (ODbL), AniList. Ratings: MyAnimeList via Kaggle.</span>
       </footer>
+
+      <AnimatePresence>
+        {marked.length > 0 && (
+          <motion.div className="l-keep" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 34 }}>
+            <span><strong className="display">{marked.length}</strong> marked</span>
+            <Link to="/signup" className="btn btn-primary">Start your chart to keep them</Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -49,7 +49,7 @@ export function SettingsPage() {
   function toggleFav(id: number) {
     const cur = s!.favourites
     const next = cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 10 ? cur : [...cur, id]
-    if (!cur.includes(id) && cur.length >= 10) toast({ text: 'Ten favourites max — remove one first' })
+    if (!cur.includes(id) && cur.length >= 10) toast({ text: 'Ten favourites max. Remove one first' })
     save.mutate({ favourites: next })
   }
 
@@ -75,7 +75,7 @@ export function SettingsPage() {
           <span className="toggle-ui" aria-hidden="true" />
           <span>
             <strong>{s.is_public ? 'Public' : 'Private'}</strong>
-            <span className="muted"> — {s.is_public ? `anyone with konomi/u/${s.username} can see your chart` : 'only you can see your chart'}</span>
+            <span className="muted">. {s.is_public ? `Anyone with your link (/u/${s.username}) can see your chart` : 'Only you can see your chart'}</span>
           </span>
         </label>
       </section>

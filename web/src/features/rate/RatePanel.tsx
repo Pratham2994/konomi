@@ -82,7 +82,7 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
                 ? 'Konomi starts guessing your scores once it knows a few of your favourites.'
                 : flow.phase.score != null && Math.abs(flow.phase.predicted - flow.phase.score) <= 1
                   ? 'Konomi called it.'
-                  : 'Konomi missed this one — it just learned something about you.'}
+                  : 'Konomi missed this one. Now it knows you a little better.'}
             </p>
             <div className="rp-facets">
               {FACETS.map((f) => (

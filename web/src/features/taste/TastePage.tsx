@@ -131,14 +131,14 @@ export default function TastePage() {
         <div className="g-overlay page">
           <h1 className="display g-title">Your taste</h1>
           <p className="g-lead">
-            Every star is an anime — {galaxy.data ? galaxy.data.points.length.toLocaleString() : '39,000+'} of them.
+            Every star is an anime, {galaxy.data ? galaxy.data.points.length.toLocaleString() : '39,000+'} of them.
             Stars sit close when the same people love them. <span className="g-key g-key-mine">White</span> are yours,
             <span className="g-key g-key-rec"> pulsing</span> are what Konomi thinks you’ll love next.
           </p>
           {track.data && track.data.n >= 3 && track.data.within1 != null && (
             <p className="g-track">
               Konomi guessed your score within 1 point on <strong>{Math.round(track.data.within1 * 100)}%</strong> of
-              {' '}{track.data.n} titles — before you answered.
+              {' '}{track.data.n} titles, before you answered.
             </p>
           )}
         </div>
@@ -158,7 +158,7 @@ export default function TastePage() {
         {dna.data?.axes && (
           <section className="taste-sec">
             <h2 className="display taste-h">Taste DNA</h2>
-            <p className="muted taste-sub">Six directions the model found in 56 million ratings. Nobody named them — the labels are the tags that cluster at each end.</p>
+            <p className="muted taste-sub">Six directions the model found in 56 million ratings. Nobody named them. The labels are the tags that cluster at each end.</p>
             <Dna axes={dna.data.axes} />
           </section>
         )}

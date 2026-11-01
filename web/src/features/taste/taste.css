@@ -1,7 +1,6 @@
 .g-stage {
   position: relative; height: min(86dvh, 1000px); min-height: 520px; overflow: hidden;
-  background: radial-gradient(ellipse at 50% 60%, #191524 0%, var(--ink) 70%);
-  border-bottom: 3px solid var(--season);
+  background: var(--ink);
 }
 .g-canvas { position: absolute; inset: 0; }
 .g-stage canvas { touch-action: none; }
@@ -39,7 +38,7 @@
 .dna-mid { position: absolute; left: 50%; top: 6px; bottom: 6px; width: 1px; background: var(--paper-3); }
 .dna-dot {
   position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
-  background: var(--season); box-shadow: 0 0 0 4px color-mix(in oklab, var(--season) 25%, transparent);
+  background: var(--season); border: 3px solid var(--ink);
 }
 @media (max-width: 640px) {
   .dna-row { grid-template-columns: 1fr 1fr; gap: 4px var(--s3); }

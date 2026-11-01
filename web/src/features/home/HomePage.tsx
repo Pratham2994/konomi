@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { VtLink } from '../../components/VtLink'
 import { CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { api } from '../../lib/api'
-import { currentSeason, useList, useMe } from '../../lib/hooks'
+import { useToast } from '../../components/Toast'
+import { currentSeason, useList, useMe, useSetStatus } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { QuickAdd } from '../add/QuickAdd'
 import { SeasonGrid } from '../add/SeasonGrid'
 import { Tile } from '../list/ChartPage'
+import { PENDING_KEY } from './Landing'
 import './home.css'
 
 export interface Rec {
@@ -56,6 +59,22 @@ export function HomePage() {
   })
   const recent = entries.slice(0, 18)
   const empty = entries.length === 0
+  const setStatus = useSetStatus()
+  const toast = useToast()
+
+  // Titles tapped on the landing page before signing up land on the new chart.
+  useEffect(() => {
+    let pending: AnimeBrief[] = []
+    try {
+      pending = JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]')
+      localStorage.removeItem(PENDING_KEY)
+    } catch { return }
+    if (!Array.isArray(pending) || pending.length === 0) return
+    pending.slice(0, 60).forEach((anime) => setStatus.mutate({ anime, status: 'completed' }))
+    toast({ text: `Added the ${pending.length} title${pending.length === 1 ? '' : 's'} you marked` })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const guesses = recs?.mode === 'model' ? recs.items.filter((r) => r.predicted != null).slice(0, 5) : []
 
   return (
@@ -67,7 +86,7 @@ export function HomePage() {
             <QuickAdd variant="hero" autoFocus={empty} />
             {empty && (
               <p className="muted home-hint">
-                Type a title and press Enter — it lands on your chart. Or tap what you’ve seen this season below,{' '}
+                Type a title and press Enter. It lands on your chart. Or tap what you’ve seen this season below,{' '}
                 <Link to="/sweep">walk back through past seasons</Link>,
                 or <Link to="/settings#import">import your MyAnimeList or AniList list</Link>.
               </p>
@@ -75,7 +94,7 @@ export function HomePage() {
           </section>
 
           {season && season.items.length > 0 && (
-            <SeasonBand season={now.season} year={now.year} count="airing now — tap what you’re watching"
+            <SeasonBand season={now.season} year={now.year} count="airing now, tap what you’re watching"
               aside={<Link to="/sweep" className="btn">Earlier seasons</Link>}>
               <SeasonGrid items={season.items.slice(0, 12)} compact />
             </SeasonBand>
@@ -115,7 +134,7 @@ export function HomePage() {
 
       {recs && recs.items.length > 0 && (
         <SeasonBand neutral season={null} year={null} label="For you"
-          count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks — rate a few favourites to personalise'}
+          count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks for now. Rate a few favourites to make them yours'}
           aside={<Link to="/taste" className="btn">See your taste</Link>}>
           <div className="recs">{recs.items.slice(0, 12).map((r) => <RecCard key={r.anime.id} r={r} />)}</div>
         </SeasonBand>

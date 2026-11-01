@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     # Reads KONOMI_* from the environment, then from the repo .env (e.g. the Resend key for real emails locally).
-    # The Neon URL in .env is DATABASE_URL — no KONOMI_ prefix — so local dev never touches production data.
+    # The Neon URL in .env is DATABASE_URL, no KONOMI_ prefix, so local dev never touches production data.
     model_config = SettingsConfigDict(env_prefix="KONOMI_", env_file=ROOT / ".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://konomi:konomi@localhost:5433/konomi"

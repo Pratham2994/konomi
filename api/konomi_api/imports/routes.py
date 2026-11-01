@@ -1,6 +1,6 @@
 """Bring an existing list over: MAL XML export or a public AniList username.
 
-Imported titles keep their status. An imported score only picks the feeling tier (scores elsewhere are inflated —
+Imported titles keep their status. An imported score only picks the feeling tier (scores elsewhere are inflated,
 the reason Konomi exists); duels in the rate session place them properly. Existing Konomi entries are never touched.
 """
 from __future__ import annotations

@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import './scorerail.css'
 
-/** The one 1–10 rail every score sits on. Your score is a full-height line; Konomi's guess is a dashed line. */
+/** The one 1 to 10 rail every score sits on. Your score is a full-height line; Konomi's guess is a dashed line. */
 export function ScoreRail({ score, predicted }: { score: number | null; predicted?: number | null }) {
   const x = (v: number) => `${((v - 1) / 9) * 100}%`
   return (

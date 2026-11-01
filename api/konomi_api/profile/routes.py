@@ -74,7 +74,7 @@ def patch_profile(body: ProfileIn, user: CurrentUser, db: Db) -> dict:
 def visible_user(db, username: str, viewer: User | None) -> User:
     u = db.scalars(select(User).where(User.username == username.lower(), User.verified_at.is_not(None))).first()
     if u is None or (not u.is_public and (viewer is None or viewer.id != u.id)):
-        # Private and missing look identical, so a private profile leaks nothing — not even that it exists.
+        # Private and missing look identical, so a private profile leaks nothing, not even that it exists.
         raise HTTPException(404, {"code": "private_or_missing"})
     return u
 

@@ -7,7 +7,7 @@ import './duel.css'
 // Only the most recently mounted duel takes ←/→/↓ (the rating panel can open over the Rate page's duel).
 const stack: string[] = []
 
-/** "Which did you enjoy more?" — two covers face off. ←/→ pick, ↓ too close. */
+/** "Which did you enjoy more?": two covers face off. ←/→ pick, ↓ too close. */
 export function Duel({ a, b, onPick, busy, big }: {
   a: AnimeBrief; b: AnimeBrief; onPick: (o: 'a' | 'b' | 'tie') => void; busy?: boolean; big?: boolean
 }) {

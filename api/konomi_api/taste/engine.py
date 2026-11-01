@@ -169,7 +169,7 @@ class TasteEngine:
         """Taste score for every catalogue title, on one standardised scale.
         Rated titles: Mult-VAE logits, blended with EASE when served. Unrated (bridge-placed) titles: their bridged
         logits regress toward the mean, so they are re-standardised among themselves and mapped onto the rated
-        titles' scale (shrunk a little, since the bridge is less sure) — otherwise post-2020 anime never surface."""
+        titles' scale (shrunk a little, since the bridge is less sure), otherwise post-2020 anime never surface."""
         s = self.emb @ z + self.bias
         cf = s[self.cf_rows]
         out = (s - cf.mean()) / (cf.std() + 1e-9)
