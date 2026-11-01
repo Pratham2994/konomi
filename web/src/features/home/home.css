@@ -49,3 +49,17 @@
   .home-rate .btn { grid-column: 1 / -1; }
 }
 @media (max-width: 1279px) { .home-rail { order: 2; } .home-guesses { display: none; } }
+
+/* Get started: three steps with live progress, until Konomi's guesses take over the rail. */
+.home-start { padding: var(--s4) var(--s5); border-radius: var(--r-panel); background: var(--ink-2); border: 1px solid var(--line); }
+.home-start h2 { font-size: 22px; }
+.home-start ol { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: var(--s3); }
+.home-start li { display: grid; grid-template-columns: 32px 1fr; gap: var(--s3); align-items: start; opacity: 0.55; }
+.home-start li.is-now, .home-start li.is-done { opacity: 1; }
+.home-start-dot { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; background: var(--ink-4); }
+.is-now .home-start-dot { background: var(--season); color: var(--ink); }
+.is-done .home-start-dot { background: color-mix(in oklab, var(--good) 30%, var(--ink-3)); color: var(--paper); }
+.home-start-text { display: grid; gap: 2px; padding-top: 4px; }
+.home-start-text .muted { font-size: 13px; }
+.home-start-text .btn { justify-self: start; margin-top: var(--s2); min-height: 40px; }
+@media (max-width: 1279px) { .home-start { order: -1; } }

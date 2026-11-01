@@ -119,7 +119,7 @@ export function Layout() {
           {me ? (
             <>
               <NavLink to="/chart">Chart</NavLink>
-              <NavLink to="/sweep">Add by season</NavLink>
+              <NavLink to="/sweep">Add anime</NavLink>
               <NavLink to="/rate" className="has-badge">
                 Rate titles{unrated > 0 && <span className="badge">{unrated > 99 ? '99+' : unrated}</span>}
               </NavLink>

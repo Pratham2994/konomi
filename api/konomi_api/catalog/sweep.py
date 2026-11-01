@@ -21,6 +21,16 @@ def sweep(db: Db, year: int = Query(ge=1960, le=2100), season: Season = "FALL", 
     return {"year": year, "season": season, "items": [brief(a) for a in rows]}
 
 
+@router.get("/popular")
+def popular(db: Db, limit: int = Query(60, ge=1, le=240), offset: int = Query(0, ge=0, le=2000)) -> dict:
+    """The most popular anime of all time: the fastest way to fill a new chart."""
+    rows = db.scalars(
+        select(Anime).where(Anime.popularity > 0, Anime.status != "UPCOMING",
+                            Anime.type.in_(["TV", "MOVIE", "ONA"]))
+        .order_by(Anime.popularity.desc(), Anime.id).offset(offset).limit(limit)).all()
+    return {"items": [brief(a) for a in rows]}
+
+
 @router.get("/showcase")
 def showcase(db: Db) -> dict:
     """Popular covers for the landing page."""

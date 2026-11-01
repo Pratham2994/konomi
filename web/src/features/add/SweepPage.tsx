@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
@@ -22,6 +22,14 @@ const ERAS = [2025, 2020, 2015, 2010, 2005, 2000, 1995, 1990]
 export function SweepPage() {
   const now = currentSeason()
   const [params, setParams] = useSearchParams()
+  // Opens on the most popular anime of all time; "By season" walks back through the seasons.
+  const view = params.get('view') ?? (params.has('year') ? 'season' : 'popular')
+  const [shown, setShown] = useState(60)
+  const popular = useQuery({
+    queryKey: ['popular', shown],
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/popular?limit=${shown}`),
+    staleTime: Infinity, placeholderData: keepPreviousData, enabled: view === 'popular',
+  })
   const year = Number(params.get('year')) || now.year
   const season = (params.get('season') as Season) || now.season
   const [walked, setWalked] = useState(0)
@@ -30,7 +38,7 @@ export function SweepPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['sweep', year, season],
     queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${year}&season=${season}`),
-    staleTime: Infinity,
+    staleTime: Infinity, enabled: view === 'season',
   })
   const items = data?.items ?? []
   const prev = step(year, season, -1)
@@ -45,7 +53,7 @@ export function SweepPage() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT') return
+      if ((e.target as HTMLElement).tagName === 'INPUT' || view !== 'season') return
       if (e.key === 'ArrowLeft' && e.shiftKey) go(prev)
       else if (e.key === 'ArrowRight' && e.shiftKey && !isFuture) go(next)
     }
@@ -54,21 +62,51 @@ export function SweepPage() {
   })
 
   const seenHere = items.filter((a) => onList.get(a.id)?.status === 'completed').length
+  const pop = popular.data?.items ?? []
+  const seenPop = pop.filter((a) => onList.get(a.id)?.status === 'completed').length
+  const marked = pop.concat(items).some((a) => onList.get(a.id)?.status === 'completed' && !onList.get(a.id)?.tier)
 
   return (
     <div className="page sweep" data-season={season}>
       <header className="sweep-head">
         <div>
-          <h1 className="display sweep-title">Add by season</h1>
-          <p className="muted sweep-lead">Seeing the covers brings back what you watched. Tap everything you’ve seen, then step back a season.</p>
+          <h1 className="display sweep-title">Add anime</h1>
+          <p className="muted sweep-lead">
+            {view === 'popular'
+              ? 'Tap every one you’ve seen. Most people have watched a few dozen of these.'
+              : 'Seeing the covers brings back what you watched. Tap everything you’ve seen, then step back a season.'}
+          </p>
+          <div className="seg sweep-views" role="tablist" aria-label="How to browse">
+            <button role="tab" aria-selected={view === 'popular'} className={view === 'popular' ? 'is-on' : ''}
+              onClick={() => setParams({ view: 'popular' })}>Most popular</button>
+            <button role="tab" aria-selected={view === 'season'} className={view === 'season' ? 'is-on' : ''}
+              onClick={() => setParams({ view: 'season', year: String(year), season })}>By season</button>
+          </div>
         </div>
-        <div className="sweep-eras" role="group" aria-label="Jump to a year">
+        {view === 'season' && <div className="sweep-eras" role="group" aria-label="Jump to a year">
           {ERAS.map((y) => (
             <button key={y} className={`chip${year === y ? ' is-on' : ''}`} onClick={() => go({ year: y, season: 'FALL' })}>{y}</button>
           ))}
-        </div>
+        </div>}
       </header>
 
+      {view === 'popular' ? (
+        <>
+          <SeasonBand season={null} year={null} neutral label="Most popular of all time"
+            count={popular.isLoading ? '' : `${seenPop} of ${pop.length} watched`}>
+            {popular.isError && <p className="muted">Couldn’t load the list. Try again in a moment.</p>}
+            <SeasonGrid items={pop} />
+          </SeasonBand>
+          <footer className="sweep-foot">
+            {shown < 240 && !popular.isError && (
+              <button className="btn btn-primary sweep-next" disabled={popular.isFetching} onClick={() => setShown((n) => n + 60)}>
+                {popular.isFetching ? 'Loading…' : 'Show 60 more'}
+              </button>
+            )}
+            {marked && <Link to="/rate" className="btn">Rate what you marked</Link>}
+          </footer>
+        </>
+      ) : (<>
       <SeasonBand season={season} year={year}
         count={isLoading ? '' : `${seenHere} of ${items.length} watched`}
         aside={<span className="sweep-nav">
@@ -87,9 +125,10 @@ export function SweepPage() {
         <button className="btn btn-primary sweep-next" onClick={() => go(prev)}>
           Back to {SEASON_LABEL[prev.season]} {prev.year} <Icon name="arrowRight" size={18} />
         </button>
-        {walked > 0 && <Link to="/rate" className="btn">Rate what you marked</Link>}
+        {(walked > 0 || marked) && <Link to="/rate" className="btn">Rate what you marked</Link>}
         <p className="faint sweep-keys">Keyboard: hover a cover, then <kbd>S</kbd> watched · <kbd>D</kbd> dropped · <kbd>W</kbd> want · <kbd>X</kbd> clear · <kbd>Shift</kbd>+<kbd>←</kbd> earlier</p>
       </footer>
+      </>)}
     </div>
   )
 }

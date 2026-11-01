@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { ScoreRail } from '../../components/ScoreRail'
+import { useQueryClient } from '@tanstack/react-query'
 import { asked } from '../../lib/ask'
+import { listChanged } from '../../lib/sync'
 import { TIERS, useList } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
@@ -26,6 +28,9 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
   // Removed, undone, or moved off "watched" somewhere else: there is nothing left to rate, so the panel goes too.
   // Only after the title was seen as watched, because a fresh add reaches the list a moment after the panel opens.
   const seen = useRef(false)
+  const qc = useQueryClient()
+  // Rating ended: now let the model views catch up, once.
+  useEffect(() => () => { listChanged(qc) }, [qc])
   useEffect(() => {
     if (onChart?.status === 'completed') seen.current = true
     else if (seen.current && list) onClose()

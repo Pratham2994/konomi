@@ -59,3 +59,8 @@
 }
 @media (hover: none) { .qa-help { display: none; } }
 @media (hover: none) { .qa-kbd { display: none; } }
+.qa-open {
+  flex: none; width: 40px; height: 40px; margin-right: 4px; display: grid; place-items: center; border: 0; border-radius: 10px;
+  background: none; color: var(--paper-3);
+}
+.qa-open:hover, .qa-row.is-sel .qa-open { color: var(--paper); background: var(--ink-4); }

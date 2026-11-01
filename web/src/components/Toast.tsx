@@ -8,6 +8,8 @@ interface ToastItem {
   title?: string
   text: string
   action?: { label: string; run: () => void }
+  /** Extra buttons, shown before `action`. */
+  actions?: { label: string; run: () => void }[]
 }
 
 const Ctx = createContext<(t: Omit<ToastItem, 'id'>) => void>(() => undefined)
@@ -30,11 +32,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
               transition={{ type: 'spring', stiffness: 500, damping: 34 }}>
               <span className="toast-text">{t.title && <strong>{t.title}</strong>}<span>{t.text}</span></span>
-              {t.action && (
-                <button className="toast-action" onClick={() => {
-                  t.action!.run()
-                  setItems((xs) => xs.filter((x) => x.id !== t.id))
-                }}>{t.action.label}</button>
+              {[...(t.actions ?? []), ...(t.action ? [t.action] : [])].length > 0 && (
+                <span className="toast-actions">
+                  {[...(t.actions ?? []), ...(t.action ? [t.action] : [])].map((a) => (
+                    <button key={a.label} className="toast-action" onClick={() => {
+                      a.run()
+                      setItems((xs) => xs.filter((x) => x.id !== t.id))
+                    }}>{a.label}</button>
+                  ))}
+                </span>
               )}
             </motion.div>
           ))}

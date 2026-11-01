@@ -20,6 +20,8 @@ async function addAndRate(page: Page, q: string, tier: string) {
   await input.fill(q)
   await expect(page.locator('.qa-hero .qa-row').first()).toBeVisible()
   await input.press('Enter')
+  // Adding never pops the panel open; the toast offers it.
+  await page.locator('.toast').getByRole('button', { name: 'Rate it' }).click()
   const panel = page.getByRole('dialog')
   await expect(panel.getByText(/How was/)).toBeVisible()
   await panel.getByRole('button', { name: tier }).click()

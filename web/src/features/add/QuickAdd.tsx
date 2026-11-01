@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
@@ -28,6 +29,7 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
   const listId = useId()
   const onList = useListIndex()
   const setStatus = useSetStatus()
+  const nav = useNavigate()
   const remove = useRemove()
   const toast = useToast()
   const rater = useRater()
@@ -51,8 +53,10 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
   function add(h: Hit, status: Status) {
     const anime = hitToBrief(h)
     const existing = onList.get(h.id)
+    // Adding never opens anything: one tap and it is on your chart. Rating is offered, not forced.
+    const rate = status === 'completed' && !existing?.tier ? [{ label: 'Rate it', run: () => rater.prompt(anime) }] : []
     if (existing && existing.status === status) {
-      if (status === 'completed') rater.prompt(anime)
+      toast({ title: h.title_en ?? h.title, text: 'Already on your chart', actions: rate })
       setQ('')
       return
     }
@@ -60,11 +64,17 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
     toast({
       title: h.title_en ?? h.title,
       text: STATUS_SAID[status],
+      actions: rate,
       action: existing ? undefined : { label: 'Undo', run: () => remove.mutate(h.id) },
     })
-    if (status === 'completed') rater.prompt(anime)
     setQ('')
     inputRef.current?.focus()
+  }
+
+  function open_(h: Hit) {
+    setQ('')
+    inputRef.current?.blur()
+    nav(`/anime/${h.id}`)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -74,6 +84,9 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSel((s) => Math.max(s - 1, 0))
+    } else if (e.key === 'Enter' && hits[sel] && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      open_(hits[sel])
     } else if (e.key === 'Enter' && hits[sel]) {
       e.preventDefault()
       add(hits[sel], e.altKey ? 'planned' : e.shiftKey ? 'watching' : 'completed')
@@ -132,6 +145,9 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
                     <span role="presentation" onClick={() => add(h, 'watching')}>Watching</span>
                     <span role="presentation" onClick={() => add(h, 'planned')}>Want</span>
                   </span>
+                  <button type="button" className="qa-open" onClick={() => open_(h)} aria-label={`Open ${h.title_en ?? h.title}`} tabIndex={-1}>
+                    <Icon name="arrowRight" size={18} />
+                  </button>
                 </li>
               )
             })}
@@ -141,6 +157,7 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
               <span><kbd>Enter</kbd> watched</span>
               <span><kbd>Shift</kbd>+<kbd>Enter</kbd> watching</span>
               <span><kbd>Alt</kbd>+<kbd>Enter</kbd> want to watch</span>
+              <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> open</span>
             </p>
           )}
         </div>

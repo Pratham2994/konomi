@@ -21,6 +21,17 @@ export function listChanged(qc: QueryClient) {
   return refresh(qc, FROM_LIST)
 }
 
+/**
+ * During rating: refresh only the list and the next question, so each answer stays quick.
+ * The model views (recommendations, DNA, guesses) are marked out of date and recompute once, when rating ends.
+ */
+const WHILE_RATING = new Set(['list', 'rate-next'])
+export function scoresChanged(qc: QueryClient, fresh: string[] = []) {
+  // `fresh`: keys the caller has just refetched itself, so they are not fetched twice.
+  qc.invalidateQueries({ predicate: (q) => WHILE_RATING.has(String(q.queryKey[0])) && !fresh.includes(String(q.queryKey[0])) })
+  qc.invalidateQueries({ predicate: (q) => FROM_LIST.has(String(q.queryKey[0])) && !WHILE_RATING.has(String(q.queryKey[0])), refetchType: 'none' })
+}
+
 export function profileChanged(qc: QueryClient) {
   channel?.postMessage('profile' satisfies Signal)
   return refresh(qc, FROM_PROFILE)

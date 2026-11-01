@@ -57,8 +57,8 @@ export function ChartPage() {
     return (
       <div className="page chart-empty">
         <h1 className="display">Your chart is empty</h1>
-        <p className="muted">Type any anime in the search bar and press Enter. Or walk through past seasons and tap what you’ve seen.</p>
-        <Link to="/sweep" className="btn btn-primary">Add by season</Link>
+        <p className="muted">Type any anime in the search bar and press Enter. Or tap through the most popular anime and mark what you’ve seen.</p>
+        <Link to="/sweep" className="btn btn-primary">Add anime</Link>
       </div>
     )
   }

@@ -43,6 +43,33 @@ export function RecCard({ r }: { r: Rec }) {
   )
 }
 
+/** Until Konomi can guess your scores, the rail shows the three steps that get you there, with your progress. */
+function Starter({ watched, rated }: { watched: number; rated: number }) {
+  const steps = [
+    { done: watched >= 10, title: 'Add 10 anime you’ve seen', note: `${Math.min(watched, 10)} of 10`, to: '/sweep', cta: 'Tap through popular anime' },
+    { done: rated >= 5, title: 'Rate 5 of them', note: `${Math.min(rated, 5)} of 5`, to: '/rate', cta: 'Rate titles' },
+    { done: false, title: 'Konomi starts guessing your scores', note: 'It learns from your answers', to: '/taste', cta: 'See your taste' },
+  ]
+  const current = steps.findIndex((s) => !s.done)
+  return (
+    <section className="home-start" aria-label="Get started">
+      <h2 className="display">Get started</h2>
+      <ol>
+        {steps.map((s, i) => (
+          <li key={s.title} className={s.done ? 'is-done' : i === current ? 'is-now' : ''}>
+            <span className="home-start-dot display" aria-hidden="true">{s.done ? '✓' : i + 1}</span>
+            <span className="home-start-text">
+              <strong>{s.title}</strong>
+              <span className="muted">{s.done ? 'Done' : s.note}</span>
+              {i === current && <Link to={s.to} className="btn btn-primary">{s.cta}</Link>}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 export function HomePage() {
   const { data: me } = useMe()
   const { data: entries = [] } = useList()
@@ -58,6 +85,8 @@ export function HomePage() {
     staleTime: Infinity,
   })
   const recent = entries.slice(0, 18)
+  const watchedN = entries.filter((e) => e.status === 'completed').length
+  const ratedN = entries.filter((e) => e.tier != null).length
   const empty = entries.length === 0
   const setStatus = useSetStatus()
   const toast = useToast()
@@ -87,7 +116,7 @@ export function HomePage() {
             {empty && (
               <p className="muted home-hint">
                 Type a title and press Enter. It lands on your chart. Or tap what you’ve seen this season below,{' '}
-                <Link to="/sweep">add by season, going back in time</Link>,
+                <Link to="/sweep">tap through the most popular anime</Link>,
                 or <Link to="/settings#import">import your MyAnimeList or AniList list</Link>.
               </p>
             )}
@@ -112,6 +141,7 @@ export function HomePage() {
               <span className="btn btn-primary">Rate now</span>
             </Link>
           )}
+          {guesses.length === 0 && <Starter watched={watchedN} rated={ratedN} />}
           {guesses.length > 0 && (
             <section className="home-guesses">
               <h2 className="display">Konomi’s guesses</h2>
