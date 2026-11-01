@@ -6,9 +6,19 @@ import httpx
 from ..config import get_settings
 
 
+RESERVED = ("example.com", "example.org", "example.net")
+RESERVED_TLDS = (".test", ".example", ".invalid", ".localhost")
+
+
+def is_reserved(address: str) -> bool:
+    """RFC 2606 / 6761 domains can never receive mail: route them to the local test inbox, never to Resend."""
+    domain = address.rsplit("@", 1)[-1].lower()
+    return domain in RESERVED or domain.endswith(RESERVED_TLDS)
+
+
 def send_mail(to: str, subject: str, html: str, text: str) -> None:
     s = get_settings()
-    if s.resend_api_key:
+    if s.resend_api_key and not is_reserved(to):
         r = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {s.resend_api_key}"},

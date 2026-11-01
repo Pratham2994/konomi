@@ -108,3 +108,9 @@ def test_neon_style_database_url_is_accepted():
     s = Settings(database_url="postgresql://u:p@ep-x.neon.tech/konomi?sslmode=require")
     assert s.database_url.startswith("postgresql+psycopg://u:p@ep-x.neon.tech/")
     assert Settings(database_url="postgresql+psycopg://a@b/c").database_url == "postgresql+psycopg://a@b/c"
+
+
+def test_reserved_test_domains_never_go_to_resend():
+    from konomi_api.auth.mailer import is_reserved
+    assert is_reserved("e2e-x@example.com") and is_reserved("a@b.test")
+    assert not is_reserved("pratham@gmail.com")
