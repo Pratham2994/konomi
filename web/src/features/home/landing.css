@@ -1,16 +1,20 @@
 .landing { padding-bottom: 96px; }
 
 /* Poster headline across the full width; copy and actions sit beside it, not an image. */
-.l-top { padding-top: clamp(32px, 7vh, 88px); padding-bottom: var(--s5); }
-.l-title { font-size: clamp(40px, 7.4vw, 136px); line-height: 0.95; letter-spacing: -0.025em; max-width: 16ch; }
-.l-title span { color: var(--season); }
-.l-side { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s5); margin-top: var(--s6); }
+.landing .l-top { padding-top: clamp(28px, 5vh, 72px); padding-bottom: var(--s4); }
+.l-title { font-size: clamp(40px, 6.5vw, 132px); line-height: 0.95; letter-spacing: -0.025em; text-wrap: wrap; }
+.l-word-mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.l-word { display: inline-block; }
+.l-accent { color: var(--season); }
+.l-side { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s4) var(--s6); margin-top: var(--s5); }
 .l-lead { font-size: clamp(16px, 1.3vw, 19px); color: var(--paper-2); max-width: 46ch; }
-.l-cta { display: flex; gap: var(--s3); flex-wrap: wrap; }
 .l-btn { min-height: 54px; padding: 0 26px; font-size: 17px; }
 
 .l-try { padding-top: 0; }
-.l-try-ask { font-size: clamp(22px, 2.4vw, 32px); margin-top: var(--s4); }
+.l-try-ask { font-size: clamp(26px, 3.2vw, 52px); line-height: 1; color: var(--season); }
+.l-try-ask span { display: inline-block; animation: nudge 1.6s 2.2s var(--ease-out) infinite; }
+@keyframes nudge { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .l-try-ask span { animation: none; } }
 /* One strip per season: swipe on phones, a full row on wide screens, never orphan rows. */
 .l-grid {
   display: grid; grid-auto-flow: column; grid-auto-columns: clamp(108px, 9.2vw, 168px); gap: clamp(10px, 1.2vw, 18px);
@@ -32,6 +36,8 @@
 .l-duel-out { min-height: 120px; }
 .l-note { font-size: 14px; color: var(--paper-2); max-width: 52ch; }
 
+.l-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s5); padding-top: var(--s8, 96px); }
+.l-end-title { font-size: clamp(30px, 4.4vw, 72px); line-height: 1; max-width: 14ch; }
 .l-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s3); padding-top: var(--s7); font-size: 13px; }
 
 .l-keep {

@@ -54,3 +54,13 @@
 .band-head:has(.band-aside) .band-kanji { display: none; }
 .band-narrow .band-kanji { display: none; }
 .band-narrow .band-title .display { font-size: 22px; }
+
+/* Landing: the season block wipes across in its ink, the title follows. */
+@supports (animation-timeline: view()) {
+  .band-reveal .band-head { animation: band-wipe linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
+}
+@supports not (animation-timeline: view()) {
+  .band-reveal .band-head { animation: band-wipe 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
+@keyframes band-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .band-reveal .band-head { animation: none; } }

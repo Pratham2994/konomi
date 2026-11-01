@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Icon } from '../../components/Icon'
 import { api, ApiError } from '../../lib/api'
 import type { Me } from '../../lib/types'
 import './auth.css'
@@ -15,6 +16,20 @@ const ERR: Record<string, string> = {
   bad_username: 'Usernames use 3 to 20 lowercase letters, numbers or underscores.',
   rate_limited: 'Too many tries. Wait a minute and try again.',
   http_422: 'Check the fields. The email looks wrong, or the password is under 8 characters.',
+}
+
+function PasswordInput({ value, onChange, autoComplete }: { value: string; onChange: (v: string) => void; autoComplete: string }) {
+  const [shown, setShown] = useState(false)
+  return (
+    <span className="pw">
+      <input className="field" type={shown ? 'text' : 'password'} autoComplete={autoComplete} required minLength={8}
+        autoCapitalize="off" autoCorrect="off" spellCheck={false} value={value} onChange={(e) => onChange(e.target.value)} />
+      <button type="button" className="pw-eye" onClick={() => setShown((s) => !s)}
+        aria-label={shown ? 'Hide password' : 'Show password'} aria-pressed={shown}>
+        <Icon name={shown ? 'eyeOff' : 'eye'} size={20} />
+      </button>
+    </span>
+  )
 }
 
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -145,19 +160,24 @@ export function AuthPage({ mode }: { mode: Mode }) {
         {mode === 'verify' && !carried && (
           <label className="auth-field">
             <span>The password you signed up with</span>
-            <input className="field" type="password" autoComplete="current-password" required value={password}
-              onChange={(e) => setPassword(e.target.value)} />
+            <PasswordInput autoComplete="current-password" value={password} onChange={setPassword} />
           </label>
         )}
         {(mode === 'login' || mode === 'signup' || (mode === 'reset' && sent)) && (
           <label className="auth-field">
             <span>{mode === 'reset' ? 'New password' : 'Password'} {mode !== 'login' && <em className="faint">(8+ characters)</em>}</span>
-            <input className="field" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <PasswordInput autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={setPassword} />
           </label>
         )}
 
-        {err && <p className="auth-err" role="alert">{err}</p>}
+        {err && (
+          <p className="auth-err" role="alert">
+            {err}
+            {mode === 'login' && err === ERR.bad_credentials && (
+              <> <Link to={`/reset?email=${encodeURIComponent(email)}`}>Reset your password</Link></>
+            )}
+          </p>
+        )}
 
         <button className="btn btn-primary auth-submit" disabled={busy}>
           {busy ? 'One moment…' : {

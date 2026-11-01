@@ -28,6 +28,8 @@ function useSeason(year: number, season: Season) {
   }).data?.items ?? []
 }
 
+const WORDS = ['Every', 'anime', 'you’ve', 'watched,', 'ranked', 'by', 'you.']
+
 export function Landing() {
   const now = currentSeason()
   const s1 = now, s2 = back(now.year, now.season, 1), s3 = back(now.year, now.season, 4)
@@ -56,33 +58,38 @@ export function Landing() {
   return (
     <div className="landing" data-season={now.season}>
       <section className="l-top page">
-        <h1 className="display l-title">
-          Every anime you’ve watched, <span>ranked by you.</span>
+        <h1 className="display l-title" aria-label="Every anime you’ve watched, ranked by you.">
+          {WORDS.map((w, i) => (
+            <span key={i} aria-hidden="true">{i > 0 && ' '}<span className="l-word-mask">
+              <motion.span className={`l-word${i >= 4 ? ' l-accent' : ''}`} initial={{ y: '105%' }} animate={{ y: 0 }}
+                transition={{ delay: 0.75 + i * 0.07, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>{w}</motion.span>
+            </span></span>
+          ))}
         </h1>
-        <div className="l-side">
+        <motion.div className="l-side" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.35, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
           <p className="l-lead">
             No 1 to 10 sliders. You pick a feeling, answer a couple of “which did you enjoy more?” questions,
             and your scores sort themselves out. Then a taste model trained on 56 million real ratings finds what
             you’ll love next.
           </p>
-          <div className="l-cta">
-            <Link to="/signup" className="btn btn-primary l-btn">Start your chart</Link>
-            <Link to="/login" className="btn l-btn">Log in</Link>
-          </div>
-        </div>
+          <p className="l-try-ask display">Tap what you’ve seen <span aria-hidden="true">↓</span></p>
+        </motion.div>
       </section>
 
       <section className="l-try page" aria-label="Try it">
-        <p className="l-try-ask display">Tap what you’ve seen.</p>
         {bands.map(([s, items, label]) => items.length > 0 && (
-          <SeasonBand key={`${s.year}-${s.season}`} season={s.season} year={s.year} count={label}>
+          <SeasonBand key={`${s.year}-${s.season}`} season={s.season} year={s.year} count={label} reveal>
             <div className="l-grid">
-              {items.map((x) => (
-                <button key={x.id} type="button" className="l-tile" onClick={() => toggle(x)} aria-pressed={isOn(x.id)}>
+              {items.map((x, i) => (
+                <motion.button key={x.id} type="button" className="l-tile" onClick={() => toggle(x)} aria-pressed={isOn(x.id)}
+                  initial={{ opacity: 0, y: 28, rotate: i % 2 ? 2.5 : -2.5 }} whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ delay: 0.25 + i * 0.045, type: 'spring', stiffness: 260, damping: 24 }}>
                   <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color}
                     status={isOn(x.id) ? 'completed' : undefined} animateMark />
                   <span className="tile-title">{x.title_en ?? x.title}</span>
-                </button>
+                </motion.button>
               ))}
             </div>
           </SeasonBand>
@@ -115,6 +122,11 @@ export function Landing() {
           </div>
         </section>
       )}
+
+      <section className="l-end page">
+        <p className="display l-end-title">Your chart starts with one tap.</p>
+        <Link to="/signup" className="btn btn-primary l-btn">Start your chart</Link>
+      </section>
 
       <footer className="l-foot page">
         <span className="display">好み Konomi</span>

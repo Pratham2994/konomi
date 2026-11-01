@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '../features/auth/AuthPage'
 import { AnimePage } from '../features/anime/AnimePage'
@@ -26,7 +26,24 @@ function Root() {
   return me ? <HomePage /> : <Landing />
 }
 
+/** Fade the HTML splash out once we know who the visitor is (and the mark has had time to draw). */
+function useSplash(ready: boolean) {
+  useEffect(() => {
+    if (!ready) return
+    const el = document.getElementById('splash')
+    if (!el) return
+    const wait = Math.max(0, 900 - performance.now())
+    const t = setTimeout(() => {
+      el.classList.add('out')
+      setTimeout(() => el.remove(), 500)
+    }, wait)
+    return () => clearTimeout(t)
+  }, [ready])
+}
+
 export function App() {
+  const { isLoading } = useMe()
+  useSplash(!isLoading)
   return (
     <Routes>
       <Route element={<Layout />}>

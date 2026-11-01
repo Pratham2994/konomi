@@ -17,3 +17,13 @@
   background: var(--ink-2); border: 1px solid var(--line); border-radius: 12px;
 }
 .otp input:focus { outline: none; border-color: var(--season); background: var(--ink-3); }
+
+.pw { position: relative; display: block; }
+.pw .field { width: 100%; padding-right: 52px; }
+.pw-eye {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: grid; place-items: center;
+  width: 40px; height: 40px; border: 0; border-radius: 10px; background: none; color: var(--paper-2);
+}
+.pw-eye:hover, .pw-eye[aria-pressed='true'] { color: var(--paper); background: var(--ink-3); }
+.pw-eye:focus-visible { outline: 2px solid var(--season); outline-offset: 2px; }
+.auth-err a { color: var(--paper); font-weight: 700; }
