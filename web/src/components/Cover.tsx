@@ -19,15 +19,21 @@ interface Props {
   fmt?: (score: number) => string
 }
 
+/** Images that have loaded once. They show at once next time, so the cover-to-title morph never catches a fade. */
+const loaded = new Set<string>()
+
 /** A cover tile: art, optional hand mark, optional obi strip carrying the Konomi score. */
 export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, vt, fmt }: Props) {
   const [failed, setFailed] = useState(false)
+  const [shown, setShown] = useState(() => !!src && loaded.has(src))
   return (
     <div className={`cover cover-${size}`} style={{ ['--tint' as string]: color ?? 'var(--ink-4)' }}>
       <div className="cover-art" style={vt ? { viewTransitionName: `cover-${id}` } : undefined}>
         {src && !failed ? (
+          // Fades in over the tinted placeholder when it arrives; an image already in the cache shows at once.
           <img src={src} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)}
-            referrerPolicy="no-referrer" />
+            referrerPolicy="no-referrer" className={shown ? 'is-in' : undefined} onLoad={() => { loaded.add(src); setShown(true) }}
+            ref={(el) => { if (el?.complete && el.naturalWidth > 0 && !shown) { loaded.add(src); setShown(true) } }} />
         ) : (
           <span className="cover-fallback" aria-hidden="true">{title.slice(0, 1)}</span>
         )}

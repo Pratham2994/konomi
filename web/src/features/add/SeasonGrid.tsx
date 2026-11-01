@@ -33,13 +33,13 @@ export function SeasonGrid({ items, compact }: { items: AnimeBrief[]; compact?: 
 
   return (
     <div className={`sweep-grid${compact ? ' sweep-grid-compact' : ''}`}>
-      {items.map((a) => {
+      {items.map((a, i) => {
         const st = onList.get(a.id)?.status
         return (
           <div key={a.id} className={`sw${st ? ' is-marked' : ''}`} onMouseEnter={() => setFocus(a.id)}>
             <button type="button" className="sw-main" onClick={() => mark(a, 'completed')} onFocus={() => setFocus(a.id)}
               aria-pressed={st === 'completed'} aria-label={`${a.title_en ?? a.title}${st ? `, ${STATUS_LABEL[st]}` : ''}`}>
-              <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={st} animateMark />
+              <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={st} animateMark eager={i < 8} />
               <span className="tile-title">{a.title_en ?? a.title}</span>
             </button>
             <span className="sw-alt">
