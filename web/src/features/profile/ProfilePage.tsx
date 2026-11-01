@@ -205,7 +205,7 @@ export function ProfilePage() {
           </div>
         </div>
         <Bands>{grouped.map((g) => (
-          <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 12}>
+          <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 8} n={g.items.length}>
             <CoverGrid dense>
               {g.items.map((e) => (
                 <Link key={e.anime.id} to={`/anime/${e.anime.id}`} className="tile" data-season={e.anime.season ?? undefined}>

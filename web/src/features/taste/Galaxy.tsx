@@ -128,9 +128,9 @@ function ClusterLabels({ points, clusters }: { points: Point[]; clusters: Cluste
       const s = sum.get(c.id)
       if (!s) continue
       const at = [s[0] / s[3] * SCALE, s[1] / s[3] * SCALE, s[2] / s[3] * SCALE] as [number, number, number]
-      if (placed.some((p) => Math.hypot(p.at[0] - at[0], p.at[1] - at[1], p.at[2] - at[2]) < 1.6)) continue
+      if (placed.some((p) => Math.hypot(p.at[0] - at[0], p.at[1] - at[1]) < 2.8)) continue
       placed.push({ id: c.id, label: c.label, at })
-      if (placed.length === 8) break
+      if (placed.length === 7) break
     }
     return placed
   }, [points, clusters])

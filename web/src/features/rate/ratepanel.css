@@ -10,6 +10,10 @@
   .rp { left: auto; right: 24px; bottom: 24px; width: 400px; max-height: calc(100dvh - 120px); }
 }
 @media (min-width: 1920px) { .rp { width: 440px; right: 40px; bottom: 40px; } }
+@media (min-width: 1280px) {
+  .rp { top: calc(var(--topbar) + 24px); bottom: auto; right: var(--gutter); width: clamp(300px, 24vw, 420px); }
+  body:has(.rp) .home-rail { visibility: hidden; }
+}
 
 .rp-head { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s4); }
 .rp-head .cover { flex: none; }

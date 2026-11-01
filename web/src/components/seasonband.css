@@ -24,10 +24,16 @@
 .band-neutral .band-aside .btn { background: transparent; color: var(--paper); }
 .band-neutral .band-aside .btn:hover { background: var(--ink-3); }
 
-.bands { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 600px), 1fr)); gap: 0 clamp(24px, 3vw, 56px); align-items: start; }
+.bands { display: flex; flex-wrap: wrap; gap: 0 clamp(20px, 2.4vw, 44px); align-items: flex-start; }
+.bands > .band { flex: var(--n, 4) 1 calc(var(--n, 4) * 150px); max-width: min(100%, calc(var(--n, 4) * 200px + 40px)); }
 .bands > .band + .band { margin-top: 0; }
-.bands > .band-wide { grid-column: 1 / -1; }
-
+.bands > .band-wide { flex-basis: 100%; max-width: 100%; }
+.bands > .band:not(.band-wide) .grid { grid-template-columns: var(--cols, repeat(4, minmax(0, 1fr))); }
+@media (max-width: 700px) {
+  .bands > .band { flex-basis: 100%; max-width: 100%; }
+  .bands > .band:not(.band-wide) .grid { grid-template-columns: repeat(auto-fill, minmax(clamp(98px, 28vw, 150px), 1fr)); }
+}
+.bands > .band-wide .grid { grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 8vw, 140px), 1fr)); }
 .grid {
   display: grid; gap: clamp(14px, 1.6vw, 26px) clamp(12px, 1.4vw, 22px);
   grid-template-columns: repeat(auto-fill, minmax(clamp(98px, 10.5vw, 158px), 1fr));
@@ -44,4 +50,5 @@
 .tile:hover .cover-art { transform: translateY(-3px); }
 .tile .cover-art { transition: transform 0.25s var(--ease-out); }
 .band-head:has(.band-aside) .band-kanji { display: none; }
-.bands .grid { grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 8vw, 140px), 1fr)); }
+.band-narrow .band-kanji { display: none; }
+.band-narrow .band-title .display { font-size: 22px; }

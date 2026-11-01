@@ -18,19 +18,31 @@ const pages = args.filter((a, i) => a.startsWith('/') && i !== wi + 1)
 const HEIGHT = { 360: 760, 390: 844, 430: 932, 1280: 800, 1366: 768, 1440: 900, 1536: 864, 1920: 1080, 2560: 1440 }
 
 const browser = await chromium.launch()
+let storageState
+if (!anon) {
+  // Log in once and reuse the session for every width (the API rate-limits logins).
+  const ctx = await browser.newContext()
+  const r = await ctx.request.post('http://localhost:5173/api/auth/login', {
+    data: { email: 'demo@example.com', password: 'konomi-demo-2026' },
+  })
+  if (!r.ok()) throw new Error('login failed ' + r.status())
+  storageState = await ctx.storageState()
+  await ctx.close()
+}
 for (const w of widths) {
-  const ctx = await browser.newContext({ viewport: { width: w, height: HEIGHT[w] ?? 900 }, deviceScaleFactor: 1 })
+  const ctx = await browser.newContext({ viewport: { width: w, height: HEIGHT[w] ?? 900 }, deviceScaleFactor: 1, storageState })
   const page = await ctx.newPage()
-  if (!anon) {
-    await page.goto('http://localhost:5173/login')
-    const r = await page.request.post('http://localhost:5173/api/auth/login', {
-      data: { email: 'demo@example.com', password: 'konomi-demo-2026' },
-    })
-    if (!r.ok()) throw new Error('login failed ' + r.status())
-  }
   for (const p of pages) {
     await page.goto('http://localhost:5173' + p, { waitUntil: 'networkidle' })
     await page.waitForTimeout(1500)
+    if (full) {
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.documentElement.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)) }
+        window.scrollTo(0, 0)
+      })
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(500)
+    }
     if (full) await page.addStyleTag({ content: '.bottombar{display:none!important}.topbar,.mobile-add{position:static!important}' })
     const name = (p.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home') + `-${w}.png`
     const docH = await page.evaluate(() => document.documentElement.scrollHeight)

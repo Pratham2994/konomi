@@ -86,7 +86,7 @@ export function ChartPage() {
       </div>
 
       {sort === 'season' ? <Bands>{groups.map((g) => (
-        <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 12}>
+        <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 8} n={g.items.length}>
           <CoverGrid>{g.items.map((e) => <Tile key={e.anime_id} e={e} />)}</CoverGrid>
         </SeasonBand>
       ))}</Bands> : (
