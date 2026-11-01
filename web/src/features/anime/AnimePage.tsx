@@ -9,6 +9,13 @@ import type { AnimeDetail, Status } from '../../lib/types'
 import { useRater } from '../rate/RaterContext'
 import './anime.css'
 
+/** The rating panel's follow-up answers, said back in plain words. */
+const FACET_SAID: Record<string, Record<string, string>> = {
+  rewatch: { Yes: 'Would rewatch', Maybe: 'Might rewatch', No: 'Once was enough' },
+  still_think: { Often: 'Still think about it often', Sometimes: 'Think about it sometimes', Rarely: 'Rarely think about it' },
+  ending: { Yes: 'The ending landed', 'Kind of': 'The ending half landed', No: 'The ending missed' },
+}
+
 const TYPE: Record<string, string> = { TV: 'TV series', MOVIE: 'Movie', ONA: 'Web series', OVA: 'OVA', SPECIAL: 'Special' }
 
 function minutes(s: number | null) {
@@ -94,6 +101,11 @@ export function AnimePage() {
                     <span className="muted">{tierLabel}</span>
                     <button className="btn btn-ghost" onClick={() => rater.prompt(a)}>Re-rate</button></p>
                   <ScoreRail score={entry.score} predicted={entry.predicted} />
+                  {Object.keys(entry.facets ?? {}).length > 0 && (
+                    <ul className="anime-facets" aria-label="What you said about it">
+                      {Object.keys(FACET_SAID).map((k) => FACET_SAID[k][entry.facets[k]] && <li key={k}>{FACET_SAID[k][entry.facets[k]]}</li>)}
+                    </ul>
+                  )}
                 </>
               ) : (
                 <button className="btn btn-primary" onClick={() => rater.prompt(a)}>Rate it</button>

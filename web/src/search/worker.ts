@@ -6,7 +6,6 @@ import { buildIndex, search } from './rank'
 type In = { type: 'query'; id: number; q: string; limit?: number } | { type: 'lookup'; id: number; ids: number[] }
 
 let idx: ReturnType<typeof buildIndex> | null = null
-let ready: Promise<void>
 
 async function load(): Promise<void> {
   let cached: { version: string; items: IndexRow[] } | undefined
@@ -30,7 +29,7 @@ async function load(): Promise<void> {
   else postMessage({ type: 'ready', count: cached.items.length })
 }
 
-ready = load()
+const ready = load()
 
 onmessage = async (e: MessageEvent<In>) => {
   await ready

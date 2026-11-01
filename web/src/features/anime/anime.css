@@ -35,3 +35,5 @@
 .prof-private { display: grid; gap: var(--s3); justify-items: center; text-align: center; padding-top: 16vh; }
 .prof-private h1 { font-size: clamp(28px, 4vw, 44px); }
 .anime-back { grid-column: 1 / -1; margin-bottom: calc(clamp(24px, 5vw, 80px) * -1 + 12px); }
+.anime-facets { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: var(--s3) 0 var(--s2); padding: 0; }
+.anime-facets li { padding: 4px 12px; border-radius: var(--r-pill); background: var(--ink-3); font-size: 13px; font-weight: 700; color: var(--paper-2); }
