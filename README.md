@@ -22,7 +22,7 @@ An anime list that never asks you for a number.
 - Profiles: private by default, public link, hidden sections removed server-side, hot takes, anime years, share
   card / link preview, customise page.
 - Design: two rounds of independent design review applied; system recorded in [DESIGN.md](DESIGN.md).
-- Tests: API 40/40 (pytest), search ranking 17/17 (vitest), full journey E2E 2/2 (phone + desktop).
+- Tests: API 41/41 (pytest), search ranking 17/17 (vitest), E2E 4/4 (main journey + season walk / statuses / favourites / password reset, phone + desktop).
 
 **Not done yet**
 - Not deployed. Neon was not touched (see morning steps).
