@@ -21,6 +21,7 @@ from sqlalchemy import text
 
 from ..config import get_settings
 from ..db import engine as db_engine
+from .cluster_names import axis_names
 
 # Feeling tier -> how strongly a title says "this is my taste".
 TIER_WEIGHT = {5: 1.0, 4: 0.8, 3: 0.4, 2: 0.0, 1: 0.0}
@@ -317,7 +318,9 @@ class TasteEngine:
         out = []
         for a, p in zip(self.axes_meta, proj):
             v = float(np.clip((p - (a["lo"] + a["hi"]) / 2) / ((a["hi"] - a["lo"]) / 2), -1, 1))
-            out.append({"id": a["id"], "neg": a["neg"], "pos": a["pos"], "value": round(v, 3)})
+            named = axis_names(self.version, a["id"])
+            neg, pos = ([named[0]], [named[1]]) if named else (a["neg"], a["pos"])
+            out.append({"id": a["id"], "neg": neg, "pos": pos, "value": round(v, 3)})
         return out
 
     def centroid(self, entries: list[UserEntry]) -> list[float] | None:

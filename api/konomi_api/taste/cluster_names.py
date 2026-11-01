@@ -41,3 +41,21 @@ def name_for(version: str, cluster: int, examples: list[str]) -> str:
     if named:
         return named
     return f"Near {examples[0]}" if examples else "Unnamed corner"
+
+
+# The six Taste DNA sliders, named the same way: from the well-known titles at each end, not the tags.
+# (low end, high end) per axis id.
+AXES: dict[str, dict[int, tuple[str, str]]] = {
+    "202611011150": {
+        0: ("Dark, thoughtful drama", "Light seasonal fun"),
+        1: ("Grown-up classics", "Light-novel fantasy"),
+        2: ("Mature and artful", "Harem and fan-service"),
+        3: ("Big shounen action", "Cute and slice of life"),
+        4: ("Soft romance and shoujo", "Edgy fantasy"),
+        5: ("Gritty seinen classics", "Pretty-boy supernatural"),
+    },
+}
+
+
+def axis_names(version: str, axis: int) -> tuple[str, str] | None:
+    return AXES.get(str(version), {}).get(axis)

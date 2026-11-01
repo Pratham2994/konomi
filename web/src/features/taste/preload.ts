@@ -5,6 +5,7 @@ import type { ClusterMeta, Point } from './Galaxy'
 export const loadGalaxy = () => import('./Galaxy')
 export const galaxyQuery = {
   queryKey: ['galaxy'],
-  queryFn: () => api<{ points: Point[]; clusters: ClusterMeta[] }>('/api/taste/galaxy'),
+  // "?v=2": browsers that cached the old tag-labelled galaxy (once kept for an hour) fetch the named one instead.
+  queryFn: () => api<{ points: Point[]; clusters: ClusterMeta[] }>('/api/taste/galaxy?v=2'),
   staleTime: Infinity,
 }

@@ -118,7 +118,7 @@ def galaxy(request: Request, db: Db) -> Response:
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers={"ETag": etag})
     return Response(_galaxy["gz"], media_type="application/json",
-                    headers={"Content-Encoding": "gzip", "ETag": etag, "Cache-Control": "public, max-age=3600"})
+                    headers={"Content-Encoding": "gzip", "ETag": etag, "Cache-Control": "no-cache"})
 
 
 @router.get("/me")

@@ -161,3 +161,14 @@ def test_unnamed_model_falls_back_to_a_true_label():
     from konomi_api.taste.cluster_names import name_for
     assert name_for("some-other-version", 3, ["Death Note", "Naruto"]) == "Near Death Note"
     assert name_for("some-other-version", 3, []) == "Unnamed corner"
+
+
+def test_dna_sliders_have_plain_names(client):
+    signup_verified(client)
+    for aid in cf_ids(8):
+        client.post(f"/api/rate/{aid}/tier", json={"tier": 5})
+    axes = client.get("/api/taste/dna").json()["axes"]
+    assert axes and all(len(a["neg"]) == 1 and len(a["pos"]) == 1 for a in axes)
+    assert "Gore" not in str(axes) and "Avant garde" not in str(axes)
+    r = client.get("/api/taste/galaxy")
+    assert r.headers["cache-control"] == "no-cache"  # always revalidated: renamed areas show up at once
