@@ -14,6 +14,17 @@ could come next. Pick the ones that excite you; I'll build them.
 - **Share card** — a 1200×630 image (fanned favourite covers, stats) that is also the link preview.
 - **Section order and visibility**, colour, banner, bio.
 
+## Built later (Customise page)
+
+- Nine colours (four seasons plus matcha, violet, crimson, paper), four header styles (soft art, poster, solid ink,
+  plain), banner focus, picture (initial, top favourite, none), poster or quiet name, fanned covers on or off.
+- Pronouns, location, up to four links.
+- Favourites: own heading, three layouts (number one big, top three big, all equal).
+- **Hill I'll die on** (idea 6, without the visitor voting), **Watching now** strip, **Drop wall** (idea 7, off by default).
+- Scores as 8.7, 87 or hidden (hidden scores are removed server-side), chart grouped by season, score or one wall,
+  which lists visitors can open, and which one opens first. Each number under the name can be hidden.
+- A live phone-sized preview next to the controls on wide screens.
+
 ## Ideas — new kinds of profile content
 
 1. **Taste twin** — "the anime character / studio / director whose taste you most resemble", from the
