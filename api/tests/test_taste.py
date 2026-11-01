@@ -125,3 +125,12 @@ def test_aired_uses_the_calendar_not_a_stale_status():
     assert not has_aired(2027, "WINTER", "UPCOMING", today)
     assert not has_aired(2027, None, "UPCOMING", today)
     assert has_aired(2019, "SPRING", "FINISHED", today)
+
+
+def test_era_filter_still_one_pick_per_series():
+    eng = get_engine()
+    entries = [UserEntry(a, "completed", 5, 9.5) for a in cf_ids(12)]
+    listed = {e.anime_id for e in entries}
+    recs, _ = eng.recommend(entries, k=30, era=(2020, 2100))
+    roots = [eng.franchise_root(r["anime_id"], listed) for r in recs]
+    assert len(roots) == len(set(roots))

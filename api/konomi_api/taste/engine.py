@@ -199,10 +199,10 @@ class TasteEngine:
         ranked = ranked[np.isfinite(s[ranked])]
         top, roots = [], set()
         for r in ranked:
-            root = self.franchise_root(int(self.anime_ids[r]), listed) if not era else int(self.anime_ids[r])
+            root = self.franchise_root(int(self.anime_ids[r]), listed)
             rr = self.row_of.get(root, r)
-            if not mask[rr]:
-                rr, root = r, int(self.anime_ids[r])
+            if not mask[rr]:  # e.g. the first season is outside the chosen era: show this one, but once per series
+                rr = r
             if root in roots:
                 continue
             roots.add(root)
