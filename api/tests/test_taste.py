@@ -134,3 +134,18 @@ def test_era_filter_still_one_pick_per_series():
     recs, _ = eng.recommend(entries, k=30, era=(2020, 2100))
     roots = [eng.franchise_root(r["anime_id"], listed) for r in recs]
     assert len(roots) == len(set(roots))
+
+
+def test_recs_are_cached_until_the_list_changes(client, monkeypatch):
+    # The free server's CPU makes a fresh computation take seconds: repeat visits must not pay it again.
+    signup_verified(client)
+    eng = get_engine()
+    calls = []
+    real = eng.recommend
+    monkeypatch.setattr(eng, "recommend", lambda *a, **kw: calls.append(1) or real(*a, **kw))
+    first = client.get("/api/taste/recs").json()
+    assert client.get("/api/taste/recs").json() == first and len(calls) == 1
+    aid = first["items"][0]["anime"]["id"]
+    client.put(f"/api/list/{aid}", json={"status": "completed"})
+    client.get("/api/taste/recs")
+    assert len(calls) == 2  # a changed list means fresh recommendations

@@ -1,5 +1,7 @@
 import gzip
 import json
+import threading
+from collections import OrderedDict
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from sqlalchemy import select
@@ -27,6 +29,30 @@ def _briefs(db, ids: list[int]) -> dict[int, dict]:
     return {a.id: brief(a) for a in db.scalars(select(Anime).where(Anime.id.in_(ids)))}
 
 
+# Model answers only change when someone's list (or the model) changes, but on the free server's small CPU they
+# take seconds to compute. Keep recent answers, keyed by a fingerprint of the list: a repeat visit is instant.
+_answers: OrderedDict = OrderedDict()
+_answers_lock = threading.Lock()
+ANSWERS_KEPT = 256
+
+
+def _remembered(key: tuple, compute):
+    with _answers_lock:
+        if key in _answers:
+            _answers.move_to_end(key)
+            return _answers[key]
+    value = compute()
+    with _answers_lock:
+        _answers[key] = value
+        while len(_answers) > ANSWERS_KEPT:
+            _answers.popitem(last=False)
+    return value
+
+
+def _fingerprint(entries) -> int:
+    return hash(tuple(sorted((e.anime_id, e.status, e.tier, e.score) for e in entries)))
+
+
 ERAS = {"new": (2020, 2100), "2010s": (2010, 2019), "2000s": (2000, 2009), "classic": (1900, 1999)}
 
 
@@ -35,6 +61,11 @@ def recs(user: CurrentUser, db: Db, type: str | None = None, era: str | None = N
          k: int = Query(24, ge=1, le=60)) -> dict:
     eng = _engine()
     entries = user_entries(db, user.id)
+    key = ("recs", user.id, eng.version, type, era, gems, k, _fingerprint(entries))
+    return _remembered(key, lambda: _recs(eng, db, entries, type, era, gems, k))
+
+
+def _recs(eng, db, entries, type, era, gems, k) -> dict:
     types = {type} if type in {"TV", "MOVIE", "ONA", "OVA"} else None
     items, mode = eng.recommend(entries, k=k, types=types, era=ERAS.get(era or ""), gems=gems)
     ids = [i["anime_id"] for i in items]
@@ -54,7 +85,8 @@ def predict(anime_id: int, user: CurrentUser, db: Db) -> dict:
 def dna(user: CurrentUser, db: Db) -> dict:
     eng = _engine()
     entries = user_entries(db, user.id)
-    return {"axes": eng.dna(entries), "need": max(0, MIN_POSITIVES - eng.positives(entries))}
+    return _remembered(("dna", user.id, eng.version, _fingerprint(entries)),
+                       lambda: {"axes": eng.dna(entries), "need": max(0, MIN_POSITIVES - eng.positives(entries))})
 
 
 @router.get("/galaxy")
