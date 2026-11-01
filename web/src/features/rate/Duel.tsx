@@ -1,23 +1,32 @@
 import { motion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { Cover } from '../../components/Cover'
 import type { AnimeBrief } from '../../lib/types'
 import './duel.css'
+
+// Only the most recently mounted duel takes ←/→/↓ (the rating panel can open over the Rate page's duel).
+const stack: string[] = []
 
 /** "Which did you enjoy more?" — two covers face off. ←/→ pick, ↓ too close. */
 export function Duel({ a, b, onPick, busy, big }: {
   a: AnimeBrief; b: AnimeBrief; onPick: (o: 'a' | 'b' | 'tie') => void; busy?: boolean; big?: boolean
 }) {
+  const me = useId()
+  useEffect(() => {
+    stack.push(me)
+    return () => { stack.splice(stack.lastIndexOf(me), 1) }
+  }, [me])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (busy || (e.target as HTMLElement).tagName === 'INPUT') return
+      if (busy || stack[stack.length - 1] !== me || (e.target as HTMLElement).tagName === 'INPUT') return
       if (e.key === 'ArrowLeft') onPick('a')
       else if (e.key === 'ArrowRight') onPick('b')
       else if (e.key === 'ArrowDown') onPick('tie')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [busy, onPick])
+  }, [busy, onPick, me])
 
   return (
     <div className={`duel${big ? ' duel-big' : ''}`}>
