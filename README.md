@@ -28,7 +28,7 @@ An anime list that never asks you for a number.
 - Not deployed. Neon was not touched (see morning steps).
 - Emails go to Mailpit locally; Resend is wired but needs your key.
 - Profile ideas to pick from: [docs/profile-ideas.md](docs/profile-ideas.md).
-- Deferred minor: signing up again within 60 s for a still-unverified email returns 429 (reveals a pending sign-up).
+
 
 **Your morning steps**
 1. Rotate the Neon password (it was pasted in chat): Neon → Roles → `konomi_owner` → Reset, then update `.env`.
