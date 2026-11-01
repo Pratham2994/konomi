@@ -11,21 +11,24 @@ import { SettingsPage } from '../features/profile/SettingsPage'
 import { RatePage } from '../features/rate/RatePage'
 import { SweepPage } from '../features/add/SweepPage'
 import TastePage from '../features/taste/TastePage'
-import { useMe } from '../lib/hooks'
+import { useMe, useSignedIn } from '../lib/hooks'
 import { listenForChanges } from '../lib/sync'
 import { Layout } from './Layout'
 
 
+// Both render at once for someone signed in last time, so the page's requests run alongside /api/me.
 function Private({ children }: { children: ReactNode }) {
-  const { data: me, isLoading } = useMe()
-  if (isLoading) return null
-  return me ? <>{children}</> : <Navigate to="/login" replace />
+  const { isLoading } = useMe()
+  const signedIn = useSignedIn()
+  if (signedIn) return <>{children}</>
+  return isLoading ? null : <Navigate to="/login" replace />
 }
 
 function Root() {
-  const { data: me, isLoading } = useMe()
-  if (isLoading) return null
-  return me ? <HomePage /> : <Landing />
+  const { isLoading } = useMe()
+  const signedIn = useSignedIn()
+  if (signedIn) return <HomePage />
+  return isLoading ? null : <Landing />
 }
 
 /** Fade the HTML splash out once we know who the visitor is (and the mark has had time to draw). */

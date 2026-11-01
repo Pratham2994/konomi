@@ -7,9 +7,12 @@ import { App } from './app/App'
 import { ToastProvider } from './components/Toast'
 import { RaterProvider } from './features/rate/RaterContext'
 import { warmSearch } from './search/useSearch'
+import { ApiError } from './lib/api'
 import './styles/base.css'
 
-const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } })
+// One retry for network or server trouble; a 4xx answer (signed out, not found) won't change on a second try.
+const retry = (n: number, e: unknown) => n < 1 && !(e instanceof ApiError && e.status < 500)
+const qc = new QueryClient({ defaultOptions: { queries: { retry, refetchOnWindowFocus: false } } })
 warmSearch()
 
 createRoot(document.getElementById('root')!).render(

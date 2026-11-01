@@ -38,3 +38,6 @@ a.rate-name { text-decoration: none; }
 a.rate-name:hover { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
 a.rate-cover { display: block; border-radius: var(--r-cover); }
 a.rate-cover:focus-visible { outline: 2px solid var(--season); outline-offset: 4px; }
+.rate-bar { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s5); max-width: 520px; }
+.rate-bar .rate-progress { margin-top: 0; flex: 1; }
+.rate-back { padding-inline: 10px; gap: 6px; flex: none; }

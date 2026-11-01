@@ -34,6 +34,13 @@ def _build_index() -> dict:
     return {"version": version, "gz": gzip.compress(payload, 6)}
 
 
+def warm_index() -> None:
+    """Build the search index at startup, so the first visitor after a deploy or wake-up doesn't wait for it."""
+    global _index
+    if _index is None:
+        _index = _build_index()
+
+
 def reset_index() -> None:
     global _index
     _index = None

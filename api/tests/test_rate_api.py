@@ -114,3 +114,22 @@ def test_start_over_clears_ratings_and_keeps_titles(client):
     # Rated again, a title starts from its feeling alone: the old comparison is gone.
     client.post(f"/api/rate/{a}/tier", json={"tier": 4})
     assert client.get("/api/rate/session/next").json()["unrated"] == 1
+
+
+def test_back_takes_answers_back(client):
+    signup_verified(client)
+    a, b = top_ids(2)
+    for aid in (a, b):
+        client.post(f"/api/rate/{aid}/tier", json={"tier": 4})
+    duel = client.post("/api/rate/duel", json={"a": a, "b": b, "outcome": "a"}).json()
+    moved = {e["anime_id"]: e["score"] for e in client.get("/api/list").json()["entries"]}
+    assert moved[a] > moved[b]
+    assert client.delete(f"/api/rate/duel/{duel['id']}").status_code == 200
+    back = {e["anime_id"]: e["score"] for e in client.get("/api/list").json()["entries"]}
+    assert back[a] == back[b]  # same feeling, no comparison left between them
+    client.post(f"/api/rate/{b}/facets", json={"facets": {"rewatch": "Yes"}})
+    client.delete(f"/api/rate/{b}/facets")
+    client.delete(f"/api/rate/{b}/tier")
+    e = {e["anime_id"]: e for e in client.get("/api/list").json()["entries"]}[b]
+    assert e["tier"] is None and e["score"] is None and e["facets"] == {} and e["status"] == "completed"
+    assert client.get("/api/rate/session/next").json()["question"]["anime"]["id"] == b

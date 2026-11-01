@@ -21,14 +21,26 @@ export function useStored<T extends string>(key: string, initial: T, allowed?: r
   return [v, set]
 }
 
+// Signed in on the last visit? Then pages start their own requests alongside /api/me instead of after it: one
+// network round trip less on every page load.
+const SIGNED_IN = 'konomi-signed-in'
+function hint(set?: boolean): boolean {
+  try {
+    if (set !== undefined) localStorage.setItem(SIGNED_IN, set ? '1' : '0')
+    return localStorage.getItem(SIGNED_IN) === '1'
+  } catch { return false }
+}
+
 export function useMe() {
   return useQuery<Me | null>({
     queryKey: ['me'],
     queryFn: async () => {
       try {
-        return await api<Me>('/api/me')
+        const me = await api<Me>('/api/me')
+        hint(true)
+        return me
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) return null
+        if (e instanceof ApiError && e.status === 401) { hint(false); return null }
         throw e
       }
     },
@@ -36,12 +48,18 @@ export function useMe() {
   })
 }
 
+/** Signed in, or (while /api/me is still on its way) signed in last time. */
+export function useSignedIn(): boolean {
+  const { data: me, isLoading } = useMe()
+  return isLoading ? hint() : !!me
+}
+
 export function useList(enabled = true) {
-  const { data: me } = useMe()
+  const signedIn = useSignedIn()
   return useQuery<Entry[]>({
     queryKey: ['list'],
     queryFn: async () => (await api<{ entries: Entry[] }>('/api/list')).entries,
-    enabled: enabled && !!me,
+    enabled: enabled && signedIn,
     staleTime: 30_000,
   })
 }

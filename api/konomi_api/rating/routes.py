@@ -162,12 +162,14 @@ def duel(body: DuelIn, user: CurrentUser, db: Db, response: Response, next: bool
     tiers = st.tiers
     if body.a == body.b or body.a not in tiers or body.b not in tiers:
         raise HTTPException(422, {"code": "not_rated"})
-    db.add(Duel(user_id=user.id, a_id=body.a, b_id=body.b, outcome=body.outcome))
+    row = Duel(user_id=user.id, a_id=body.a, b_id=body.b, outcome=body.outcome)
+    db.add(row)
+    db.flush()  # its id, so the answer can be taken back
     st.duels.append(DuelRec(body.a, body.b, body.outcome))
     clock.mark("load")
     scores = recompute(db, user.id, st, commit=False)
     clock.mark("scores")
-    out: dict = {"scores": {str(k): v for k, v in scores.items() if k in (body.a, body.b)}}
+    out: dict = {"id": row.id, "scores": {str(k): v for k, v in scores.items() if k in (body.a, body.b)}}
     if body.placing in (body.a, body.b):
         out["next_duel"] = _duel_out(db, body.placing, next_insertion_duel(st.tiers, st.duels, body.placing, st.between))
         out["score"] = scores.get(body.placing)
@@ -177,6 +179,30 @@ def duel(body: DuelIn, user: CurrentUser, db: Db, response: Response, next: bool
     clock.mark("next")
     clock.send(response)
     return out
+
+
+# Taking an answer back (the Rate page's Back): each undoes one answer and refits the scores.
+
+@router.delete("/{anime_id}/tier")
+def clear_tier(anime_id: int, user: CurrentUser, db: Db) -> dict:
+    db.execute(update(ListEntry).where(ListEntry.user_id == user.id, ListEntry.anime_id == anime_id)
+               .values(tier=None, between=False, score=None))
+    recompute(db, user.id)
+    return {"ok": True}
+
+
+@router.delete("/duel/{duel_id}")
+def take_back_duel(duel_id: int, user: CurrentUser, db: Db) -> dict:
+    db.execute(delete(Duel).where(Duel.user_id == user.id, Duel.id == duel_id))
+    recompute(db, user.id)
+    return {"ok": True}
+
+
+@router.delete("/{anime_id}/facets")
+def clear_facets(anime_id: int, user: CurrentUser, db: Db) -> dict:
+    db.execute(update(ListEntry).where(ListEntry.user_id == user.id, ListEntry.anime_id == anime_id).values(facets={}))
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/{anime_id}/facets")

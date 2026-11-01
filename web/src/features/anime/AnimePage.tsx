@@ -5,7 +5,7 @@ import { Cover } from '../../components/Cover'
 import { ScoreRail } from '../../components/ScoreRail'
 import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
-import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
+import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSignedIn, useSetStatus } from '../../lib/hooks'
 import type { AnimeDetail, Status } from '../../lib/types'
 import { HowScoring } from '../rate/HowScoring'
 import { useRater } from '../rate/RaterContext'
@@ -47,11 +47,12 @@ function minutes(s: number | null) {
 export function AnimePage() {
   const { id } = useParams()
   const { data: me } = useMe()
+  const signedIn = useSignedIn()
   const { data: a, error } = useQuery({ queryKey: ['anime', id], queryFn: () => api<AnimeDetail>(`/api/anime/${id}`), retry: false })
   const { data: pred } = useQuery({
     queryKey: ['predict', id],
     queryFn: () => api<{ predicted: number | null }>(`/api/taste/predict/${id}`),
-    enabled: !!me,
+    enabled: signedIn,
     retry: false,
   })
   const onList = useListIndex()

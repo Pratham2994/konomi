@@ -1,7 +1,8 @@
 import threading
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -21,11 +22,26 @@ from .imports.routes import router as import_router
 async def lifespan(_: FastAPI):
     # Load the taste model in the background so the first recommendation request doesn't pay for it.
     from .taste.engine import get_engine
+    from .catalog.routes import warm_index
     threading.Thread(target=get_engine, daemon=True).start()
+    threading.Thread(target=warm_index, daemon=True).start()
     yield
 
 
 app = FastAPI(title="Konomi", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def server_timing(request: Request, call_next):
+    """Time spent inside the server, so the browser can tell it apart from the trip over the network."""
+    t = time.perf_counter()
+    response = await call_next(request)
+    app_ms = f"app;dur={(time.perf_counter() - t) * 1000:.0f}"
+    steps = response.headers.get("server-timing")
+    response.headers["Server-Timing"] = f"{app_ms}, {steps}" if steps else app_ms
+    return response
+
+
 app.include_router(auth_router)
 app.include_router(me_router)
 app.include_router(catalog_router)

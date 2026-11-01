@@ -78,10 +78,6 @@ export function HomePage() {
   const { data: me } = useMe()
   const { data: entries = [] } = useList()
   const { data: recs } = useRecs()
-  const { data: next } = useQuery({
-    queryKey: ['rate-next'],
-    queryFn: () => api<{ unrated: number; question: unknown }>('/api/rate/session/next'),
-  })
   const now = currentSeason()
   const { data: season } = useQuery({
     queryKey: ['sweep', now.year, now.season],
@@ -91,6 +87,7 @@ export function HomePage() {
   const recent = entries.slice(0, 18)
   const watchedN = entries.filter((e) => e.status === 'completed').length
   const ratedN = entries.filter((e) => e.tier != null).length
+  const unrated = entries.filter((e) => e.status === 'completed' && e.tier == null).length
   const empty = entries.length === 0
   const setStatus = useSetStatus()
   const toast = useToast()
@@ -136,11 +133,11 @@ export function HomePage() {
         </div>
 
         <aside className="home-rail" aria-label="Rate and guesses">
-          {next && next.unrated > 0 && (
+          {unrated > 0 && (
             <Link to="/rate" className="home-rate">
-              <span className="display home-rate-n">{next.unrated}</span>
+              <span className="display home-rate-n">{unrated}</span>
               <span>
-                <strong>{next.unrated === 1 ? 'title is' : 'titles are'} waiting for a feeling.</strong>
+                <strong>{unrated === 1 ? 'title is' : 'titles are'} waiting for a feeling.</strong>
                 <span className="muted"> A few quick answers turn them into scores.</span>
               </span>
               <span className="btn btn-primary">Rate now</span>

@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { Icon } from '../components/Icon'
@@ -7,7 +7,7 @@ import { galaxyQuery, loadGalaxy } from '../features/taste/preload'
 import { authChanged } from '../lib/sync'
 import { QuickAdd } from '../features/add/QuickAdd'
 import { api } from '../lib/api'
-import { currentSeason, useMe } from '../lib/hooks'
+import { currentSeason, useList, useMe } from '../lib/hooks'
 import './layout.css'
 
 export function Brand() {
@@ -19,13 +19,9 @@ export function Brand() {
   )
 }
 
-function useUnrated(enabled: boolean) {
-  return useQuery({
-    queryKey: ['rate-next'],
-    queryFn: () => api<{ unrated: number }>('/api/rate/session/next'),
-    enabled,
-    staleTime: 15_000,
-  }).data?.unrated ?? 0
+/** Watched titles still waiting for a feeling, counted from the list every page already has. */
+function useUnrated() {
+  return (useList().data ?? []).filter((e) => e.status === 'completed' && e.tier == null).length
 }
 
 const scrollAt = new Map<string, number>()
@@ -59,7 +55,7 @@ function Avatar({ name }: { name: string }) {
 
 export function Layout() {
   const { data: me } = useMe()
-  const unrated = useUnrated(!!me)
+  const unrated = useUnrated()
   const [menu, setMenu] = useState(false)
   const qc = useQueryClient()
   const nav = useNavigate()
