@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 export type Point = [id: number, x: number, y: number, z: number, cluster: number]
-export interface ClusterMeta { id: number; label: string; tags: string[]; size: number }
+export interface ClusterMeta { id: number; label: string; tags: string[]; size: number; name: string; examples: string[] }
 
 const SCALE = 6
 
@@ -85,7 +85,9 @@ function Stars({ points, mine, recs, accent, onHover, onPick }: {
       onPointerMove={(e) => { e.stopPropagation(); onHover(idx(e), { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }) }}
       onPointerOut={() => onHover(null)}
       // A drag to turn the galaxy ends with a release over some star: only a still press counts as a click.
-      onClick={(e) => { if (e.delta > 6) return; const id = idx(e); if (id != null) onPick(id) }}>
+      // One click is one title: the pointer hits many overlapping stars, and each would otherwise fire its own
+      // click (and push its own page, so Back walked through dozens of titles). The first hit is the nearest star.
+      onClick={(e) => { e.stopPropagation(); if (e.delta > 6) return; const id = idx(e); if (id != null) onPick(id) }}>
       <shaderMaterial ref={mat} vertexShader={vert} fragmentShader={frag} uniforms={uniforms}
         transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
@@ -141,7 +143,7 @@ function Constellation({ byId, top }: { byId: Map<number, Point>; top: number[] 
 }
 
 /** A label pinned to a point in space, drawn as plain HTML over the canvas. */
-interface Tag { key: string; at: THREE.Vector3; text: string; kind: 'cluster' | 'name'; color?: string }
+interface Tag { key: string; at: THREE.Vector3; text: string; kind: 'cluster' | 'name'; color?: string; sub?: string }
 
 /**
  * Moves the HTML labels to where their points sit on screen, every frame.
@@ -196,7 +198,7 @@ function clusterTags(points: Point[], clusters: ClusterMeta[]): Tag[] {
     if (!s) continue
     const at = new THREE.Vector3(s[0] / s[3], s[1] / s[3], s[2] / s[3]).multiplyScalar(SCALE)
     if (placed.some((p) => Math.hypot(p.at.x - at.x, p.at.y - at.y) < 2.8)) continue
-    placed.push({ key: `c${c.id}`, at, text: c.label, kind: 'cluster', color: `#${clusterColor(c.id).getHexString()}` })
+    placed.push({ key: `c${c.id}`, at, text: c.name ?? c.label, sub: c.examples?.join(' · '), kind: 'cluster', color: `#${clusterColor(c.id).getHexString()}` })
     if (placed.length === 7) break
   }
   return placed
@@ -233,7 +235,9 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
       {tags.map((t) => (
         <span key={t.key} className="g-tag" style={{ visibility: 'hidden' }}
           ref={(el) => { if (el) els.current.set(t.key, el); else els.current.delete(t.key) }}>
-          <span className={t.kind === 'cluster' ? 'g-label' : 'g-name'} style={t.color ? { color: t.color } : undefined}>{t.text}</span>
+          <span className={t.kind === 'cluster' ? 'g-label' : 'g-name'} style={t.color ? { color: t.color } : undefined}>
+            {t.text}{t.sub && <small className="g-label-ex">like {t.sub}</small>}
+          </span>
         </span>
       ))}
     </div>

@@ -1,4 +1,5 @@
 import gzip
+import hashlib
 import json
 import threading
 from collections import OrderedDict
@@ -10,6 +11,7 @@ from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, ListEntry
 from .engine import MIN_POSITIVES, get_engine
+from .cluster_names import name_for
 from .service import user_entries
 
 router = APIRouter(prefix="/api/taste", tags=["taste"])
@@ -89,15 +91,30 @@ def dna(user: CurrentUser, db: Db) -> dict:
                        lambda: {"axes": eng.dna(entries), "need": max(0, MIN_POSITIVES - eng.positives(entries))})
 
 
+def _named_clusters(db, eng, points: list[list]) -> list[dict]:
+    """Each neighbourhood with a plain name and the two best-known titles in it."""
+    cluster_of = {p[0]: p[4] for p in points}
+    examples: dict[int, list[str]] = {}
+    for aid, en, title in db.execute(select(Anime.id, Anime.title_en, Anime.title)
+                                     .order_by(Anime.popularity.desc()).limit(6000)).all():
+        c = cluster_of.get(aid)
+        if c is not None and len(examples.setdefault(c, [])) < 2:
+            examples[c].append(en or title)
+    return [c | {"name": name_for(eng.version, c["id"], examples.get(c["id"], [])), "examples": examples.get(c["id"], [])}
+            for c in eng.clusters_meta]
+
+
 @router.get("/galaxy")
-def galaxy(request: Request) -> Response:
+def galaxy(request: Request, db: Db) -> Response:
     global _galaxy
     eng = _engine()
     if _galaxy is None or _galaxy["version"] != eng.version:
-        body = json.dumps({"points": eng.galaxy_points(), "clusters": eng.clusters_meta},
+        points = eng.galaxy_points()
+        body = json.dumps({"points": points, "clusters": _named_clusters(db, eng, points)},
                           separators=(",", ":")).encode()
-        _galaxy = {"version": eng.version, "gz": gzip.compress(body, 6)}
-    etag = f'"g{_galaxy["version"]}"'
+        # The tag follows the content, not only the model: renamed neighbourhoods reach browsers that cached the old ones.
+        _galaxy = {"version": eng.version, "gz": gzip.compress(body, 6), "etag": f'"g{hashlib.sha1(body).hexdigest()[:16]}"'}
+    etag = _galaxy["etag"]
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers={"ETag": etag})
     return Response(_galaxy["gz"], media_type="application/json",

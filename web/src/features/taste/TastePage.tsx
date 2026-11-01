@@ -129,7 +129,7 @@ export default function TastePage() {
     const cluster = new Map(galaxy.data.points.map((p) => [p[0], p[4]]))
     const n = new Map<number, number>()
     for (const id of mine.keys()) { const c = cluster.get(id); if (c != null) n.set(c, (n.get(c) ?? 0) + 1) }
-    const label = new Map(galaxy.data.clusters.map((c) => [c.id, c.label]))
+    const label = new Map(galaxy.data.clusters.map((c) => [c.id, c.name ?? c.label]))
     return [...n].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c, k]) => ({ label: label.get(c) ?? '', n: k })).filter((h) => h.label)
   }, [galaxy.data, mine])
   const recSet = useMemo(() => new Set(me.data?.recs ?? []), [me.data])
@@ -154,7 +154,7 @@ export default function TastePage() {
               ? <>Rate a few anime and yours light up here in <span className="g-key g-key-mine">white</span>.</>
               : <><span className="g-key g-key-mine">White</span> stars are the ones you’ve rated,
                 <span className="g-key g-key-rec"> pulsing</span> ones are what Konomi thinks you’ll love next.</>}
-            {' '}Labels name each neighbourhood by its most common tags.
+            {' '}Each label names a neighbourhood of similar shows, with two it’s known for.
           </p>
           {hoods.length > 0 && (
             <p className="g-hoods">

@@ -97,3 +97,5 @@
 .g-tags { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .g-tag { position: absolute; left: 0; top: 0; will-change: transform; }
 .g-tag > .g-label { transform: translate(-50%, -50%); }
+.g-label-ex { display: block; margin-top: 1px; font-size: 11px; font-weight: 500; color: var(--paper-2); max-width: 36ch; overflow: hidden; text-overflow: ellipsis; }
+.g-tag > .g-label { text-align: center; border-radius: 12px; }

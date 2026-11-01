@@ -149,3 +149,15 @@ def test_recs_are_cached_until_the_list_changes(client, monkeypatch):
     client.put(f"/api/list/{aid}", json={"status": "completed"})
     client.get("/api/taste/recs")
     assert len(calls) == 2  # a changed list means fresh recommendations
+
+
+def test_galaxy_clusters_have_plain_names_and_examples(client):
+    meta = client.get("/api/taste/galaxy").json()["clusters"]
+    assert meta and all(c["name"] and isinstance(c["examples"], list) for c in meta)
+    assert any(len(c["examples"]) == 2 for c in meta)
+
+
+def test_unnamed_model_falls_back_to_a_true_label():
+    from konomi_api.taste.cluster_names import name_for
+    assert name_for("some-other-version", 3, ["Death Note", "Naruto"]) == "Near Death Note"
+    assert name_for("some-other-version", 3, []) == "Unnamed corner"
