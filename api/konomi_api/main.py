@@ -1,3 +1,6 @@
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from .auth.routes import me_router
@@ -11,7 +14,17 @@ from .profile.routes import router as profile_router
 from .profile.og import router as og_router
 from .imports.routes import router as import_router
 
-app = FastAPI(title="Konomi")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Load the taste model in the background so the first recommendation request doesn't pay for it.
+    from .taste.engine import get_engine
+    threading.Thread(target=get_engine, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="Konomi", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(me_router)
 app.include_router(catalog_router)
