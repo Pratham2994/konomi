@@ -6,7 +6,7 @@ import type { AnimeBrief, Me, Status } from './types'
  * Each query below is computed from your list or your profile, so a change to either refreshes all of them,
  * here and in every other Konomi tab or frame (the Customise preview is one) through a BroadcastChannel.
  */
-const FROM_LIST = new Set(['list', 'profile', 'settings', 'rate-next', 'taste-me', 'dna', 'network', 'track', 'recs', 'predict', 'match'])
+const FROM_LIST = new Set(['list', 'profile', 'settings', 'rate-next', 'taste-me', 'dna', 'network', 'track', 'recs', 'predict', 'match', 'explain'])
 const FROM_PROFILE = new Set(['profile', 'settings', 'me'])
 
 type Signal = 'list' | 'profile' | 'auth'

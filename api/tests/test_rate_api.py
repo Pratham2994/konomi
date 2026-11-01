@@ -73,3 +73,17 @@ def test_answer_can_carry_the_next_question(client):
     assert r["session"] == client.get("/api/rate/session/next").json()
     t = client.post(f"/api/rate/{ids[2]}/tier?next=1", json={"tier": 3}).json()
     assert "session" in t
+
+
+def test_explain_breaks_a_score_down(client):
+    signup_verified(client)
+    ids = top_ids(3)
+    for aid in ids:
+        client.post(f"/api/rate/{aid}/tier", json={"tier": 4})
+    client.post("/api/rate/duel", json={"a": ids[0], "b": ids[1], "outcome": "a"})
+    client.post("/api/rate/duel", json={"a": ids[0], "b": ids[2], "outcome": "tie"})
+    x = client.get(f"/api/rate/{ids[0]}/explain").json()
+    assert x["tier"] == 4 and x["between"] is False
+    assert (x["wins"], x["losses"], x["ties"]) == (1, 0, 1)
+    assert 8.0 <= x["start"] <= 8.9 and x["score"] > x["start"] - 0.05
+    assert client.get(f"/api/rate/{top_ids(4)[3]}/explain").status_code == 404  # not rated

@@ -7,6 +7,7 @@ import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
 import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
 import type { AnimeDetail, Status } from '../../lib/types'
+import { HowScoring } from '../rate/HowScoring'
 import { useRater } from '../rate/RaterContext'
 import './anime.css'
 
@@ -15,6 +16,25 @@ const FACET_SAID: Record<string, Record<string, string>> = {
   rewatch: { Yes: 'Would rewatch', Maybe: 'Might rewatch', No: 'Once was enough' },
   still_think: { Often: 'Still think about it often', Sometimes: 'Think about it sometimes', Rarely: 'Rarely think about it' },
   ending: { Yes: 'The ending landed', 'Kind of': 'The ending half landed', No: 'The ending missed' },
+}
+
+interface Explain { tier: number; between: boolean; start: number; score: number | null; wins: number; losses: number; ties: number }
+
+/** "Started at 8.5 (Loved it) · won 3, lost 1 → 8.7": where the feeling put it, and what comparisons did. */
+function ScoreStory({ id }: { id: number }) {
+  const { data: x } = useQuery({ queryKey: ['explain', id], queryFn: () => api<Explain>(`/api/rate/${id}/explain`), retry: false })
+  if (!x) return null
+  const feeling = TIERS.find((t) => t.tier === x.tier)?.label ?? ''
+  const below = TIERS.find((t) => t.tier === x.tier - 1)?.label
+  const n = x.wins + x.losses + x.ties
+  const parts = [x.wins && `won ${x.wins}`, x.losses && `lost ${x.losses}`, x.ties && `tied ${x.ties}`].filter(Boolean).join(', ')
+  return (
+    <p className="anime-story">
+      Started at <strong>{x.start.toFixed(1)}</strong> ({x.between && below ? `between ${feeling.toLowerCase()} and ${below.toLowerCase()}` : feeling.toLowerCase()})
+      {n > 0 ? <> · {n} comparison{n === 1 ? '' : 's'}: {parts}</> : <> · not compared yet</>}
+      {x.score != null && <> → <strong>{x.score.toFixed(1)}</strong></>}
+    </p>
+  )
 }
 
 const TYPE: Record<string, string> = { TV: 'TV series', MOVIE: 'Movie', ONA: 'Web series', OVA: 'OVA', SPECIAL: 'Special' }
@@ -102,11 +122,13 @@ export function AnimePage() {
                     <span className="muted">{tierLabel}</span>
                     <button className="btn btn-ghost" onClick={() => rater.prompt(a)}>Re-rate</button></p>
                   <ScoreRail score={entry.score} predicted={entry.predicted} />
+                  {entry.tier != null && <ScoreStory id={a.id} />}
                   {Object.keys(entry.facets ?? {}).length > 0 && (
                     <ul className="anime-facets" aria-label="What you said about it">
                       {Object.keys(FACET_SAID).map((k) => FACET_SAID[k][entry.facets[k]] && <li key={k}>{FACET_SAID[k][entry.facets[k]]}</li>)}
                     </ul>
                   )}
+                  <HowScoring />
                 </>
               ) : (
                 <button className="btn btn-primary" onClick={() => rater.prompt(a)}>Rate it</button>

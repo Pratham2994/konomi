@@ -2,7 +2,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from ..catalog.routes import brief
@@ -42,6 +42,55 @@ def put_entry(anime_id: int, body: EntryIn, user: CurrentUser, db: Db) -> dict:
     e = db.get(ListEntry, (user.id, anime_id))
     db.refresh(e)
     return entry_out(e)
+
+
+class RestoreIn(BaseModel):
+    anime_id: int
+    status: Status
+    tier: int | None = Field(default=None, ge=1, le=5)
+    between: bool = False
+    predicted: float | None = Field(default=None, ge=1, le=10)  # Konomi's earlier guess, so the score returns exactly
+
+
+class BulkIn(BaseModel):
+    action: Literal["status", "remove", "restore"]
+    ids: list[int] = Field(default_factory=list, max_length=5000)
+    status: Status | None = None
+    entries: list[RestoreIn] = Field(default_factory=list, max_length=5000)
+
+
+@router.post("/bulk")
+def bulk(body: BulkIn, user: CurrentUser, db: Db) -> dict:
+    """Change many titles in one go: move them to a status, remove them, or put removed ones back (Undo).
+    Only titles already on the list are moved or removed; scores are refitted when rated titles leave or return."""
+    from ..rating.routes import recompute  # late import: rating imports the taste engine
+
+    mine = ListEntry.user_id == user.id
+    rated = False
+    if body.action == "status":
+        if body.status is None:
+            raise HTTPException(422, {"code": "status_required"})
+        n = db.execute(update(ListEntry).where(mine, ListEntry.anime_id.in_(body.ids))
+                       .values(status=body.status)).rowcount
+    elif body.action == "remove":
+        rated = bool(db.scalars(select(ListEntry.anime_id).where(
+            mine, ListEntry.anime_id.in_(body.ids), ListEntry.tier.is_not(None))).first())
+        n = db.execute(delete(ListEntry).where(mine, ListEntry.anime_id.in_(body.ids))).rowcount
+    else:
+        known = set(db.scalars(select(Anime.id).where(Anime.id.in_([e.anime_id for e in body.entries]))))
+        n = 0
+        for e in body.entries:
+            if e.anime_id not in known:
+                continue
+            values = {"status": e.status, "tier": e.tier, "between": e.between and (e.tier or 0) > 1, "predicted": e.predicted}
+            db.execute(insert(ListEntry).values(user_id=user.id, anime_id=e.anime_id, **values)
+                       .on_conflict_do_update(index_elements=["user_id", "anime_id"], set_=values))
+            n += 1
+            rated = rated or e.tier is not None
+    db.commit()
+    if rated:
+        recompute(db, user.id)
+    return {"changed": n}
 
 
 @router.delete("/{anime_id}")

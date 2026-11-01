@@ -34,3 +34,42 @@
 @media (max-width: 640px) {
   .seg { flex-wrap: wrap; border-radius: 18px; overflow: visible; }
 }
+
+/* Select mode: covers toggle a tick; one bar along the bottom changes them all. */
+.chart-tools { display: flex; gap: var(--s2); align-items: center; }
+.tile-pick { position: relative; padding: 0; border: 0; background: none; text-align: left; color: inherit; cursor: pointer; }
+.tile-pick .cover-art { transition: transform 0.15s var(--ease-out), filter 0.15s; }
+.tile-pick:not(.is-picked) .cover-art { filter: brightness(0.75); }
+.tile-pick.is-picked .cover-art { transform: scale(0.94); outline: 3px solid var(--season); outline-offset: 3px; }
+.tile-tick {
+  position: absolute; top: 8px; right: 8px; z-index: 4; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid var(--paper); background: rgb(13 12 18 / 0.55); color: transparent; transition: background 0.15s, color 0.15s;
+}
+.tile-pick.is-picked .tile-tick { background: var(--season); border-color: var(--season); color: var(--ink); }
+.tile-pick:focus-visible { outline: 2px solid var(--season); outline-offset: 4px; border-radius: var(--r-cover); }
+.pick-bar {
+  position: fixed; z-index: 65; left: 50%; transform: translateX(-50%); bottom: calc(var(--bottombar) + 12px + env(safe-area-inset-bottom));
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; width: max-content; max-width: calc(100vw - 16px);
+  padding: 10px 12px; border-radius: 20px; background: var(--ink-2); border: 1px solid var(--line); box-shadow: 0 24px 60px -16px rgb(0 0 0 / 0.95);
+  animation: pick-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (min-width: 900px) { .pick-bar { bottom: 24px; } }
+.pick-count { padding: 0 6px; white-space: nowrap; }
+.pick-count strong { font-weight: 400; font-size: 22px; color: var(--season); margin-right: 4px; }
+.pick-moves { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pick-bar .btn { min-height: 40px; padding: 0 14px; font-size: 14px; }
+.pick-remove:not(:disabled):hover { color: var(--bad); border-color: var(--bad); }
+.chart:has(.pick-bar) { padding-bottom: 200px; }
+@keyframes pick-up { from { transform: translate(-50%, 24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pick-bar { animation: none; } }
+@media (max-width: 560px) {
+  .pick-bar {
+    width: calc(100vw - 16px); display: grid; grid-template-columns: 1fr auto auto; gap: 8px;
+    grid-template-areas: 'count all remove' 'moves moves moves';
+  }
+  .pick-count { grid-area: count; }
+  .pick-bar > .btn-ghost { grid-area: all; }
+  .pick-remove { grid-area: remove; }
+  .pick-moves { grid-area: moves; display: grid; grid-template-columns: 1fr 1fr; }
+  .pick-moves .btn { width: 100%; }
+}

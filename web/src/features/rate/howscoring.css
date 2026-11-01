@@ -1,0 +1,10 @@
+.how { max-width: 62ch; font-size: 14px; color: var(--paper-2); }
+.how > summary {
+  cursor: pointer; width: fit-content; list-style: none; font-weight: 700; color: var(--paper);
+  text-decoration: underline; text-decoration-color: var(--paper-3); text-underline-offset: 3px;
+}
+.how > summary::-webkit-details-marker { display: none; }
+.how > summary:hover { text-decoration-color: var(--season); }
+.how > summary:focus-visible { outline: 2px solid var(--season); outline-offset: 3px; border-radius: 4px; }
+.how ol { margin: var(--s3) 0 0; padding-left: 1.2em; display: grid; gap: var(--s2); line-height: 1.5; }
+.how strong { color: var(--paper); }

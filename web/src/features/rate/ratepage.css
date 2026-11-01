@@ -32,3 +32,4 @@
 .rate-moved-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rate-moved-n { color: var(--paper-2); font-size: 14px; white-space: nowrap; }
 .rate-moved-n strong { color: var(--season); font-weight: 400; font-size: 20px; }
+.rate-how { margin-top: var(--s3); }

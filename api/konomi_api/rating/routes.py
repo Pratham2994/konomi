@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, Duel, ListEntry
-from .score import DuelRec, fit, fit_scores
+from .score import DuelRec, fit, fit_scores, prior
 from .select import next_insertion_duel, next_session_question
 
 router = APIRouter(prefix="/api/rate", tags=["rate"])
@@ -120,6 +120,29 @@ def set_facets(anime_id: int, body: FacetsIn, user: CurrentUser, db: Db, next: b
     entry.facets = (entry.facets or {}) | {k: str(v)[:20] for k, v in body.facets.items() if k in FACET_KEYS}
     db.commit()
     return {"facets": entry.facets} | ({"session": session_next(user, db)} if next else {})
+
+
+@router.get("/{anime_id}/explain")
+def explain(anime_id: int, user: CurrentUser, db: Db) -> dict:
+    """How one title's score came about: where its feeling started it, and what its comparisons did."""
+    st = _state(db, user.id)
+    if anime_id not in st.tiers:
+        raise HTTPException(404, {"code": "not_rated"})
+    wins = losses = ties = 0
+    for d in st.duels:
+        if anime_id not in (d.a, d.b):
+            continue
+        if d.outcome == "tie":
+            ties += 1
+        elif (d.outcome == "a") == (d.a == anime_id):
+            wins += 1
+        else:
+            losses += 1
+    entry = db.get(ListEntry, (user.id, anime_id))
+    return {"tier": st.tiers[anime_id], "between": anime_id in st.between,
+            "start": round(prior(st.tiers[anime_id], anime_id in st.between, st.guess.get(anime_id)), 1),
+            "guess": st.guess.get(anime_id), "score": entry.score if entry else None,
+            "wins": wins, "losses": losses, "ties": ties}
 
 
 @router.get("/session/next")

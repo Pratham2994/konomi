@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { VtLink } from '../../components/VtLink'
 import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { PageLoading } from '../../components/PageLoading'
-import { SEASON_ORDER, STATUS_LABEL, useList } from '../../lib/hooks'
+import { Icon } from '../../components/Icon'
+import { useToast } from '../../components/Toast'
+import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, useList } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
 import './chart.css'
 
@@ -14,8 +16,23 @@ type Sort = 'season' | 'score'
 /** On a chart, "watched" is the norm and its score strip already says so: pen marks are kept for the exceptions. */
 const markFor = (s: Status) => (s === 'completed' ? undefined : s)
 
-export function Tile({ e, sub }: { e: Entry; sub?: string }) {
+export function Tile({ e, sub, picking, picked, onPick }: {
+  e: Entry; sub?: string
+  /** Select mode: the tile toggles a tick instead of opening the title. */
+  picking?: boolean; picked?: boolean; onPick?: () => void
+}) {
   const a = e.anime
+  if (picking) {
+    return (
+      <button type="button" className={`tile tile-pick${picked ? ' is-picked' : ''}`} aria-pressed={!!picked} onClick={onPick}
+        data-season={a.season ?? undefined}>
+        <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={markFor(e.status)} score={e.score} />
+        <span className="tile-tick" aria-hidden="true"><Icon name="check" size={18} stroke={3} /></span>
+        <span className="tile-title">{a.title_en ?? a.title}</span>
+        {sub && <span className="tile-sub">{sub}</span>}
+      </button>
+    )
+  }
   return (
     <VtLink animeId={a.id} className="tile" data-season={a.season ?? undefined}>
       <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={markFor(e.status)} score={e.score} vt />
@@ -29,6 +46,49 @@ export function ChartPage() {
   const { data: entries = [], isLoading } = useList()
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<Sort>('season')
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState<Set<number>>(new Set())
+  const bulk = useBulk()
+  const toast = useToast()
+
+  const stopPicking = () => { setPicking(false); setPicked(new Set()) }
+  const toggle = (id: number) => setPicked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+
+  useEffect(() => {
+    if (!picking) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') stopPicking() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [picking])
+
+  function moveTo(status: Status) {
+    const chosen = entries.filter((e) => picked.has(e.anime_id) && e.status !== status)
+    if (chosen.length === 0) return stopPicking()
+    bulk.mutate({ action: 'status', ids: chosen.map((e) => e.anime_id), status })
+    // Undo puts each title back to the status it had: one request per old status.
+    toast({
+      title: `${chosen.length} title${chosen.length === 1 ? '' : 's'}`, text: `Moved to ${STATUS_LABEL[status]}`,
+      action: { label: 'Undo', run: () => {
+        for (const s of new Set(chosen.map((e) => e.status))) {
+          bulk.mutate({ action: 'status', status: s, ids: chosen.filter((e) => e.status === s).map((e) => e.anime_id) })
+        }
+      } },
+    })
+    stopPicking()
+  }
+
+  function removeAll() {
+    const chosen = entries.filter((e) => picked.has(e.anime_id))
+    if (chosen.length === 0) return
+    bulk.mutate({ action: 'remove', ids: chosen.map((e) => e.anime_id) })
+    const rated = chosen.filter((e) => e.tier != null).length
+    toast({
+      title: `${chosen.length} title${chosen.length === 1 ? '' : 's'} removed`,
+      text: rated ? `${rated} with ${rated === 1 ? 'its feeling' : 'their feelings'}. Undo brings them back` : 'Undo brings them back',
+      action: { label: 'Undo', run: () => bulk.mutate({ action: 'restore', entries: chosen.map(restoreOf) }) },
+    })
+    stopPicking()
+  }
 
   const shown = useMemo(() => entries.filter((e) => filter === 'all' || e.status === filter), [entries, filter])
   const counts = useMemo(() => {
@@ -87,25 +147,46 @@ export function ChartPage() {
             </button>
           ))}
         </div>}
-        <div className="seg" role="tablist" aria-label="Arrange">
-          <button role="tab" aria-selected={sort === 'season'} className={sort === 'season' ? 'is-on' : ''} onClick={() => setSort('season')}>By season</button>
-          <button role="tab" aria-selected={sort === 'score'} className={sort === 'score' ? 'is-on' : ''} onClick={() => setSort('score')}>By score</button>
+        <div className="chart-tools">
+          <div className="seg" role="tablist" aria-label="Arrange">
+            <button role="tab" aria-selected={sort === 'season'} className={sort === 'season' ? 'is-on' : ''} onClick={() => setSort('season')}>By season</button>
+            <button role="tab" aria-selected={sort === 'score'} className={sort === 'score' ? 'is-on' : ''} onClick={() => setSort('score')}>By score</button>
+          </div>
+          <button className={`btn${picking ? ' btn-primary' : ''}`} aria-pressed={picking} onClick={() => (picking ? stopPicking() : setPicking(true))}>
+            {picking ? 'Done' : 'Select'}
+          </button>
         </div>
       </div>
 
       {sort === 'season' ? <Bands>{groups.map((g) => (
         <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 8} n={g.items.length}>
-          <CoverGrid>{g.items.map((e) => <Tile key={e.anime_id} e={e} />)}</CoverGrid>
+          <CoverGrid>{g.items.map((e) => <Tile key={e.anime_id} e={e} picking={picking} picked={picked.has(e.anime_id)} onPick={() => toggle(e.anime_id)} />)}</CoverGrid>
         </SeasonBand>
       ))}</Bands> : (
         <ol className="ranked">
           {byScore.map((e, i) => (
             <li key={e.anime_id} data-season={e.anime.season ?? undefined}>
               <span className="ranked-n display">{i + 1}</span>
-              <Tile e={e} sub={[e.anime.year, e.score == null && e.status === 'completed' ? 'not rated yet' : null].filter(Boolean).join(' · ')} />
+              <Tile e={e} sub={[e.anime.year, e.score == null && e.status === 'completed' ? 'not rated yet' : null].filter(Boolean).join(' · ')}
+                picking={picking} picked={picked.has(e.anime_id)} onPick={() => toggle(e.anime_id)} />
             </li>
           ))}
         </ol>
+      )}
+
+      {picking && (
+        <div className="pick-bar" role="toolbar" aria-label="Change the selected titles">
+          <span className="pick-count"><strong className="display">{picked.size}</strong> selected</span>
+          <button className="btn btn-ghost" onClick={() => setPicked(picked.size === shown.length ? new Set() : new Set(shown.map((e) => e.anime_id)))}>
+            {picked.size === shown.length ? 'Select none' : 'Select all'}
+          </button>
+          <span className="pick-moves">
+            {(['completed', 'watching', 'planned', 'dropped'] as Status[]).map((s) => (
+              <button key={s} className="btn" disabled={picked.size === 0} onClick={() => moveTo(s)}>{STATUS_LABEL[s]}</button>
+            ))}
+          </span>
+          <button className="btn pick-remove" disabled={picked.size === 0} onClick={removeAll}><Icon name="close" size={16} /> Remove</button>
+        </div>
       )}
     </div>
   )

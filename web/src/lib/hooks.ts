@@ -111,25 +111,46 @@ export const STATUS_LABEL: Record<Status, string> = {
  * (The comparisons are never deleted, so with the feeling back the score comes back as it was.)
  */
 export function useRemoveWithUndo() {
-  const qc = useQueryClient()
   const remove = useRemove()
-  const setStatus = useSetStatus()
+  const bulk = useBulk()
   const toast = useToast()
   return (e: Entry) => {
     remove.mutate(e.anime_id)
     toast({
       title: e.anime.title_en ?? e.anime.title,
       text: e.tier != null ? 'Removed, with its feeling' : 'Removed from your chart',
-      action: {
-        label: 'Undo',
-        run: async () => {
-          await setStatus.mutateAsync({ anime: e.anime, status: e.status })
-          if (e.tier != null) {
-            await api(`/api/rate/${e.anime_id}/tier`, { method: 'POST', json: { tier: e.tier, between: !!e.between } })
-            listChanged(qc)
-          }
-        },
-      },
+      action: { label: 'Undo', run: () => bulk.mutate({ action: 'restore', entries: [restoreOf(e)] }) },
     })
   }
+}
+
+/** Everything Undo needs to put a removed title back exactly as it was. */
+export const restoreOf = (e: Entry) => ({ anime_id: e.anime_id, status: e.status, tier: e.tier, between: !!e.between, predicted: e.predicted })
+
+type BulkBody =
+  | { action: 'status'; ids: number[]; status: Status }
+  | { action: 'remove'; ids: number[] }
+  | { action: 'restore'; entries: { anime_id: number; status: Status; tier: number | null; between: boolean; predicted: number | null }[] }
+
+/** Many titles in one request, in the same queue as single changes; the chart updates before the server answers. */
+export function useBulk() {
+  const qc = useQueryClient()
+  return useMutation({
+    ...LIST_WRITE,
+    mutationFn: (body: BulkBody) => api<{ changed: number }>('/api/list/bulk', { method: 'POST', json: body }),
+    onMutate: async (body) => {
+      qc.cancelQueries({ queryKey: ['list'] })
+      const prev = qc.getQueryData<Entry[]>(['list'])
+      if (body.action === 'status') {
+        const ids = new Set(body.ids)
+        qc.setQueryData<Entry[]>(['list'], (prev ?? []).map((e) => (ids.has(e.anime_id) ? { ...e, status: body.status } : e)))
+      } else if (body.action === 'remove') {
+        const ids = new Set(body.ids)
+        qc.setQueryData<Entry[]>(['list'], (prev ?? []).filter((e) => !ids.has(e.anime_id)))
+      }
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(['list'], ctx.prev),
+    onSettled: () => settledListWrite(qc),
+  })
 }
