@@ -63,3 +63,5 @@
 .home-start-text .muted { font-size: 13px; }
 .home-start-text .btn { justify-self: start; margin-top: var(--s2); min-height: 40px; }
 @media (max-width: 1279px) { .home-start { order: -1; } }
+/* Holds the season grid's place while it loads, so the page doesn't jump when it arrives. */
+.home-band-wait { min-height: clamp(360px, 42vw, 560px); margin-top: var(--s6); border-radius: var(--r-panel); background: linear-gradient(to bottom, var(--ink-2), transparent 70%); }

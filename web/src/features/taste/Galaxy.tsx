@@ -1,4 +1,4 @@
-import { Html, OrbitControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -140,19 +140,26 @@ function Constellation({ byId, top }: { byId: Map<number, Point>; top: number[] 
   return line ? <primitive object={line} /> : null
 }
 
-function Names({ byId, named }: { byId: Map<number, Point>; named: { id: number; label: string }[] }) {
-  return (
-    <>
-      {named.map((n) => {
-        const v = at3(byId, n.id)
-        return v && (
-          <Html key={n.id} position={v} zIndexRange={[2, 1]} style={{ pointerEvents: 'none' }}>
-            <span className="g-name">{n.label}</span>
-          </Html>
-        )
-      })}
-    </>
-  )
+/** A label pinned to a point in space, drawn as plain HTML over the canvas. */
+interface Tag { key: string; at: THREE.Vector3; text: string; kind: 'cluster' | 'name'; color?: string }
+
+/**
+ * Moves the HTML labels to where their points sit on screen, every frame.
+ * Plain elements updated in place, not one React root per label (which broke when the page unmounted).
+ */
+function Projector({ tags, els }: { tags: Tag[]; els: React.MutableRefObject<Map<string, HTMLSpanElement>> }) {
+  const { camera, size } = useThree()
+  const v = useMemo(() => new THREE.Vector3(), [])
+  useFrame(() => {
+    for (const t of tags) {
+      const el = els.current.get(t.key)
+      if (!el) continue
+      v.copy(t.at).project(camera)
+      el.style.visibility = v.z > 1 ? 'hidden' : 'visible'
+      el.style.transform = `translate(${((v.x + 1) / 2) * size.width}px, ${((1 - v.y) / 2) * size.height}px)`
+    }
+  })
+  return null
 }
 
 /** On arrival, fly from the wide view to your part of the galaxy. */
@@ -176,34 +183,23 @@ function FlyTo({ to }: { to: THREE.Vector3 | null }) {
   return null
 }
 
-function ClusterLabels({ points, clusters }: { points: Point[]; clusters: ClusterMeta[] }) {
-  const labels = useMemo(() => {
-    const sum = new Map<number, [number, number, number, number]>()
-    for (const p of points) {
-      const s = sum.get(p[4]) ?? [0, 0, 0, 0]
-      sum.set(p[4], [s[0] + p[1], s[1] + p[2], s[2] + p[3], s[3] + 1])
-    }
-    // Largest clusters first; skip any whose centre sits too close to a label already placed, so none overlap.
-    const placed: { id: number; label: string; at: [number, number, number] }[] = []
-    for (const c of [...clusters].sort((a, b) => b.size - a.size)) {
-      const s = sum.get(c.id)
-      if (!s) continue
-      const at = [s[0] / s[3] * SCALE, s[1] / s[3] * SCALE, s[2] / s[3] * SCALE] as [number, number, number]
-      if (placed.some((p) => Math.hypot(p.at[0] - at[0], p.at[1] - at[1]) < 2.8)) continue
-      placed.push({ id: c.id, label: c.label, at })
-      if (placed.length === 7) break
-    }
-    return placed
-  }, [points, clusters])
-  return (
-    <>
-      {labels.map((l) => (
-        <Html key={l.id} position={l.at} center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
-          <span className="g-label" style={{ color: `#${clusterColor(l.id).getHexString()}` }}>{l.label}</span>
-        </Html>
-      ))}
-    </>
-  )
+function clusterTags(points: Point[], clusters: ClusterMeta[]): Tag[] {
+  const sum = new Map<number, [number, number, number, number]>()
+  for (const p of points) {
+    const s = sum.get(p[4]) ?? [0, 0, 0, 0]
+    sum.set(p[4], [s[0] + p[1], s[1] + p[2], s[2] + p[3], s[3] + 1])
+  }
+  // Largest clusters first; skip any whose centre sits too close to a label already placed, so none overlap.
+  const placed: Tag[] = []
+  for (const c of [...clusters].sort((a, b) => b.size - a.size)) {
+    const s = sum.get(c.id)
+    if (!s) continue
+    const at = new THREE.Vector3(s[0] / s[3], s[1] / s[3], s[2] / s[3]).multiplyScalar(SCALE)
+    if (placed.some((p) => Math.hypot(p.at.x - at.x, p.at.y - at.y) < 2.8)) continue
+    placed.push({ key: `c${c.id}`, at, text: c.label, kind: 'cluster', color: `#${clusterColor(c.id).getHexString()}` })
+    if (placed.length === 7) break
+  }
+  return placed
 }
 
 export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, named, onHover, onPick }: {
@@ -215,18 +211,32 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
   const byId = useMemo(() => new Map(points.map((p) => [p[0], p])), [points])
   const top = useMemo(() => [...mine].filter(([, s]) => s != null).sort((a, b) => b[1]! - a[1]!).slice(0, 12).map(([id]) => id), [mine])
   const home = useMemo(() => (centroid ? new THREE.Vector3(...centroid).multiplyScalar(SCALE) : null), [centroid])
+  const tags = useMemo<Tag[]>(() => [
+    ...clusterTags(points, clusters),
+    ...named.flatMap((n) => { const at = at3(byId, n.id); return at ? [{ key: `n${n.id}`, at, text: n.label, kind: 'name' as const }] : [] }),
+  ], [points, clusters, named, byId])
+  const els = useRef(new Map<string, HTMLSpanElement>())
   return (
+    <div className="g-3d">
     <Canvas camera={{ position: [0, 1.5, 9], fov: 55, near: 0.1, far: 100 }} dpr={[1, 2]}
       raycaster={{ params: { Points: { threshold: 0.09 } } } as never} gl={{ antialias: false, alpha: true }}
       onPointerMissed={() => onHover(null)}>
       <Stars points={points} mine={mine} recs={recs} accent={accent} onHover={moving ? () => undefined : onHover} onPick={onPick} />
       {centroid && <Glow at={centroid} color={accent} />}
       <Constellation byId={byId} top={top} />
-      <Names byId={byId} named={named} />
-      <ClusterLabels points={points} clusters={clusters} />
+      <Projector tags={tags} els={els} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} autoRotate={!home} autoRotateSpeed={0.35}
         minDistance={2.5} maxDistance={22} onStart={() => setMoving(true)} onEnd={() => setMoving(false)} />
       <FlyTo to={home} />
     </Canvas>
+    <div className="g-tags" aria-hidden="true">
+      {tags.map((t) => (
+        <span key={t.key} className="g-tag" style={{ visibility: 'hidden' }}
+          ref={(el) => { if (el) els.current.set(t.key, el); else els.current.delete(t.key) }}>
+          <span className={t.kind === 'cluster' ? 'g-label' : 'g-name'} style={t.color ? { color: t.color } : undefined}>{t.text}</span>
+        </span>
+      ))}
+    </div>
+    </div>
   )
 }

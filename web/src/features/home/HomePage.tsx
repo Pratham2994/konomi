@@ -122,6 +122,7 @@ export function HomePage() {
             )}
           </section>
 
+          {!season && <div className="home-band-wait" aria-hidden="true" />}
           {season && season.items.length > 0 && (
             <SeasonBand season={now.season} year={now.year} count="airing now, tap what you’re watching"
               aside={<Link to="/sweep" className="btn">Earlier seasons</Link>}>
@@ -141,7 +142,8 @@ export function HomePage() {
               <span className="btn btn-primary">Rate now</span>
             </Link>
           )}
-          {guesses.length === 0 && <Starter watched={watchedN} rated={ratedN} />}
+          {/* Wait for recommendations before deciding: otherwise the card flashes for people who do have guesses. */}
+          {recs && guesses.length === 0 && <Starter watched={watchedN} rated={ratedN} />}
           {guesses.length > 0 && (
             <section className="home-guesses">
               <h2 className="display">Konomi’s guesses</h2>
