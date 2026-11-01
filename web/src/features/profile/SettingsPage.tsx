@@ -102,6 +102,17 @@ export function SettingsPage() {
   const [links, setLinks] = useState<string[]>(['', '', '', ''])
   const [hillText, setHillText] = useState('')
   const [pickFor, setPickFor] = useState<'favourites' | 'banner' | 'hill' | null>(null)
+  const [pickQ, setPickQ] = useState('')
+  // The picker is a sheet over the page: Escape closes it and the page behind stays still.
+  useEffect(() => {
+    if (!pickFor) return
+    setPickQ('')
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPickFor(null) }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
+  }, [pickFor])
   const frame = useRef<HTMLIFrameElement>(null)
   const nav = useNavigate()
 
@@ -142,8 +153,10 @@ export function SettingsPage() {
   }, [s])
   if (!s) return <PageLoading />
 
-  const watched = entries.filter((e) => e.status === 'completed').sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-  const pickable = pickFor === 'hill' ? entries.filter((e) => e.status !== 'planned').sort((a, b) => (b.score ?? 0) - (a.score ?? 0)) : watched
+  // Every title on your chart can be picked: watched ones first, best scores first, then the rest.
+  const rank = (e: (typeof entries)[number]) => (e.status === 'completed' ? 0 : 1)
+  const pickable = [...entries].sort((a, b) => rank(a) - rank(b) || (b.score ?? 0) - (a.score ?? 0))
+    .filter((e) => !pickQ.trim() || `${e.anime.title} ${e.anime.title_en ?? ''}`.toLowerCase().includes(pickQ.trim().toLowerCase()))
   const byId = new Map(entries.map((e) => [e.anime_id, e]))
   const set = (patch: Partial<Settings>) => save.mutate(patch)
   const hillAnime = s.hill ? byId.get(s.hill.anime_id) : undefined
@@ -164,7 +177,7 @@ export function SettingsPage() {
   }
 
   function pick(id: number) {
-    if (pickFor === 'banner') set({ banner_anime_id: id })
+    if (pickFor === 'banner') { set({ banner_anime_id: id }); setPickFor(null) }
     else if (pickFor === 'hill') { set({ hill: { anime_id: id, text: hillText } }); setPickFor(null) }
     else toggleFav(id)
   }
@@ -339,12 +352,15 @@ export function SettingsPage() {
           </Group>
 
           {pickFor && (
-            <section className="set-picker">
+            <div className="sheet-back" onClick={() => setPickFor(null)}>
+            <section className="set-picker sheet" role="dialog" aria-modal="true" aria-label="Pick from your chart" onClick={(e) => e.stopPropagation()}>
               <div className="set-picker-head">
-                <h2>{{ banner: 'Pick a banner', hill: 'Pick your hill', favourites: 'Tap to add or remove' }[pickFor]}</h2>
-                <button className="btn btn-primary" onClick={() => setPickFor(null)}>Done</button>
+                <h2>{{ banner: 'Pick a banner', hill: 'Pick your hill', favourites: `Favourites: tap to add or remove (${s.favourites.length}/10)` }[pickFor]}</h2>
+                <button className="btn btn-primary" onClick={() => setPickFor(null)}>{pickFor === 'favourites' ? 'Done' : 'Close'}</button>
               </div>
-              {pickable.length === 0 && <p className="muted">Add some anime to your chart first.</p>}
+              <input className="field set-pick-q" value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder="Find a title on your chart" autoFocus />
+              {entries.length === 0 && <p className="muted">Add some anime to your chart first.</p>}
+              {entries.length > 0 && pickable.length === 0 && <p className="muted">Nothing on your chart matches that.</p>}
               <div className="grid grid-dense">
                 {pickable.map((e) => {
                   const on = pickFor === 'banner' ? s.banner_anime_id === e.anime_id : pickFor === 'hill' ? s.hill?.anime_id === e.anime_id : s.favourites.includes(e.anime_id)
@@ -357,6 +373,7 @@ export function SettingsPage() {
                 })}
               </div>
             </section>
+            </div>
           )}
 
           <Group id="layout" title="What your profile shows" lead="Turn parts on or off, and use the arrows to change their order. A part with nothing in it stays hidden.">

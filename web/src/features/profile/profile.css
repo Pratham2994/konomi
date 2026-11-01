@@ -77,11 +77,16 @@
 
 /* Header styles the owner picks in Customise. */
 .prof-banner img { object-position: center center; }
-.head-poster .prof-head { min-height: min(78vh, 760px); display: grid; align-items: end; }
-.head-poster .prof-head-inner { width: 100%; }
-.head-poster .prof-banner img { filter: blur(1.5px) saturate(1.1); transform: scale(1.02); opacity: 0.75; }
-.head-poster .prof-banner::after { background: linear-gradient(to bottom, rgb(13 12 18 / 0.1) 20%, rgb(13 12 18 / 0.75) 65%, var(--ink)); }
+/* Poster: cover art is small, so it is never stretched. It hangs sharp at its own size, over a soft wash of itself. */
+.head-poster .prof-banner img { filter: blur(22px) saturate(1.4); transform: scale(1.15); opacity: 0.55; }
 .head-poster .prof-fan { display: none; }
+.prof-poster { display: block; width: 46%; max-width: 220px; margin-bottom: var(--s2); }
+.prof-poster img { display: block; width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 14px; box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.9); }
+@media (min-width: 900px) {
+  .prof .head-poster-inner { min-height: clamp(380px, 34vw, 560px); align-content: end; }
+  .prof-poster { position: absolute; right: var(--gutter); bottom: var(--s6); width: auto; max-width: none; height: calc(100% - var(--s6) - var(--s7)); margin: 0; transform: rotate(2.5deg); }
+  .prof-poster img { width: auto; height: 100%; }
+}
 .head-ink .prof-head { background: var(--season); color: var(--ink); }
 .head-ink .prof-handle, .head-ink .prof-line, .head-ink .prof-note { color: color-mix(in oklab, var(--ink) 72%, var(--season)); }
 .head-ink .prof-line strong.display, .head-ink .prof-studio { color: var(--ink); }
@@ -139,10 +144,6 @@
 .shell-preview .prof-body { padding-top: 0; padding-bottom: var(--s6); }
 .shell-preview .prof-sec { margin-top: var(--s6); }
 .favs-even li:first-child .tile-title, .favs-podium li:first-child .tile-title { font-size: inherit; }
-@media (max-width: 720px) {
-  .head-poster .prof-head { min-height: 0; }
-  .prof.head-poster .prof-head-inner { padding-top: 36vh; }
-}
 @media (min-width: 1100px) {
   /* The fanned covers need the header to be at least as tall as they are, whatever the name size. */
   .prof .prof-head-inner:has(.prof-fan) { min-height: clamp(400px, 31vw, 600px); align-content: end; }

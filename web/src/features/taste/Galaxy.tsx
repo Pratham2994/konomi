@@ -1,6 +1,6 @@
 import { Html, OrbitControls } from '@react-three/drei'
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
-import { useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 export type Point = [id: number, x: number, y: number, z: number, cluster: number]
@@ -60,7 +60,7 @@ function Stars({ points, mine, recs, accent, onHover, onPick }: {
       pos.set([p[1] * SCALE, p[2] * SCALE, p[3] * SCALE], i * 3)
       let c = clusterColor(p[4])
       let s = 2.0
-      if (mine.has(p[0])) { c = paper; s = 3.2 + ((mine.get(p[0]) ?? 7) - 5) * 0.35 }
+      if (mine.has(p[0])) { c = paper; s = 4.2 + Math.max(0, (mine.get(p[0]) ?? 7) - 5) * 0.45 }
       else if (recs.has(p[0])) { c = acc; s = 3.4; pulse[i] = 1 }
       col.set([c.r, c.g, c.b], i * 3)
       size[i] = s
@@ -84,7 +84,8 @@ function Stars({ points, mine, recs, accent, onHover, onPick }: {
     <points geometry={geo}
       onPointerMove={(e) => { e.stopPropagation(); onHover(idx(e), { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }) }}
       onPointerOut={() => onHover(null)}
-      onClick={(e) => { const id = idx(e); if (id != null) onPick(id) }}>
+      // A drag to turn the galaxy ends with a release over some star: only a still press counts as a click.
+      onClick={(e) => { if (e.delta > 6) return; const id = idx(e); if (id != null) onPick(id) }}>
       <shaderMaterial ref={mat} vertexShader={vert} fragmentShader={frag} uniforms={uniforms}
         transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
@@ -113,6 +114,66 @@ function Glow({ at, color }: { at: [number, number, number]; color: string }) {
       <spriteMaterial map={tex} color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </sprite>
   )
+}
+
+const at3 = (points: Map<number, Point>, id: number) => {
+  const p = points.get(id)
+  return p ? new THREE.Vector3(p[1] * SCALE, p[2] * SCALE, p[3] * SCALE) : null
+}
+
+/** Your constellation: your best-rated titles joined nearest-first, so every chart draws its own shape. */
+function Constellation({ byId, top }: { byId: Map<number, Point>; top: number[] }) {
+  const line = useMemo(() => {
+    const pts = top.map((id) => at3(byId, id)).filter((v): v is THREE.Vector3 => v != null)
+    if (pts.length < 2) return null
+    const path = [pts[0]]
+    const left = pts.slice(1)
+    while (left.length) {
+      const last = path[path.length - 1]
+      let k = 0
+      left.forEach((v, i) => { if (v.distanceTo(last) < left[k].distanceTo(last)) k = i })
+      path.push(left.splice(k, 1)[0])
+    }
+    const g = new THREE.BufferGeometry().setFromPoints(path)
+    return new THREE.Line(g, new THREE.LineBasicMaterial({ color: '#f4f1ea', transparent: true, opacity: 0.45, depthWrite: false }))
+  }, [byId, top])
+  return line ? <primitive object={line} /> : null
+}
+
+function Names({ byId, named }: { byId: Map<number, Point>; named: { id: number; label: string }[] }) {
+  return (
+    <>
+      {named.map((n) => {
+        const v = at3(byId, n.id)
+        return v && (
+          <Html key={n.id} position={v} zIndexRange={[2, 1]} style={{ pointerEvents: 'none' }}>
+            <span className="g-name">{n.label}</span>
+          </Html>
+        )
+      })}
+    </>
+  )
+}
+
+/** On arrival, fly from the wide view to your part of the galaxy. */
+function FlyTo({ to }: { to: THREE.Vector3 | null }) {
+  const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: { target: THREE.Vector3; update: () => void } | null }
+  const t = useRef(0)
+  const from = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null)
+  useEffect(() => { t.current = 0; from.current = null }, [to])
+  useFrame((_, dt) => {
+    if (!to || !controls || t.current >= 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!from.current) from.current = { pos: camera.position.clone(), target: controls.target.clone() }
+    t.current = Math.min(1, t.current + dt / 2.2)
+    const k = 1 - Math.pow(1 - t.current, 3)
+    // On wide screens the intro text sits on the left, so aim a little left of your area: it lands right of the text.
+    const aim = to.clone().add(new THREE.Vector3(window.innerWidth >= 900 ? -2.4 : 0, window.innerWidth >= 900 ? 0 : 2.4, 0))
+    const goal = aim.clone().add(new THREE.Vector3(0, 1.4, 7.5))
+    camera.position.lerpVectors(from.current.pos, goal, k)
+    controls.target.lerpVectors(from.current.target, aim, k)
+    controls.update()
+  })
+  return null
 }
 
 function ClusterLabels({ points, clusters }: { points: Point[]; clusters: ClusterMeta[] }) {
@@ -145,22 +206,27 @@ function ClusterLabels({ points, clusters }: { points: Point[]; clusters: Cluste
   )
 }
 
-export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, onHover, onPick }: {
+export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, named, onHover, onPick }: {
   points: Point[]; clusters: ClusterMeta[]; mine: Map<number, number | null>; recs: Set<number>
-  centroid: [number, number, number] | null
+  centroid: [number, number, number] | null; named: { id: number; label: string }[]
   accent: string; onHover: (id: number | null, e?: { x: number; y: number }) => void; onPick: (id: number) => void
 }) {
   const [moving, setMoving] = useState(false)
-  const target = centroid ? (centroid.map((v) => v * SCALE * 0.5) as [number, number, number]) : [0, 0, 0] as [number, number, number]
+  const byId = useMemo(() => new Map(points.map((p) => [p[0], p])), [points])
+  const top = useMemo(() => [...mine].filter(([, s]) => s != null).sort((a, b) => b[1]! - a[1]!).slice(0, 12).map(([id]) => id), [mine])
+  const home = useMemo(() => (centroid ? new THREE.Vector3(...centroid).multiplyScalar(SCALE) : null), [centroid])
   return (
     <Canvas camera={{ position: [0, 1.5, 9], fov: 55, near: 0.1, far: 100 }} dpr={[1, 2]}
       raycaster={{ params: { Points: { threshold: 0.09 } } } as never} gl={{ antialias: false, alpha: true }}
       onPointerMissed={() => onHover(null)}>
       <Stars points={points} mine={mine} recs={recs} accent={accent} onHover={moving ? () => undefined : onHover} onPick={onPick} />
       {centroid && <Glow at={centroid} color={accent} />}
+      <Constellation byId={byId} top={top} />
+      <Names byId={byId} named={named} />
       <ClusterLabels points={points} clusters={clusters} />
-      <OrbitControls enableDamping dampingFactor={0.08} autoRotate autoRotateSpeed={0.35} target={target}
+      <OrbitControls makeDefault enableDamping dampingFactor={0.08} autoRotate={!home} autoRotateSpeed={0.35}
         minDistance={2.5} maxDistance={22} onStart={() => setMoving(true)} onEnd={() => setMoving(false)} />
+      <FlyTo to={home} />
     </Canvas>
   )
 }

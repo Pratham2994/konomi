@@ -328,7 +328,10 @@ export function ProfilePage() {
             <img src={art} alt="" referrerPolicy="no-referrer" style={{ objectPosition: `center ${look.banner_focus}` }} />
           </div>
         )}
-        <div className="page prof-head-inner">
+        <div className={`page prof-head-inner${look.header === 'poster' && art ? ' head-poster-inner' : ''}`}>
+          {look.header === 'poster' && art && (
+            <div className="prof-poster" aria-hidden="true"><img src={art} alt="" referrerPolicy="no-referrer" /></div>
+          )}
           {look.fan && p.favourites.length >= 3 && (
             <div className="prof-fan" aria-hidden="true">
               {p.favourites.slice(0, 3).reverse().map((f, i) => (

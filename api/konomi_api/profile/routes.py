@@ -179,8 +179,10 @@ def profile_payload(db, u: User) -> dict:
     guesses = [(e.predicted, e.score) for e, _ in done if e.predicted is not None and e.score is not None]
     track = ({"n": len(guesses), "within1": round(sum(abs(p - s) <= 1 for p, s in guesses) / len(guesses), 3)}
              if len(guesses) >= 3 else None)
+    # Chosen banner, else your top favourite, else the title you added last: a header always has art.
+    latest = max(rows, key=lambda t: t[0].updated_at)[1] if rows else None
     banner = db.get(Anime, s["banner_anime_id"]) if s["banner_anime_id"] else (
-        by_id.get(fav_ids[0]) if fav_ids and fav_ids[0] in by_id else None)
+        by_id.get(fav_ids[0]) if fav_ids and fav_ids[0] in by_id else latest)
     score_of = {a.id: e.score for e, a in rows}
     hill_a = by_id.get(s["hill"]["anime_id"]) if s["hill"] else None
     watching = sorted([(e, a) for e, a in rows if e.status == "watching"], key=lambda t: t[0].updated_at, reverse=True)

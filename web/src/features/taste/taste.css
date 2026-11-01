@@ -10,7 +10,7 @@
 /* Quiet the stars behind the intro text so it stays readable; the canvas still takes every drag. */
 .g-stage::before {
   content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse min(900px, 80%) 380px at 0 0, rgb(13 12 18 / 0.88) 35%, transparent);
+  background: radial-gradient(ellipse min(1000px, 85%) 560px at 0 0, rgb(13 12 18 / 0.9) 45%, transparent);
 }
 .g-stage canvas { touch-action: none; }
 .g-overlay { position: relative; z-index: 2; pointer-events: none; max-width: 720px; margin: 0; padding-top: var(--s6); }
@@ -86,4 +86,10 @@
 @media (max-width: 640px) {
   .g-label { font-size: 11px; padding: 2px 8px; white-space: nowrap; }
   .g-overlay { background: linear-gradient(to bottom, rgb(13 12 18 / 0.88) 70%, transparent); padding-bottom: var(--s5); }
+}
+.g-hoods { margin-top: var(--s3); font-size: 15px; color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 3px var(--ink), 0 0 18px var(--ink); }
+.g-hoods strong { color: var(--paper); }
+.g-name {
+  display: block; transform: translate(10px, -50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--paper);
+  padding: 2px 8px; border-radius: var(--r-pill); background: rgb(13 12 18 / 0.75); border: 1px solid rgb(244 241 234 / 0.35);
 }

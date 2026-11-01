@@ -117,3 +117,12 @@
 .set-sec-text .faint { font-size: 13px; font-weight: 400; }
 .set-sections { max-width: 640px; }
 .set-sections li { padding: 10px 0; }
+.sheet-back { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; background: rgb(6 6 10 / 0.6); animation: sheet-fade 0.2s ease-out both; }
+@media (min-width: 720px) { .sheet-back { place-items: center; } }
+.sheet { width: min(980px, 100%); max-height: min(86dvh, 900px); overflow-y: auto; margin: 0; border-radius: 22px 22px 0 0; animation: sheet-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (min-width: 720px) { .sheet { width: min(980px, calc(100% - 48px)); border-radius: 22px; } }
+.sheet .set-picker-head { top: 0; margin: calc(var(--s4) * -1) calc(var(--s4) * -1) var(--s3); padding: var(--s4); }
+.set-pick-q { width: 100%; margin-bottom: var(--s4); }
+@keyframes sheet-fade { from { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet-back, .sheet { animation: none; } }

@@ -57,3 +57,11 @@ def test_profile_options_and_public_stripping(client):
     assert p["stats"]["hours"] is None and p["track"] is None and p["look"]["scores"] == "off"
     assert p["user"]["pronouns"] == "she/her" and p["hot_takes"] == []
     assert TestClient(app).get("/og/u/aki.png").status_code == 200
+
+
+def test_banner_falls_back_to_latest_title(client):
+    signup_verified(client)
+    from .test_rate_api import top_ids
+    aid = top_ids(1)[0]
+    client.put(f"/api/list/{aid}", json={"status": "watching"})
+    assert client.get("/api/u/aki").json()["banner"]["id"] == aid

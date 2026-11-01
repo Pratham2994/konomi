@@ -4,6 +4,7 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { api } from '../../lib/api'
+import { useList } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { RecCard, useRecs } from '../home/HomePage'
 import { galaxyQuery, loadGalaxy } from './preload'
@@ -118,6 +119,19 @@ export default function TastePage() {
   const recs = useRecs(filter)
 
   const mine = useMemo(() => new Map((me.data?.mine ?? []).map((m) => [m.id, m.score])), [me.data])
+  const { data: entries = [] } = useList()
+  // Your three best-rated titles get name tags on the map.
+  const named = useMemo(() => entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 3)
+    .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title })), [entries])
+  // The neighbourhoods you watch most in, by the cluster each of your titles sits in.
+  const hoods = useMemo(() => {
+    if (!galaxy.data || mine.size === 0) return []
+    const cluster = new Map(galaxy.data.points.map((p) => [p[0], p[4]]))
+    const n = new Map<number, number>()
+    for (const id of mine.keys()) { const c = cluster.get(id); if (c != null) n.set(c, (n.get(c) ?? 0) + 1) }
+    const label = new Map(galaxy.data.clusters.map((c) => [c.id, c.label]))
+    return [...n].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c, k]) => ({ label: label.get(c) ?? '', n: k })).filter((h) => h.label)
+  }, [galaxy.data, mine])
   const recSet = useMemo(() => new Set(me.data?.recs ?? []), [me.data])
   const need = dna.data?.need ?? 0
 
@@ -127,7 +141,7 @@ export default function TastePage() {
         {galaxy.data ? (
           <Suspense fallback={<p className="g-loading faint">Placing the stars…</p>}>
             <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} clusters={galaxy.data.clusters} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
-              accent={ACCENT} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
+              accent={ACCENT} named={named} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
               onPick={(id) => nav(`/anime/${id}`)} /></div>
           </Suspense>
         ) : <p className="g-loading faint">{galaxy.isError ? 'The galaxy didn’t load. Refresh to try again.' : 'Placing the stars…'}</p>}
@@ -142,6 +156,12 @@ export default function TastePage() {
                 <span className="g-key g-key-rec"> pulsing</span> ones are what Konomi thinks you’ll love next.</>}
             {' '}Labels name each neighbourhood by its most common tags.
           </p>
+          {hoods.length > 0 && (
+            <p className="g-hoods">
+              You watch most in{' '}
+              {hoods.map((h, i) => <span key={h.label}>{i > 0 && (i === hoods.length - 1 ? ' and ' : ', ')}<strong>{h.label}</strong> ({h.n})</span>)}.
+            </p>
+          )}
           {track.data && track.data.n >= 3 && track.data.within1 != null && (
             <p className="g-track">
               Konomi guessed your score within 1 point on <strong>{Math.round(track.data.within1 * 100)}%</strong> of
