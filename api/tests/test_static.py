@@ -31,3 +31,12 @@ def test_popular_lists_most_popular_first(client):
     assert len(items) == 5
     page2 = client.get("/api/popular?limit=5&offset=5").json()["items"]
     assert not {i["id"] for i in items} & {i["id"] for i in page2}
+
+
+def test_popular_can_filter_by_kind(client):
+    films = client.get("/api/popular?kind=films&limit=10").json()["items"]
+    assert films and all(f["type"] == "MOVIE" for f in films)
+    isekai = client.get("/api/popular?kind=isekai&limit=10").json()["items"]
+    assert isekai and {i["id"] for i in isekai} != {f["id"] for f in films}
+    assert client.get("/api/popular?limit=500").status_code == 200
+    assert client.get("/api/popular?kind=nonsense").status_code == 422

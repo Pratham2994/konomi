@@ -31,3 +31,4 @@
 .sweep-keys kbd { font-family: var(--body); font-size: 11px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; }
 @media (hover: none) { .sweep-keys { display: none; } }
 .sweep-views { width: fit-content; margin-top: var(--s4); }
+.sweep-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--s4) 0 var(--s2); }

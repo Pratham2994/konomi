@@ -17,6 +17,13 @@ function step(year: number, season: Season, dir: -1 | 1): { year: number; season
   return { year: y, season: SEASON_ORDER[i] }
 }
 
+type Kind = 'all' | 'shounen' | 'isekai' | 'romance' | 'films'
+const KINDS: { id: Kind; label: string }[] = [
+  { id: 'all', label: 'Everything' }, { id: 'shounen', label: 'Shounen' }, { id: 'isekai', label: 'Isekai' },
+  { id: 'romance', label: 'Romance' }, { id: 'films', label: 'Films' },
+]
+const MOST = 500
+
 const ERAS = [2025, 2020, 2015, 2010, 2005, 2000, 1995, 1990]
 
 export function SweepPage() {
@@ -25,9 +32,10 @@ export function SweepPage() {
   // Opens on the most popular anime of all time; "By season" walks back through the seasons.
   const view = params.get('view') ?? (params.has('year') ? 'season' : 'popular')
   const [shown, setShown] = useState(60)
+  const kind = (params.get('kind') as Kind) || 'all'
   const popular = useQuery({
-    queryKey: ['popular', shown],
-    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/popular?limit=${shown}`),
+    queryKey: ['popular', kind, shown],
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/popular?limit=${shown}&kind=${kind}`),
     staleTime: Infinity, placeholderData: keepPreviousData, enabled: view === 'popular',
   })
   const year = Number(params.get('year')) || now.year
@@ -92,14 +100,22 @@ export function SweepPage() {
 
       {view === 'popular' ? (
         <>
-          <SeasonBand season={null} year={null} neutral label="Most popular of all time"
+          <div className="sweep-kinds" role="group" aria-label="Show only">
+            {KINDS.map((k) => (
+              <button key={k.id} className={`chip${kind === k.id ? ' is-on' : ''}`} aria-pressed={kind === k.id}
+                onClick={() => { setShown(60); setParams(k.id === 'all' ? { view: 'popular' } : { view: 'popular', kind: k.id }) }}>
+                {k.label}
+              </button>
+            ))}
+          </div>
+          <SeasonBand season={null} year={null} neutral label={kind === 'all' ? 'Most popular of all time' : `Most popular ${KINDS.find((k) => k.id === kind)!.label.toLowerCase()}`}
             count={popular.isLoading ? '' : `${seenPop} of ${pop.length} watched`}>
             {popular.isError && <p className="muted">Couldn’t load the list. Try again in a moment.</p>}
             <SeasonGrid items={pop} />
           </SeasonBand>
           <footer className="sweep-foot">
-            {shown < 240 && !popular.isError && (
-              <button className="btn btn-primary sweep-next" disabled={popular.isFetching} onClick={() => setShown((n) => n + 60)}>
+            {shown < MOST && pop.length >= shown && !popular.isError && (
+              <button className="btn btn-primary sweep-next" disabled={popular.isFetching} onClick={() => setShown((n) => Math.min(n + 60, MOST))}>
                 {popular.isFetching ? 'Loading…' : 'Show 60 more'}
               </button>
             )}
