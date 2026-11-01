@@ -18,7 +18,7 @@ Roll f1ba964b assigned #5 (seasonal chart). Challengers: doujin event catalog �
 
 THESIS: Konomi is your own seasonal chart — every anime pinned to the season it aired, marked by hand. Refuses the AniList-clone dark dashboard (sidebar, stat cards, neon accent).
 
-OWN-WORLD: ink ground #0d0c12 with paper-white text #f4f1ea; four season inks own whole bands: spring sakura #ff7aa2, summer sun #ffc23d, fall persimmon #ff7340, winter ice #63c7ff. Covers are the only imagery. Score lives on an obi strip across the cover foot. State is pen marking: circled = completed, half-arc = watching, struck = dropped, dotted = planned. Faces: Dela Gothic One (display, numerals, 好み mark), Zen Kaku Gothic New (everything else). Corners: covers 6px, controls pill.
+OWN-WORLD: ink ground #0d0c12 with paper-white text #f4f1ea (a title page may wash its header in that cover's own colour — spec §2.9); four season inks own whole bands: spring sakura #ff7aa2, summer sun #ffc23d, fall persimmon #ff7340, winter ice #63c7ff. Covers are the only imagery. Score lives on an obi strip across the cover foot. State is pen marking: circled = completed, half-arc = watching, struck = dropped, dotted = planned. Faces: Dela Gothic One (display, numerals, 好み mark), Zen Kaku Gothic New (everything else). Corners: covers 6px, controls pill.
 
 STORY: the visitor sees their history as a chart, adds a title in one keystroke, answers 'which did you enjoy more?', and watches Konomi guess their score.
 
