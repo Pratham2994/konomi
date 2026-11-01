@@ -76,6 +76,6 @@
   padding: 3px 10px; border-radius: var(--r-pill); background: rgb(13 12 18 / 0.78); border: 1px solid currentColor; user-select: none;
 }
 @media (max-width: 640px) {
-  .g-label { font-size: 11px; padding: 2px 8px; }
+  .g-label { font-size: 11px; padding: 2px 8px; max-width: 42vw; white-space: normal; text-align: center; }
   .g-overlay { background: linear-gradient(to bottom, rgb(13 12 18 / 0.88) 70%, transparent); padding-bottom: var(--s5); }
 }

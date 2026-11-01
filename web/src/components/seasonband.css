@@ -25,15 +25,17 @@
 .band-neutral .band-aside .btn:hover { background: var(--ink-3); }
 
 .bands { display: flex; flex-wrap: wrap; gap: 0 clamp(20px, 2.4vw, 44px); align-items: flex-start; }
-.bands > .band { flex: var(--n, 4) 1 calc(var(--n, 4) * 150px); max-width: min(100%, calc(var(--n, 4) * 200px + 40px)); }
+.bands { --tile: clamp(132px, 9.8vw, 180px); --gx: clamp(12px, 1.4vw, 22px); }
+/* One tile size across every band; a band is exactly as wide as its titles, like a printed seasonal chart. */
+.bands > .band { flex: 0 0 auto; width: min(100%, calc(var(--n, 4) * var(--tile) + (var(--n, 4) - 1) * var(--gx))); }
 .bands > .band + .band { margin-top: 0; }
-.bands > .band-wide { flex-basis: 100%; max-width: 100%; }
-.bands > .band:not(.band-wide) .grid { grid-template-columns: var(--cols, repeat(4, minmax(0, 1fr))); }
+.bands > .band-wide { width: 100%; }
+.bands > .band:not(.band-wide) .grid { grid-template-columns: var(--cols, repeat(4, minmax(0, 1fr))); column-gap: var(--gx); }
 @media (max-width: 700px) {
-  .bands > .band { flex-basis: 100%; max-width: 100%; }
+  .bands > .band { width: 100%; }
   .bands > .band:not(.band-wide) .grid { grid-template-columns: repeat(auto-fill, minmax(clamp(98px, 28vw, 150px), 1fr)); }
 }
-.bands > .band-wide .grid { grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 8vw, 140px), 1fr)); }
+.bands > .band-wide .grid { grid-template-columns: repeat(auto-fill, var(--tile)); column-gap: var(--gx); }
 .grid {
   display: grid; gap: clamp(14px, 1.6vw, 26px) clamp(12px, 1.4vw, 22px);
   grid-template-columns: repeat(auto-fill, minmax(clamp(98px, 10.5vw, 158px), 1fr));
