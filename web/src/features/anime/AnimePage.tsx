@@ -57,7 +57,7 @@ export function AnimePage() {
       <div className="page anime-grid">
         <div className="anime-cover">
           <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={entry?.status}
-            score={entry?.score} size="l" eager />
+            score={entry?.score} size="l" eager vt />
         </div>
         <div className="anime-main">
           <h1 className="display anime-title">{name}</h1>

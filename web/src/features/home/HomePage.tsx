@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { VtLink } from '../../components/VtLink'
 import { CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { api } from '../../lib/api'
 import { currentSeason, useList, useMe } from '../../lib/hooks'
@@ -28,14 +29,14 @@ export function useRecs(params = '') {
 export function RecCard({ r }: { r: Rec }) {
   const a = r.anime
   return (
-    <Link to={`/anime/${a.id}`} className="rec" data-season={a.season ?? undefined}>
-      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} />
+    <VtLink animeId={a.id} className="rec" data-season={a.season ?? undefined}>
+      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} vt />
       <span className="tile-title">{a.title_en ?? a.title}</span>
       {r.predicted != null && <span className="rec-guess"><span className="display">{r.predicted.toFixed(1)}</span> for you</span>}
       {r.because.length > 0 && (
         <span className="rec-why">because you liked {r.because.map((b) => b.title_en ?? b.title).join(' and ')}</span>
       )}
-    </Link>
+    </VtLink>
   )
 }
 

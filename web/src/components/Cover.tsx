@@ -13,14 +13,16 @@ interface Props {
   animateMark?: boolean
   size?: 'xs' | 's' | 'm' | 'l'
   eager?: boolean
+  /** Give the art a view-transition name so it morphs into the title page. */
+  vt?: boolean
 }
 
 /** A cover tile: art, optional hand mark, optional obi strip carrying the Konomi score. */
-export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager }: Props) {
+export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, vt }: Props) {
   const [failed, setFailed] = useState(false)
   return (
     <div className={`cover cover-${size}`} style={{ ['--tint' as string]: color ?? 'var(--ink-4)' }}>
-      <div className="cover-art">
+      <div className="cover-art" style={vt ? { viewTransitionName: `cover-${id}` } : undefined}>
         {src && !failed ? (
           <img src={src} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)}
             referrerPolicy="no-referrer" />

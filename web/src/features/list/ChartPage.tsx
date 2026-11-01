@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { VtLink } from '../../components/VtLink'
 import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { SEASON_ORDER, STATUS_LABEL, useList } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
@@ -12,11 +13,11 @@ type Sort = 'season' | 'score'
 export function Tile({ e, sub }: { e: Entry; sub?: string }) {
   const a = e.anime
   return (
-    <Link to={`/anime/${a.id}`} className="tile" data-season={a.season ?? undefined}>
-      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={e.status} score={e.score} />
+    <VtLink animeId={a.id} className="tile" data-season={a.season ?? undefined}>
+      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={e.status} score={e.score} vt />
       <span className="tile-title">{a.title_en ?? a.title}</span>
       {sub && <span className="tile-sub">{sub}</span>}
-    </Link>
+    </VtLink>
   )
 }
 

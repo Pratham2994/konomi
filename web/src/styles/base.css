@@ -78,6 +78,9 @@ input, textarea { caret-color: var(--season); }
 }
 @media (min-width: 900px) { .page { padding-bottom: var(--s8); } }
 
+::view-transition-group(*) { animation-duration: 0.42s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
