@@ -7,14 +7,14 @@
   overflow: visible;
   fill: none;
   stroke: var(--season);
-  stroke-width: 3.2;
+
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6));
 }
 .mark path { stroke-dasharray: 1; stroke-dashoffset: 0; }
-.mark-dropped { stroke: var(--paper); stroke-width: 3.6; }
+.mark-dropped { stroke: var(--paper); }
 .mark-dropped path { stroke-dasharray: 1; }
 .mark-planned path.dots { stroke-dasharray: 0.012 0.03; stroke-width: 3.6; }
 .mark-draw path { animation: mark-draw 0.7s var(--ease-out) both; stroke-dashoffset: 1; }

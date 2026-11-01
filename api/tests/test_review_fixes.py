@@ -94,3 +94,10 @@ def test_og_fetcher_refuses_unknown_hosts():
     from konomi_api.profile.og import fetch_image
     assert fetch_image("http://169.254.169.254/latest/meta-data") is None
     assert fetch_image("http://localhost:8000/api/me") is None
+
+
+def test_repeat_signup_does_not_reveal_pending_account(client):
+    body = {"email": E, "username": "victim", "password": "victim-pass-1"}
+    assert client.post("/api/auth/signup", json=body).status_code == 202
+    # A second sign-up inside the resend gap looks exactly like a first one (no 429 that would reveal it).
+    assert client.post("/api/auth/signup", json=body).status_code == 202

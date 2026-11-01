@@ -61,6 +61,16 @@ def _ip(request: Request) -> str:
 _DUMMY_HASH = hash_password("timing-equaliser-not-a-password")
 
 
+def _issue_quietly(db, email: str, **pending) -> None:
+    """Send a sign-up code, but inside the resend limits answer exactly like a fresh sign-up would:
+    a 429 here would reveal that this email has a pending sign-up. The earlier code is still valid."""
+    try:
+        otp.issue(db, email, "verify", **pending)
+    except HTTPException as e:
+        if e.status_code != 429:
+            raise
+
+
 @router.post("/signup", status_code=202)
 def signup(body: SignupIn, db: Db, request: Request) -> dict:
     username = body.username.strip().lower()
@@ -74,7 +84,7 @@ def signup(body: SignupIn, db: Db, request: Request) -> dict:
     if db.scalars(select(User).where(User.username == username)).first():
         raise HTTPException(409, {"code": "username_taken"})
     # Nothing is created yet: the credentials ride on this code and become an account only at /verify.
-    otp.issue(db, email, "verify", pending_hash=hash_password(body.password), pending_username=username)
+    _issue_quietly(db, email, pending_hash=hash_password(body.password), pending_username=username)
     return {"ok": True}
 
 
@@ -103,7 +113,7 @@ def resend(body: EmailIn, db: Db) -> dict:
     email = body.email.lower()
     pending = otp.latest_pending(db, email)
     if pending and not db.scalars(select(User).where(User.email == email)).first():
-        otp.issue(db, email, "verify", pending_hash=pending.pending_hash, pending_username=pending.pending_username)
+        _issue_quietly(db, email, pending_hash=pending.pending_hash, pending_username=pending.pending_username)
     return {"ok": True}
 
 

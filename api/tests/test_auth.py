@@ -1,3 +1,4 @@
+import httpx
 from sqlalchemy import text
 
 from konomi_api.db import engine
@@ -41,7 +42,9 @@ def test_expired_code_rejected(client):
 def test_resend_rate_limited(client):
     client.post("/api/auth/signup", json={"email": E, "username": "aki", "password": P})
     r = client.post("/api/auth/resend", json={"email": E})
-    assert r.status_code == 429
+    assert r.status_code == 202  # quiet: no 429 that would reveal a pending sign-up
+    msgs = httpx.get("http://localhost:8025/api/v1/search", params={"query": f"to:{E}"}).json()["messages"]
+    assert len(msgs) == 1  # but no second mail inside the 60 s gap
 
 
 def test_login_unverified_403(client):
