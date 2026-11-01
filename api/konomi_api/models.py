@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pgvector.sqlalchemy import Vector
+from pgvector.sqlalchemy import HALFVEC
 from sqlalchemy import (ARRAY, BigInteger, Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer,
                         SmallInteger, String, Text, func)
 from sqlalchemy.dialects.postgresql import CITEXT, JSONB, UUID
@@ -72,7 +72,10 @@ class Anime(Base):
     popularity: Mapped[int] = mapped_column(BigInteger, default=0)
     color: Mapped[str | None] = mapped_column(String(9))
     related: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list)
-    embedding = mapped_column(Vector(), nullable=True)
+    # What kind of title this is. Only 'anime' today; movies and TV can join the same tables later.
+    media_type: Mapped[str] = mapped_column(String(10), default="anime", server_default="anime", index=True)
+    # Half-precision taste vector (half the storage of float32); HNSW-indexed for nearest-neighbour queries.
+    embedding = mapped_column(HALFVEC(200), nullable=True)
     x: Mapped[float | None] = mapped_column(Float)
     y: Mapped[float | None] = mapped_column(Float)
     z: Mapped[float | None] = mapped_column(Float)

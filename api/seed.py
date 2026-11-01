@@ -55,7 +55,7 @@ def seed_artifacts() -> None:
              "x": r["x"], "y": r["y"], "z": r["z"], "cl": r["cluster"], "cf": r["has_cf"]}
             for r in items.to_dicts()]
     with engine.begin() as c:
-        c.execute(text("update anime set embedding = cast(:e as vector), x = :x, y = :y, z = :z, "
+        c.execute(text("update anime set embedding = cast(:e as halfvec), x = :x, y = :y, z = :z, "
                        "cluster = :cl, has_cf = :cf where aod_key = :k"), rows)
     print(f"artifacts: {len(rows)} embeddings")
 
