@@ -127,7 +127,7 @@ export default function TastePage() {
     queryFn: () => api<{ items: AnimeBrief[] }>(`/api/taste/similar/${focusId}?k=6`),
   })
   const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 10), [entries])
-  const focus = focusId != null && near.data ? { id: focusId, near: near.data.items.map((a) => a.id) } : null
+  const focus = useMemo(() => (focusId != null && near.data ? { id: focusId, near: near.data.items.map((a) => a.id) } : null), [focusId, near.data])
   const focused = entries.find((e) => e.anime_id === focusId)
   // Your three best-rated titles get name tags on the map.
   const named = useMemo(() => (focus && focused && near.data

@@ -87,3 +87,13 @@ def test_explain_breaks_a_score_down(client):
     assert (x["wins"], x["losses"], x["ties"]) == (1, 0, 1)
     assert 8.0 <= x["start"] <= 8.9 and x["score"] > x["start"] - 0.05
     assert client.get(f"/api/rate/{top_ids(4)[3]}/explain").status_code == 404  # not rated
+
+
+def test_feeling_questions_come_with_the_next_titles(client):
+    signup_verified(client)
+    ids = top_ids(5)
+    for a in ids:
+        client.put(f"/api/list/{a}", json={"status": "completed"})
+    s = client.get("/api/rate/session/next").json()
+    assert s["question"]["kind"] == "tier"
+    assert [x["id"] for x in s["queue"]] == [i for i in ids if i != s["question"]["anime"]["id"]][:4]

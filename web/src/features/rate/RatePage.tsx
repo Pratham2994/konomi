@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
 import { asked } from '../../lib/ask'
@@ -13,6 +14,8 @@ import { Duel } from './Duel'
 import { Feelings } from './Feelings'
 import { HowScoring } from './HowScoring'
 import './ratepage.css'
+
+type Session = { question: Question | null; unrated: number; queue?: AnimeBrief[] }
 
 type Question =
   | { kind: 'tier'; anime: AnimeBrief }
@@ -72,8 +75,11 @@ export function RatePage() {
   const [picked, setPicked] = useState<{ key: string; vals: Record<string, string> }>({ key: '', vals: {} })
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['rate-next'],
-    queryFn: () => api<{ question: Question | null; unrated: number }>('/api/rate/session/next'),
+    queryFn: () => api<Session>('/api/rate/session/next'),
   })
+  const toast = useToast()
+  // Feeling answers save in the background, one after another, while the next title is already on screen.
+  const saving = useRef<Promise<unknown>>(Promise.resolve())
 
   async function send(fn: () => Promise<unknown>) {
     setBusy(true)
@@ -105,7 +111,23 @@ export function RatePage() {
   useEffect(() => () => { listChanged(qc) }, [qc])
 
   function tier(animeId: number, t: number, between = false) {
-    send(() => api(`/api/rate/${animeId}/tier?next=1`, { method: 'POST', json: { tier: t, between } }))
+    const cur = qc.getQueryData<Session>(['rate-next'])
+    const next = cur?.queue?.[0]
+    if (!cur || !next) {
+      send(() => api(`/api/rate/${animeId}/tier?next=1`, { method: 'POST', json: { tier: t, between } }))
+      return
+    }
+    // Instant: show the next title now; the answer saves behind it, in order. The last one in the queue fetches
+    // the real next question from the server once every save has landed.
+    if (!before) setBefore(new Map(entries.map((e) => [e.anime_id, e.score])))
+    setAnswered((n) => n + 1)
+    setInRound((n) => n + 1)
+    qc.setQueryData<Session>(['rate-next'], { question: { kind: 'tier', anime: next }, unrated: Math.max(0, cur.unrated - 1), queue: cur.queue!.slice(1) })
+    const last = cur.queue!.length === 1
+    saving.current = saving.current
+      .then(() => api(`/api/rate/${animeId}/tier`, { method: 'POST', json: { tier: t, between } }))
+      .then(() => { scoresChanged(qc, ['rate-next']); if (last) return refetch() })
+      .catch(() => { toast({ text: 'Couldn’t save that answer. Showing where you are now' }); return refetch() })
   }
 
   // 1 to 5 answer the feeling question, like in the rating panel (which wins while it is open).
@@ -144,7 +166,7 @@ export function RatePage() {
       <div className="rate-stage">
         <AnimatePresence mode="wait">
           <motion.div key={key} className="rate-q" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}>
+            exit={{ opacity: 0, y: -8, transition: { duration: 0.1 } }} transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
             {isLoading ? <PageLoading /> : roundDone || (!q && before) ? (
               <RoundSummary before={before ?? new Map()} onMore={nextRound} more={roundDone && !!data?.question} />
             ) : !q ? (
