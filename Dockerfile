@@ -10,7 +10,8 @@ COPY web/ ./
 RUN npm run build
 
 FROM python:3.13-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+# MALLOC_ARENA_MAX: glibc otherwise grows a memory pool per worker thread, which alone can blow a 512 MB host.
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MALLOC_ARENA_MAX=2
 WORKDIR /app/api
 COPY api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

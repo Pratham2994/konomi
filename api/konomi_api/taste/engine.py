@@ -12,7 +12,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import date
-from functools import lru_cache
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -60,6 +60,13 @@ def entry_weight(e: UserEntry) -> float:
 
 
 class TasteEngine:
+    def unit(self, rows):
+        """Unit-length taste vector(s) for row index or index array."""
+        if np.ndim(rows) == 0:
+            return self.emb[rows] / self.norm[rows]
+        rows = np.asarray(rows)
+        return self.emb[rows] / self.norm[rows, None]
+
     def z_pred(self, pct: float, row: int) -> float:
         """Standardised predicted rating: calibrated taste rank, plus title quality when the fit exists."""
         rank = float(np.interp(pct * 100, np.arange(101), self.calibration))
@@ -76,8 +83,11 @@ class TasteEngine:
         items = items.filter(pl.Series(keep))
         self.anime_ids = np.array([ids[k] for k in items["aod_key"].to_list()], dtype=np.int64)
         self.row_of = {int(a): r for r, a in enumerate(self.anime_ids)}
-        self.emb = np.vstack(items["emb"].to_list()).astype(np.float32)
-        self.unit = self.emb / (np.linalg.norm(self.emb, axis=1, keepdims=True) + 1e-9)
+        # One contiguous float32 matrix, built without a Python list of 40k small arrays (that copy alone cost
+        # tens of MB at startup on a 512 MB host). Unit vectors are derived per row from the stored norms.
+        d = len(items["emb"][0])
+        self.emb = np.ascontiguousarray(items["emb"].explode().to_numpy().astype(np.float32).reshape(-1, d))
+        self.norm = (np.linalg.norm(self.emb, axis=1) + 1e-9).astype(np.float32)
         self.bias = items["bias"].to_numpy().astype(np.float32)
         self.has_cf = items["has_cf"].to_numpy()
         self.cf_i = items["cf_i"].to_numpy()
@@ -98,7 +108,7 @@ class TasteEngine:
         self.n_cf = self.W1.shape[1]
         self.cf_rows = np.where(self.has_cf)[0]
         self.bridge_rows = np.where(~self.has_cf)[0]
-        self.unit_cf = self.unit[self.cf_rows]
+        self.unit_cf = self.emb[self.cf_rows] / self.norm[self.cf_rows, None]
         self.row_of_cf = np.full(self.n_cf, -1)
         self.row_of_cf[self.cf_i[self.cf_rows]] = self.cf_rows
         ax = np.load(art / "axes.npy")
@@ -136,7 +146,7 @@ class TasteEngine:
                 x[self.cf_i[r]] = max(x[self.cf_i[r]], w)
             else:
                 # No ratings for this title: lend its weight to its 5 nearest rated neighbours.
-                sims = self.unit_cf @ self.unit[r]
+                sims = self.unit_cf @ self.unit(r)
                 top = np.argpartition(-sims, 5)[:5]
                 for t in top:
                     ci = self.cf_i[self.cf_rows[t]]
@@ -215,7 +225,7 @@ class TasteEngine:
         for r in top:
             because: list[int] = []
             if mode == "model" and len(like_rows):
-                sims = self.unit[like_rows] @ self.unit[r]
+                sims = self.unit(like_rows) @ self.unit(r)
                 because = [likes[j].anime_id for j in np.argsort(-sims)[:2]]
             out.append({"anime_id": int(self.anime_ids[r]), "because": because})
         return out, mode
@@ -302,7 +312,7 @@ class TasteEngine:
         x = self.input_vector(entries)
         rows = self.row_of_cf[np.where(x > 0)[0]]
         w = x[x > 0]
-        centre = (self.unit[rows] * w[:, None]).sum(0) / w.sum()
+        centre = (self.unit(rows) * w[:, None]).sum(0) / w.sum()
         proj = (centre - self.axes_mean) @ self.axes.T
         out = []
         for a, p in zip(self.axes_meta, proj):
@@ -348,11 +358,11 @@ class TasteEngine:
         ins = []
         for e in inputs:
             r = self.row_of[e.anime_id]
-            proj = (self.unit[r] - self.axes_mean) @ self.axes.T
+            proj = (self.unit(r) - self.axes_mean) @ self.axes.T
             ins.append({"anime_id": e.anime_id, "edges": [round(float(p * entry_weight(e)), 4) for p in proj]})
         outs = []
         for r in rec_rows:
-            proj = (self.unit[r] - self.axes_mean) @ self.axes.T
+            proj = (self.unit(r) - self.axes_mean) @ self.axes.T
             outs.append({"anime_id": int(self.anime_ids[r]),
                          "edges": [round(float(p * d["value"]), 4) for p, d in zip(proj, dna)]})
         del x
@@ -363,9 +373,20 @@ class TasteEngine:
                 for a, p, c in zip(self.anime_ids, self.xyz, self.cluster)]
 
 
-@lru_cache(maxsize=1)
+_engine: TasteEngine | None = None
+_engine_lock = threading.Lock()
+
+
 def get_engine() -> TasteEngine | None:
-    art = get_settings().artifacts_dir
-    if not (art / "items.parquet").exists():
-        return None
-    return TasteEngine(art)
+    """Load once, even when the startup warm-up and the first requests race (two copies would not fit in 512 MB)."""
+    global _engine
+    if _engine is not None:
+        return _engine
+    with _engine_lock:
+        if _engine is None:
+            art = get_settings().artifacts_dir
+            if not (art / "items.parquet").exists():
+                return None
+            _engine = TasteEngine(art)
+    return _engine
+
