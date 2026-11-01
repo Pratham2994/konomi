@@ -1,5 +1,6 @@
 from collections import Counter
 from typing import Literal
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -12,13 +13,34 @@ from ..taste.engine import get_engine
 from ..taste.service import user_entries
 
 router = APIRouter(prefix="/api", tags=["profile"])
-SECTIONS = ["favourites", "hot_takes", "years", "dna", "chart"]
-ACCENTS = {"auto", "spring", "summer", "fall", "winter"}
+SectionId = Literal["favourites", "hill", "watching", "hot_takes", "years", "dna", "drops", "chart"]
+SECTIONS = list(SectionId.__args__)
+HIDDEN_BY_DEFAULT = {"drops"}
+ACCENTS = {"auto", "spring", "summer", "fall", "winter", "matcha", "violet", "crimson", "mono"}
+StatId = Literal["hours", "watching", "studio", "track"]
+StatusId = Literal["completed", "watching", "planned", "dropped"]
+
+# Look and chart options: each has a fixed set of values, the first is the default.
+LOOK = {
+    "header": ("art", "poster", "ink", "plain"),
+    "banner_focus": ("center", "top", "bottom"),
+    "avatar": ("initial", "cover", "none"),
+    "name_style": ("poster", "quiet"),
+    "fav_layout": ("hero", "even", "podium"),
+    "scores": ("ten", "hundred", "off"),
+    "chart_group": ("season", "score", "flat"),
+    "chart_tab": ("completed", "watching", "planned", "dropped"),
+}
 
 
 class SectionIn(BaseModel):
-    id: Literal["favourites", "hot_takes", "years", "dna", "chart"]
+    id: SectionId
     visible: bool
+
+
+class HillIn(BaseModel):
+    anime_id: int
+    text: str = Field(default="", max_length=140)
 
 
 class ProfileIn(BaseModel):
@@ -29,14 +51,46 @@ class ProfileIn(BaseModel):
     banner_anime_id: int | None = None
     favourites: list[int] | None = Field(default=None, max_length=10)
     sections: list[SectionIn] | None = None
+    pronouns: str | None = Field(default=None, max_length=24)
+    location: str | None = Field(default=None, max_length=40)
+    links: list[str] | None = Field(default=None, max_length=4)
+    fav_title: str | None = Field(default=None, max_length=32)
+    fan: bool | None = None
+    hill: HillIn | None = None
+    stats_hidden: list[StatId] | None = None
+    chart_lists: list[StatusId] | None = Field(default=None, min_length=1)
+    header: str | None = None
+    banner_focus: str | None = None
+    avatar: str | None = None
+    name_style: str | None = None
+    fav_layout: str | None = None
+    scores: str | None = None
+    chart_group: str | None = None
+    chart_tab: str | None = None
+
+
+def clean_link(url: str) -> str | None:
+    url = url.strip()
+    if url and "://" not in url:
+        url = "https://" + url
+    u = urlparse(url)
+    return url if u.scheme in ("http", "https") and "." in u.netloc and len(url) <= 200 else None
 
 
 def settings_out(u: User) -> dict:
     p = u.profile or {}
+    stored = [s for s in p.get("sections", []) if s["id"] in SECTIONS]
+    seen = {s["id"] for s in stored}
+    # Sections added after the owner last saved are appended with their default visibility.
+    sections = stored + [{"id": s, "visible": s not in HIDDEN_BY_DEFAULT} for s in SECTIONS if s not in seen]
     return {"username": u.username, "display_name": u.display_name, "is_public": u.is_public,
             "bio": p.get("bio", ""), "accent": p.get("accent", "auto"), "banner_anime_id": p.get("banner_anime_id"),
-            "favourites": p.get("favourites", []),
-            "sections": p.get("sections", [{"id": s, "visible": True} for s in SECTIONS])}
+            "favourites": p.get("favourites", []), "sections": sections,
+            "pronouns": p.get("pronouns", ""), "location": p.get("location", ""), "links": p.get("links", []),
+            "fav_title": p.get("fav_title", ""), "fan": p.get("fan", True), "hill": p.get("hill"),
+            "stats_hidden": p.get("stats_hidden", []),
+            "chart_lists": p.get("chart_lists", list(LOOK["chart_tab"]))} | {
+                k: p.get(k, opts[0]) for k, opts in LOOK.items()}
 
 
 @router.get("/profile")
@@ -65,7 +119,31 @@ def patch_profile(body: ProfileIn, user: CurrentUser, db: Db) -> dict:
         p["favourites"] = [a for a in dict.fromkeys(body.favourites) if a in mine]
     if body.sections is not None:
         seen = {s.id for s in body.sections}
-        p["sections"] = [s.model_dump() for s in body.sections] + [{"id": s, "visible": True} for s in SECTIONS if s not in seen]
+        p["sections"] = [s.model_dump() for s in body.sections] + [
+            {"id": s, "visible": s not in HIDDEN_BY_DEFAULT} for s in SECTIONS if s not in seen]
+    for key in ("pronouns", "location", "fav_title"):
+        if (v := getattr(body, key)) is not None:
+            p[key] = v.strip()
+    if body.links is not None:
+        links = [clean_link(x) for x in body.links if x.strip()]
+        if None in links:
+            raise HTTPException(422, {"code": "bad_link"})
+        p["links"] = list(dict.fromkeys(links))
+    if body.fan is not None:
+        p["fan"] = body.fan
+    if body.stats_hidden is not None:
+        p["stats_hidden"] = list(dict.fromkeys(body.stats_hidden))
+    if body.chart_lists is not None:
+        p["chart_lists"] = [s for s in LOOK["chart_tab"] if s in body.chart_lists]
+    for key, opts in LOOK.items():
+        if (v := getattr(body, key)) is not None:
+            if v not in opts:
+                raise HTTPException(422, {"code": f"bad_{key}"})
+            p[key] = v
+    if "hill" in body.model_fields_set:
+        mine = body.hill and db.scalars(select(ListEntry).where(
+            ListEntry.user_id == user.id, ListEntry.anime_id == body.hill.anime_id)).first()
+        p["hill"] = {"anime_id": body.hill.anime_id, "text": body.hill.text.strip()} if mine else None
     user.profile = p
     db.commit()
     return settings_out(user)
@@ -103,10 +181,20 @@ def profile_payload(db, u: User) -> dict:
              if len(guesses) >= 3 else None)
     banner = db.get(Anime, s["banner_anime_id"]) if s["banner_anime_id"] else (
         by_id.get(fav_ids[0]) if fav_ids and fav_ids[0] in by_id else None)
+    score_of = {a.id: e.score for e, a in rows}
+    hill_a = by_id.get(s["hill"]["anime_id"]) if s["hill"] else None
+    watching = sorted([(e, a) for e, a in rows if e.status == "watching"], key=lambda t: t[0].updated_at, reverse=True)
+    dropped = sorted([(e, a) for e, a in rows if e.status == "dropped"], key=lambda t: t[0].updated_at, reverse=True)
     return {
         "user": {"username": u.username, "display_name": u.display_name, "bio": s["bio"], "accent": s["accent"],
-                 "since": u.created_at.year, "is_public": u.is_public},
+                 "since": u.created_at.year, "is_public": u.is_public,
+                 "pronouns": s["pronouns"], "location": s["location"], "links": s["links"]},
+        "look": {k: s[k] for k in (*LOOK, "fav_title", "fan", "stats_hidden", "chart_lists")},
         "sections": s["sections"],
+        "hill": {"anime": brief(hill_a), "text": s["hill"]["text"], "score": score_of[hill_a.id],
+                 "everyone": round(hill_a.score, 1) if hill_a.score else None} if hill_a else None,
+        "watching": [brief(a) | {"progress": e.episodes_watched} for e, a in watching[:12]],
+        "drops": [brief(a) | {"progress": e.episodes_watched} for e, a in dropped[:24]],
         "banner": brief(banner) if banner else None,
         "stats": {"watched": len(done), "watching": sum(1 for e, _ in rows if e.status == "watching"),
                   "hours": round(hours), "top_studio": studios.most_common(1)[0][0] if studios else None,
@@ -119,10 +207,27 @@ def profile_payload(db, u: User) -> dict:
 def public_view(p: dict) -> dict:
     """What visitors may see: sections the owner hid are removed server-side, not just hidden in the UI."""
     hidden = {s["id"] for s in p["sections"] if not s["visible"]}
-    empty = {"favourites": [], "hot_takes": [], "years": [], "dna": None, "chart": []}
+    empty = {"favourites": [], "hot_takes": [], "years": [], "dna": None, "chart": [], "hill": None,
+             "watching": [], "drops": []}
     out = dict(p)
     for sec in hidden:
         out["entries" if sec == "chart" else sec] = empty[sec]
+    look = p["look"]
+    out["entries"] = [e for e in out["entries"] if e["status"] in look["chart_lists"]]
+    stats = dict(p["stats"])
+    for k in look["stats_hidden"]:
+        if k == "track":
+            out["track"] = None
+        else:
+            stats["top_studio" if k == "studio" else k] = None
+    out["stats"] = stats
+    if look["scores"] == "off":
+        # Hidden scores are removed from the payload, not just from the page.
+        out["entries"] = [e | {"score": None} for e in out["entries"]]
+        out["favourites"] = [f | {"score": None} for f in out["favourites"]]
+        out["hot_takes"], out["track"] = [], None
+        if out["hill"]:
+            out["hill"] = out["hill"] | {"score": None}
     return out
 
 

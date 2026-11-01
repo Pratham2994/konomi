@@ -36,7 +36,9 @@ export function Layout() {
   const qc = useQueryClient()
   const nav = useNavigate()
   const { season } = currentSeason()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  // Customise shows the profile in a small frame: no app chrome there.
+  if (new URLSearchParams(search).has('preview')) return <div className="shell shell-preview" data-season={season}><Outlet /></div>
 
   async function logout() {
     await api('/api/auth/logout', { method: 'POST' })

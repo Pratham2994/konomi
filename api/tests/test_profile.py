@@ -40,3 +40,20 @@ def test_favourites_only_from_own_list(client):
     signup_verified(client)
     r = client.patch("/api/profile", json={"favourites": [1, 2, 3]})
     assert r.json()["favourites"] == []
+
+
+def test_profile_options_and_public_stripping(client):
+    signup_verified(client)
+    r = client.patch("/api/profile", json={
+        "is_public": True, "pronouns": "she/her", "links": ["myanimelist.net/profile/aki"], "header": "poster",
+        "scores": "off", "stats_hidden": ["hours", "track"], "chart_lists": ["completed"], "accent": "matcha"})
+    s = r.json()
+    assert r.status_code == 200 and s["links"] == ["https://myanimelist.net/profile/aki"] and s["header"] == "poster"
+    assert {x["id"] for x in s["sections"]} >= {"hill", "watching", "drops"}
+    assert client.patch("/api/profile", json={"header": "neon"}).status_code == 422
+    assert client.patch("/api/profile", json={"links": ["javascript:alert(1)"]}).status_code == 422
+    assert client.patch("/api/profile", json={"hill": {"anime_id": 1, "text": "x"}}).json()["hill"] is None  # not on list
+    p = TestClient(app).get("/api/u/aki").json()
+    assert p["stats"]["hours"] is None and p["track"] is None and p["look"]["scores"] == "off"
+    assert p["user"]["pronouns"] == "she/her" and p["hot_takes"] == []
+    assert TestClient(app).get("/og/u/aki.png").status_code == 200

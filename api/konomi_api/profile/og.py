@@ -15,7 +15,8 @@ from .routes import profile_payload, public_view, visible_user
 router = APIRouter(tags=["og"])
 FONT_DIR = ROOT / "api" / "fonts"
 INK, PAPER, MUTED = (13, 12, 18), (244, 241, 234), (201, 196, 214)
-ACCENT = {"spring": (255, 122, 162), "summer": (255, 194, 61), "fall": (255, 115, 64), "winter": (99, 199, 255)}
+ACCENT = {"spring": (255, 122, 162), "summer": (255, 194, 61), "fall": (255, 115, 64), "winter": (99, 199, 255),
+          "matcha": (143, 209, 106), "violet": (179, 140, 255), "crimson": (255, 77, 106), "mono": (244, 241, 234)}
 _cache: dict[str, tuple[float, bytes]] = {}
 
 
@@ -98,7 +99,8 @@ def render(p: dict) -> bytes:
     s = p["stats"]
     d.text((60, 330), f"{s['watched']}", font=font(72, True), fill=acc)
     d.text((60, 412), "anime watched", font=font(26), fill=PAPER)
-    d.text((60, 470), f"about {s['hours']:,} hours", font=font(26), fill=MUTED)
+    if s["hours"] is not None:
+        d.text((60, 470), f"about {s['hours']:,} hours", font=font(26), fill=MUTED)
     if p["favourites"]:
         top = p["favourites"][0]
         d.text((60, 545), f"Favourite: {(top.get('title_en') or top['title'])[:34]}", font=font(24), fill=PAPER)

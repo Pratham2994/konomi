@@ -15,10 +15,12 @@ interface Props {
   eager?: boolean
   /** Give the art a view-transition name so it morphs into the title page. */
   vt?: boolean
+  /** How the obi writes the score; defaults to one decimal (8.7). */
+  fmt?: (score: number) => string
 }
 
 /** A cover tile: art, optional hand mark, optional obi strip carrying the Konomi score. */
-export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, vt }: Props) {
+export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, vt, fmt }: Props) {
   const [failed, setFailed] = useState(false)
   return (
     <div className={`cover cover-${size}`} style={{ ['--tint' as string]: color ?? 'var(--ink-4)' }}>
@@ -33,7 +35,7 @@ export function Cover({ id, title, src, color, status, score, animateMark, size 
       {status && <Mark status={status} animate={animateMark} seed={id} />}
       {score != null && (
         <span className="obi" aria-label={`Your score ${score.toFixed(1)}`}>
-          <span className="obi-num">{score.toFixed(1)}</span>
+          <span className="obi-num">{fmt ? fmt(score) : score.toFixed(1)}</span>
         </span>
       )}
     </div>
