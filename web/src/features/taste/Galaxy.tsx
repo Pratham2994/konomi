@@ -156,42 +156,90 @@ function Spokes({ byId, focus }: { byId: Map<number, Point>; focus: { id: number
 }
 
 /** A label pinned to a point in space, drawn as plain HTML over the canvas. */
-interface Tag { key: string; at: THREE.Vector3; text: string; kind: 'cluster' | 'name'; color?: string; sub?: string }
+interface Tag { key: string; at: THREE.Vector3; text: string; kind: 'cluster' | 'name'; color?: string; sub?: string; focus?: boolean }
 
 /**
  * Moves the HTML labels to where their points sit on screen, every frame.
  * Plain elements updated in place, not one React root per label (which broke when the page unmounted).
+ * Labels are placed in order (neighbourhoods, then the picked title, then its neighbours); one that would cover a
+ * label already placed steps up or down until it is clear.
  */
 function Projector({ tags, els }: { tags: Tag[]; els: React.MutableRefObject<Map<string, HTMLSpanElement>> }) {
   const { camera, size } = useThree()
   const v = useMemo(() => new THREE.Vector3(), [])
+  const boxes = useRef(new Map<string, { w: number; h: number }>())
   useFrame(() => {
+    const placed: { x0: number; y0: number; x1: number; y1: number }[] = []
     for (const t of tags) {
       const el = els.current.get(t.key)
       if (!el) continue
       v.copy(t.at).project(camera)
-      el.style.visibility = v.z > 1 ? 'hidden' : 'visible'
-      el.style.transform = `translate(${((v.x + 1) / 2) * size.width}px, ${((1 - v.y) / 2) * size.height}px)`
+      const hidden = v.z > 1
+      el.style.visibility = hidden ? 'hidden' : 'visible'
+      if (hidden) continue
+      const x = ((v.x + 1) / 2) * size.width, y = ((1 - v.y) / 2) * size.height
+      let b = boxes.current.get(t.key)
+      if (!b) {
+        const r = (el.firstElementChild ?? el).getBoundingClientRect()
+        b = { w: r.width, h: r.height }
+        if (b.w) boxes.current.set(t.key, b)
+      }
+      // Where the label sits around its point: centred for neighbourhoods, to the right for titles.
+      const ox = t.kind === 'cluster' ? -b.w / 2 : 10, oy = -b.h / 2
+      // Try the point itself, then one step down, one up, two down...; when all are taken, the least covered one.
+      const covered = (dy: number) => {
+        const y0 = y + oy + dy
+        let a = 0
+        for (const p of placed) a += Math.max(0, Math.min(x + ox + b.w, p.x1) - Math.max(x + ox, p.x0)) * Math.max(0, Math.min(y0 + b.h, p.y1) - Math.max(y0, p.y0))
+        return a
+      }
+      let dy = 0, least = covered(0)
+      for (let k = 1; k <= 12 && least > 0; k++) {
+        const step = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (b.h + 3)
+        const c = covered(step)
+        if (c < least) { least = c; dy = step }
+      }
+      placed.push({ x0: x + ox, y0: y + oy + dy, x1: x + ox + b.w, y1: y + oy + dy + b.h })
+      el.style.transform = `translate(${x}px, ${y + dy}px)`
     }
   })
   return null
 }
 
 /** On arrival, fly from the wide view to your part of the galaxy. */
-function FlyTo({ to, close }: { to: THREE.Vector3 | null; close?: boolean }) {
-  const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: { target: THREE.Vector3; update: () => void } | null }
+/** Wide screens keep the intro text on the left: things are framed in the middle of the free space to its right. */
+const TEXT_W = 600
+
+function FlyTo({ to, spread }: { to: THREE.Vector3 | null; spread?: number }) {
+  const { camera, controls, size, gl } = useThree() as unknown as {
+    camera: THREE.PerspectiveCamera; controls: { target: THREE.Vector3; update: () => void } | null
+    size: { width: number; height: number }; gl: THREE.WebGLRenderer
+  }
   const t = useRef(0)
-  const from = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null)
+  const from = useRef<{ pos: THREE.Vector3; target: THREE.Vector3; textEnd: number } | null>(null)
   useEffect(() => { t.current = 0; from.current = null }, [to])
   useFrame((_, dt) => {
     if (!to || !controls || t.current >= 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    if (!from.current) from.current = { pos: camera.position.clone(), target: controls.target.clone() }
+    if (!from.current) {
+      // Narrow screens stack the text above the stars: measure where it ends, so the stars below it are the stage.
+      const text = document.querySelector('.g-overlay')?.getBoundingClientRect()
+      const textEnd = text ? text.bottom - gl.domElement.getBoundingClientRect().top : 0
+      from.current = { pos: camera.position.clone(), target: controls.target.clone(), textEnd }
+    }
     t.current = Math.min(1, t.current + dt / 2.2)
     const k = 1 - Math.pow(1 - t.current, 3)
-    // On wide screens the intro text sits on the left, so aim a little left of your area: it lands right of the text.
-    const aim = to.clone().add(new THREE.Vector3(window.innerWidth >= 900 ? -2.4 : 0, window.innerWidth >= 900 ? 0 : 2.4, 0))
-    // A picked title is shown close up, so its neighbours' names spread apart; your whole area is shown wider.
-    const goal = aim.clone().add(close ? new THREE.Vector3(0, 0.6, 3.2) : new THREE.Vector3(0, 1.4, 7.5))
+    // A picked title is framed so it and all its neighbours fit; your whole area is shown wider.
+    const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    const d = spread != null ? THREE.MathUtils.clamp((spread * 1.35) / (tan * Math.min(1, camera.aspect)), 2.6, 12) : 7.5
+    // Shift by a share of the screen, not a fixed distance, so close up and far away both land in the free space:
+    // right of the text on wide screens, below it on narrow ones.
+    const wide = size.width >= 900
+    // Narrow: a little left of centre, since title names sit to the right of their stars.
+    const freeX = wide ? (Math.min(TEXT_W, size.width * 0.45) / 2) / (size.width / 2) : -0.4
+    const below = THREE.MathUtils.clamp(from.current.textEnd, 0, size.height * 0.85)
+    const freeY = wide ? 0 : (below / 2) / (size.height / 2)
+    const aim = to.clone().add(new THREE.Vector3(-freeX * d * tan * camera.aspect, freeY * d * tan, 0))
+    const goal = aim.clone().add(new THREE.Vector3(0, 0.19 * d, d))
     camera.position.lerpVectors(from.current.pos, goal, k)
     controls.target.lerpVectors(from.current.target, aim, k)
     controls.update()
@@ -232,10 +280,19 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
     const f = focus ? at3(byId, focus.id) : null
     return f ?? (centroid ? new THREE.Vector3(...centroid).multiplyScalar(SCALE) : null)
   }, [centroid, focus, byId])
+  // How far the picked title's neighbours reach from it, so the camera can fit them all.
+  const spread = useMemo(() => {
+    const f = focus ? at3(byId, focus.id) : null
+    if (!focus || !f) return undefined
+    return Math.max(0.8, ...focus.near.map((id) => at3(byId, id)?.distanceTo(f) ?? 0))
+  }, [focus, byId])
   const tags = useMemo<Tag[]>(() => [
     ...clusterTags(points, clusters),
-    ...named.flatMap((n) => { const at = at3(byId, n.id); return at ? [{ key: `n${n.id}`, at, text: n.label, kind: 'name' as const }] : [] }),
-  ], [points, clusters, named, byId])
+    ...named.flatMap((n) => {
+      const at = at3(byId, n.id)
+      return at ? [{ key: `n${n.id}`, at, text: n.label, kind: 'name' as const, focus: n.id === focus?.id }] : []
+    }),
+  ], [points, clusters, named, byId, focus])
   const els = useRef(new Map<string, HTMLSpanElement>())
   return (
     <div className="g-3d">
@@ -248,11 +305,11 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
       <Projector tags={tags} els={els} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} autoRotate={!home} autoRotateSpeed={0.35}
         minDistance={2.5} maxDistance={22} onStart={() => setMoving(true)} onEnd={() => setMoving(false)} />
-      <FlyTo to={home} close={!!focus} />
+      <FlyTo to={home} spread={spread} />
     </Canvas>
     <div className="g-tags" aria-hidden="true">
       {tags.map((t) => (
-        <span key={t.key} className="g-tag" style={{ visibility: 'hidden' }}
+        <span key={t.key} className={`g-tag${t.focus ? ' is-focus' : ''}`} style={{ visibility: 'hidden' }}
           ref={(el) => { if (el) els.current.set(t.key, el); else els.current.delete(t.key) }}>
           <span className={t.kind === 'cluster' ? 'g-label' : 'g-name'} style={t.color ? { color: t.color } : undefined}>
             {t.text}{t.sub && <small className="g-label-ex">like {t.sub}</small>}

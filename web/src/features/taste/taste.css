@@ -1,5 +1,6 @@
 .g-stage {
-  position: relative; height: min(86dvh, 1000px); min-height: 520px; overflow: hidden;
+  /* At least a screen tall, and taller when the text column needs it (a picked title's neighbours), so nothing is cut. */
+  position: relative; min-height: max(520px, min(86dvh, 1000px)); overflow: hidden; padding-bottom: var(--s5);
   background: var(--ink);
 }
 .g-canvas { position: absolute; inset: 0; animation: g-in 1.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -86,6 +87,9 @@
 @media (max-width: 640px) {
   .g-label { font-size: 11px; padding: 2px 8px; white-space: nowrap; }
   .g-overlay { background: linear-gradient(to bottom, rgb(13 12 18 / 0.88) 70%, transparent); padding-bottom: var(--s5); }
+  /* The text fills a phone's first screen: open sky below it, where a picked title and its neighbours are shown. */
+  .g-stage { padding-bottom: min(110vw, 62dvh); }
+  .g-name { max-width: 62vw; overflow: hidden; text-overflow: ellipsis; }
 }
 .g-hoods { margin-top: var(--s3); font-size: 15px; color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 3px var(--ink), 0 0 18px var(--ink); }
 .g-hoods strong { color: var(--paper); }
@@ -96,6 +100,8 @@
 .g-3d { position: relative; width: 100%; height: 100%; }
 .g-tags { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .g-tag { position: absolute; left: 0; top: 0; will-change: transform; }
+.g-tag.is-focus { z-index: 1; }
+.g-tag.is-focus .g-name { background: #ff7340; border-color: #ff7340; color: var(--ink); }
 .g-tag > .g-label { transform: translate(-50%, -50%); }
 .g-label-ex { display: block; margin-top: 1px; font-size: 11px; font-weight: 500; color: var(--paper-2); max-width: 36ch; overflow: hidden; text-overflow: ellipsis; }
 .g-tag > .g-label { text-align: center; border-radius: 12px; }
