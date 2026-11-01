@@ -113,3 +113,15 @@ def test_long_gap_sequel_still_starts_at_original():
         tybw = c.execute(text("select id from anime where title = 'Bleach: Sennen Kessen-hen' and type = 'TV'")).scalar()
         bleach = c.execute(text("select id from anime where title = 'Bleach' and type = 'TV' and year = 2004")).scalar()
     assert eng.franchise_root(tybw, set()) == bleach
+
+
+def test_aired_uses_the_calendar_not_a_stale_status():
+    from datetime import date
+
+    from konomi_api.taste.engine import has_aired
+    today = date(2026, 11, 1)
+    assert has_aired(2026, "FALL", "UPCOMING", today)       # stale July label, but Fall 2026 started in October
+    assert has_aired(2026, "SUMMER", "UPCOMING", today)
+    assert not has_aired(2027, "WINTER", "UPCOMING", today)
+    assert not has_aired(2027, None, "UPCOMING", today)
+    assert has_aired(2019, "SPRING", "FINISHED", today)

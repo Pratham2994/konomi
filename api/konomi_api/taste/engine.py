@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -34,6 +35,22 @@ class UserEntry:
     status: str
     tier: int | None
     score: float | None
+
+
+SEASON_START = {"WINTER": 1, "SPRING": 4, "SUMMER": 7, "FALL": 10}
+
+
+def has_aired(year: int | None, season: str | None, status: str | None, today: date | None = None) -> bool:
+    """Judge from the calendar: the catalogue's status labels are a snapshot and go stale (a Fall title marked
+    UPCOMING in July is airing by October)."""
+    today = today or date.today()
+    if status in ("FINISHED", "ONGOING"):
+        return True
+    if not year:
+        return status != "UPCOMING"
+    if season in SEASON_START:
+        return (year, SEASON_START[season]) <= (today.year, today.month)
+    return year < today.year or (year == today.year and status != "UPCOMING")
 
 
 def entry_weight(e: UserEntry) -> float:
@@ -70,7 +87,8 @@ class TasteEngine:
         order = {"WINTER": 0, "SPRING": 1, "SUMMER": 2, "FALL": 3}
         self.tv_year = {r.id: (r.year, order.get(r.season or "", 4)) for r in meta if r.type == "TV" and r.year}
         self.title = {r.id: r.title for r in meta}
-        self.upcoming = np.array([m[int(a)].status == "UPCOMING" for a in self.anime_ids])
+        self.upcoming = np.array([not has_aired(m[int(a)].year, m[int(a)].season, m[int(a)].status)
+                                  for a in self.anime_ids])
         self.related = {r.id: [x for x in (r.related or []) if x in m and m[x].type == "TV"] for r in meta if r.type == "TV"}
         self.type = np.array([m[int(a)].type for a in self.anime_ids])
         self.pop = np.array([m[int(a)].popularity for a in self.anime_ids], dtype=np.float64)
