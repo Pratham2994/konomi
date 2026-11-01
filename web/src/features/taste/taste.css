@@ -2,7 +2,11 @@
   position: relative; height: min(86dvh, 1000px); min-height: 520px; overflow: hidden;
   background: var(--ink);
 }
-.g-canvas { position: absolute; inset: 0; }
+.g-canvas { position: absolute; inset: 0; animation: g-in 1.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes g-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+.g-loading { position: absolute; z-index: 2; left: 0; right: 0; top: 55%; text-align: center; font-size: 14px; animation: g-wait 1.6s ease-in-out infinite; }
+@keyframes g-wait { 50% { opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { .g-canvas, .g-loading { animation: none; } }
 /* Quiet the stars behind the intro text so it stays readable; the canvas still takes every drag. */
 .g-stage::before {
   content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none;

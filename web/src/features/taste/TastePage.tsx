@@ -1,18 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { api } from '../../lib/api'
 import type { AnimeBrief } from '../../lib/types'
 import { RecCard, useRecs } from '../home/HomePage'
-import { GalaxyCanvas, type ClusterMeta, type Point } from './Galaxy'
+import { galaxyQuery, loadGalaxy } from './preload'
 import './taste.css'
 
 interface Axis { id: number; neg: string[]; pos: string[]; value: number }
 interface NetNode { anime: AnimeBrief | null; edges: number[] }
 
 const ACCENT = '#ff7340'
+const GalaxyCanvas = lazy(() => loadGalaxy().then((m) => ({ default: m.GalaxyCanvas })))
 
 function Dna({ axes }: { axes: Axis[] }) {
   return (
@@ -109,7 +110,7 @@ export default function TastePage() {
   const nav = useNavigate()
   const [filter, setFilter] = useState('')
   const [hover, setHover] = useState<{ id: number; at: { x: number; y: number } } | null>(null)
-  const galaxy = useQuery({ queryKey: ['galaxy'], queryFn: () => api<{ points: Point[]; clusters: ClusterMeta[] }>('/api/taste/galaxy'), staleTime: Infinity })
+  const galaxy = useQuery(galaxyQuery)
   const me = useQuery({ queryKey: ['taste-me'], queryFn: () => api<{ mine: { id: number; score: number | null }[]; centroid: [number, number, number] | null; recs: number[] }>('/api/taste/me') })
   const dna = useQuery({ queryKey: ['dna'], queryFn: () => api<{ axes: Axis[] | null; need: number }>('/api/taste/dna') })
   const net = useQuery({ queryKey: ['network'], queryFn: () => api<{ network: { axes: Axis[]; inputs: NetNode[]; outputs: NetNode[] } | null }>('/api/taste/network') })
@@ -123,17 +124,23 @@ export default function TastePage() {
   return (
     <div className="taste" data-season="FALL">
       <section className="g-stage">
-        {galaxy.data && (
-          <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} clusters={galaxy.data.clusters} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
-            accent={ACCENT} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
-            onPick={(id) => nav(`/anime/${id}`)} /></div>
-        )}
+        {galaxy.data ? (
+          <Suspense fallback={<p className="g-loading faint">Placing the stars…</p>}>
+            <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} clusters={galaxy.data.clusters} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
+              accent={ACCENT} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
+              onPick={(id) => nav(`/anime/${id}`)} /></div>
+          </Suspense>
+        ) : <p className="g-loading faint">{galaxy.isError ? 'The galaxy didn’t load. Refresh to try again.' : 'Placing the stars…'}</p>}
         <div className="g-overlay page">
           <h1 className="display g-title">Your taste</h1>
           <p className="g-lead">
-            Every star is an anime, {galaxy.data ? galaxy.data.points.length.toLocaleString() : '39,000+'} of them.
-            Stars sit close when the same people love them. <span className="g-key g-key-mine">White</span> are yours,
-            <span className="g-key g-key-rec"> pulsing</span> are what Konomi thinks you’ll love next.
+            Every star is an anime, {galaxy.data ? galaxy.data.points.length.toLocaleString() : '39,000+'} of them. Konomi placed
+            them using 56 million real ratings: two stars sit close when the same people love both. The map is the same for
+            everyone. {me.data && mine.size === 0
+              ? <>Rate a few anime and yours light up here in <span className="g-key g-key-mine">white</span>.</>
+              : <><span className="g-key g-key-mine">White</span> stars are the ones you’ve rated,
+                <span className="g-key g-key-rec"> pulsing</span> ones are what Konomi thinks you’ll love next.</>}
+            {' '}Labels name each neighbourhood by its most common tags.
           </p>
           {track.data && track.data.n >= 3 && track.data.within1 != null && (
             <p className="g-track">

@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { morph } from '../components/VtLink'
+import { galaxyQuery, loadGalaxy } from '../features/taste/preload'
 import { QuickAdd } from '../features/add/QuickAdd'
 import { api } from '../lib/api'
 import { currentSeason, useMe } from '../lib/hooks'
@@ -65,6 +66,14 @@ export function Layout() {
   const { pathname, search } = useLocation()
   const main = useRef<HTMLElement>(null)
   useScrollMemory()
+
+  // Fetch the galaxy code once the app is idle, and its stars as soon as someone heads for Taste.
+  useEffect(() => {
+    if (!me) return
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 2000))
+    idle(() => { loadGalaxy().catch(() => undefined) })
+  }, [me])
+  const warmTaste = () => { loadGalaxy().catch(() => undefined); qc.prefetchQuery(galaxyQuery) }
   const first = useRef(true)
 
   // Each new page rises in softly instead of cutting. The first page has the splash; cover morphs have their own.
@@ -96,7 +105,7 @@ export function Layout() {
               <NavLink to="/rate" className="has-badge">
                 Rate{unrated > 0 && <span className="badge">{unrated > 99 ? '99+' : unrated}</span>}
               </NavLink>
-              <NavLink to="/taste">Taste</NavLink>
+              <NavLink to="/taste" onPointerEnter={warmTaste} onFocus={warmTaste}>Taste</NavLink>
             </>
           ) : (
             <>
@@ -133,7 +142,7 @@ export function Layout() {
           <NavLink to="/sweep" className="bb-add"><span className="bb-plus"><Icon name="plus" size={26} stroke={2.6} /></span><span>Walk</span></NavLink>
           <NavLink to="/rate" className="has-badge"><Icon name="duel" size={22} /><span>Rate</span>
             {unrated > 0 && <span className="badge">{unrated > 99 ? '99+' : unrated}</span>}</NavLink>
-          <NavLink to="/taste"><Icon name="sparkle" size={22} /><span>Taste</span></NavLink>
+          <NavLink to="/taste" onTouchStart={warmTaste} onPointerEnter={warmTaste}><Icon name="sparkle" size={22} /><span>Taste</span></NavLink>
         </nav>
       )}
     </div>

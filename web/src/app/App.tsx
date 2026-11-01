@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '../features/auth/AuthPage'
 import { AnimePage } from '../features/anime/AnimePage'
@@ -9,10 +9,10 @@ import { ProfilePage } from '../features/profile/ProfilePage'
 import { SettingsPage } from '../features/profile/SettingsPage'
 import { RatePage } from '../features/rate/RatePage'
 import { SweepPage } from '../features/add/SweepPage'
+import TastePage from '../features/taste/TastePage'
 import { useMe } from '../lib/hooks'
 import { Layout } from './Layout'
 
-const TastePage = lazy(() => import('../features/taste/TastePage'))
 
 function Private({ children }: { children: ReactNode }) {
   const { data: me, isLoading } = useMe()
@@ -55,7 +55,7 @@ export function App() {
         <Route path="chart" element={<Private><ChartPage /></Private>} />
         <Route path="sweep" element={<Private><SweepPage /></Private>} />
         <Route path="rate" element={<Private><RatePage /></Private>} />
-        <Route path="taste" element={<Private><Suspense fallback={null}><TastePage /></Suspense></Private>} />
+        <Route path="taste" element={<Private><TastePage /></Private>} />
         <Route path="settings" element={<Private><SettingsPage /></Private>} />
         <Route path="anime/:id" element={<AnimePage />} />
         <Route path="u/:username" element={<ProfilePage />} />
