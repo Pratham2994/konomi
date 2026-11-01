@@ -109,8 +109,10 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
               const entry = onList.get(h.id)
               return (
                 <li key={h.id} id={`${listId}-${h.id}`} role="option" aria-selected={i === sel}
-                  className={`qa-row${i === sel ? ' is-sel' : ''}`} onMouseEnter={() => setSel(i)}>
-                  <button type="button" className="qa-main" onClick={() => add(h, 'completed')} tabIndex={-1}>
+                  className={`qa-row${i === sel ? ' is-sel' : ''}`} onMouseEnter={() => setSel(i)}
+                  onMouseDown={(e) => e.preventDefault()}>
+                  {/* The option itself is the click target; keyboard users press Enter / Shift+Enter / Alt+Enter. */}
+                  <div className="qa-main" onClick={() => add(h, 'completed')}>
                     <Cover id={h.id} title={h.title} src={h.thumbnail} color={h.color} size="xs" status={entry?.status} />
                     <span className="qa-text">
                       <span className="qa-title">{h.title_en ?? h.title}</span>
@@ -120,10 +122,10 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
                       </span>
                     </span>
                     {entry && <span className="qa-on">{STATUS_LABEL[entry.status]}</span>}
-                  </button>
-                  <span className="qa-alts">
-                    <button type="button" tabIndex={-1} onClick={() => add(h, 'watching')}>Watching</button>
-                    <button type="button" tabIndex={-1} onClick={() => add(h, 'planned')}>Want</button>
+                  </div>
+                  <span className="qa-alts" aria-hidden="true">
+                    <span role="presentation" onClick={() => add(h, 'watching')}>Watching</span>
+                    <span role="presentation" onClick={() => add(h, 'planned')}>Want</span>
                   </span>
                 </li>
               )

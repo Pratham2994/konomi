@@ -3,7 +3,7 @@
 .rail-tick { position: absolute; top: 50%; width: 1px; height: 8px; background: var(--paper-3); transform: translate(-50%, -50%); }
 .rail-tick span {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-  font-size: 11px; color: var(--paper-3);
+  font-size: 11px; color: var(--paper-2);
 }
 .rail-mark { position: absolute; top: 14px; bottom: 14px; width: 0; transform: translateX(-50%); }
 .rail-mark::before { content: ''; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px; }
