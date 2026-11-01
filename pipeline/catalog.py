@@ -87,6 +87,63 @@ def is_adult(tags: list[str], al: dict | None, kg: dict | None) -> bool:
     return False
 
 
+FRESH = ROOT / "data" / "cache" / "anilist_seasons"
+FORMAT = {"TV": "TV", "TV_SHORT": "TV", "MOVIE": "MOVIE", "OVA": "OVA", "ONA": "ONA", "SPECIAL": "SPECIAL",
+          "MUSIC": "SPECIAL"}
+STATUS = {"FINISHED": "FINISHED", "RELEASING": "ONGOING", "NOT_YET_RELEASED": "UPCOMING", "HIATUS": "ONGOING",
+          "CANCELLED": "UNKNOWN"}
+
+
+def merge_fresh_seasons(rows: list[dict], url_to_key: dict[str, str]) -> None:
+    """Fold in AniList's live season lists (pipeline/anilist_seasons.py): refresh status / popularity / art for
+    titles we have, and add titles announced after the anime-offline-database snapshot."""
+    if not FRESH.exists():
+        return
+    by_al = {r["anilist_id"]: r for r in rows if r["anilist_id"] is not None}
+    by_mal = {r["mal_id"]: r for r in rows if r["mal_id"] is not None}
+    added = updated = 0
+    for path in sorted(FRESH.glob("*.json")):
+        for m in json.loads(path.read_text(encoding="utf-8")):
+            if m.get("isAdult") or m.get("format") not in FORMAT:
+                continue
+            row = by_al.get(m["id"]) or (by_mal.get(m["idMal"]) if m.get("idMal") else None)
+            cover = m.get("coverImage") or {}
+            if row is not None:
+                row["status"] = STATUS.get(m.get("status"), row["status"])
+                row["popularity"] = max(row["popularity"], int(m.get("popularity") or 0))
+                row["color"] = row["color"] or cover.get("color")
+                updated += 1
+                continue
+            tags = [t["name"].lower() for t in (m.get("tags") or []) if (t.get("rank") or 0) >= 50]
+            if "hentai" in tags:
+                continue
+            key = f"mal:{m['idMal']}" if m.get("idMal") else f"anilist:{m['id']}"
+            url_to_key[f"https://anilist.co/anime/{m['id']}"] = key
+            title = (m.get("title") or {}).get("romaji") or (m.get("title") or {}).get("english")
+            row = {
+                "aod_key": key, "mal_id": m.get("idMal"), "anilist_id": m["id"], "title": title,
+                "title_en": (m.get("title") or {}).get("english"),
+                "synonyms": [x for x in (m.get("synonyms") or []) if x][:8],
+                "type": FORMAT[m["format"]], "episodes": m.get("episodes"),
+                "status": STATUS.get(m.get("status"), "UNKNOWN"), "season": m.get("season"), "year": m.get("seasonYear"),
+                "picture": cover.get("large"), "thumbnail": cover.get("medium"),
+                "duration_s": (m["duration"] * 60) if m.get("duration") else None,
+                "score": (m["averageScore"] / 10) if m.get("averageScore") else None,
+                "studios": [n["name"].lower() for n in ((m.get("studios") or {}).get("nodes") or [])],
+                "tags": tags, "genres": m.get("genres") or [], "synopsis": clean_synopsis(m.get("description")),
+                "popularity": int(m.get("popularity") or 0), "color": cover.get("color"),
+                "related_urls": [f"https://anilist.co/anime/{e['node']['id']}"
+                                 for e in ((m.get("relations") or {}).get("edges") or [])
+                                 if (e.get("node") or {}).get("type") == "ANIME"],
+            }
+            if row["title_en"] == row["title"]:
+                row["title_en"] = None
+            rows.append(row)
+            by_al[m["id"]] = row
+            added += 1
+    print(f"fresh seasons: {updated} refreshed, {added} added")
+
+
 def build() -> pl.DataFrame:
     data = json.loads(RAW.read_text(encoding="utf-8"))["data"]
     anilist = load_anilist()
@@ -140,6 +197,8 @@ def build() -> pl.DataFrame:
             "color": ((al or {}).get("coverImage") or {}).get("color"),
             "related_urls": e.get("relatedAnime", []),
         })
+
+    merge_fresh_seasons(rows, url_to_key)
 
     keys = {r["aod_key"] for r in rows}
     for r in rows:

@@ -21,10 +21,10 @@ Mult-VAE always runs in serving: it gives the shared user/item taste space behin
 
 ## Content bridge (anime without ratings)
 
-25,717 catalogue titles have no ratings (mostly post-2020). A 1736-feature MLP (tags, studios, genres, type, year, length, MiniLM synopsis embedding) predicts where each sits in the taste space. On 10% held-out rated titles:
+25,757 catalogue titles have no ratings (mostly post-2020). A 1736-feature MLP (tags, studios, genres, type, year, length, MiniLM synopsis embedding) predicts where each sits in the taste space. On 10% held-out rated titles:
 
-- mean cosine to the true vector: **0.801**
-- top-10 neighbour overlap: **18.1%** (random vectors: 0.1%)
+- mean cosine to the true vector: **0.806**
+- top-10 neighbour overlap: **16.6%** (random vectors: 0.1%)
 
 ## Taste axes
 
@@ -46,13 +46,3 @@ Predicting a held-out rating (1–10) for 310,284 test ratings:
 | rank + title quality (served) | **0.886** |
 
 Title quality = a title's mean standardised rating among training users. Fitted on validation users: z = 0.66·rank + 0.69·quality + -0.04. Titles with no ratings estimate quality from their community score.
-
-## Serving rules (applied after ranking)
-
-- **Recent titles compete fairly.** Bridge-placed titles (no ratings, mostly post-2020) regress toward the mean, so
-  their scores are standardised among themselves and mapped onto the rated titles' scale (×0.9 for uncertainty).
-  Before this, the top 40 for a typical profile held 0 titles from 2021 on.
-- **Start where you are in a series.** A recommended TV season is swapped for the first unwatched season of the same
-  series (related TV entries sharing the title's first word; remakes such as Dororo 2019 vs 1969 are not chained,
-  long-gap sequels such as Bleach: Thousand-Year Blood War are). One pick per series.
-- **Only what has aired.** Upcoming titles are never recommended.

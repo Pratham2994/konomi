@@ -1,6 +1,7 @@
 """Refresh the catalogue with the latest anime-offline-database release (new seasons, new titles).
 
-Runs: download AOD -> AniList metadata for new ids (cached) -> catalog -> bridge/galaxy export -> calibration -> seed.
+Runs: download AOD -> AniList metadata (cached) + live AniList season lists -> catalog -> bridge/galaxy export ->
+calibration -> seed.
 The rating-trained models are reused; new titles are placed by the content bridge.
 
 Usage (from the repo root):  api/.venv/Scripts/python pipeline/refresh.py [--db <sqlalchemy url>]
@@ -36,13 +37,12 @@ def main() -> None:
         r = c.get(AOD_URL)
         r.raise_for_status()
     new = json.loads(r.content)["lastUpdate"]
-    print(f"catalogue: {old} -> {new}")
-    if old == new and "--force" not in sys.argv:
-        print("already up to date (pass --force to rebuild anyway)")
-        return
+    print(f"catalogue snapshot: {old} -> {new}")
     raw.parent.mkdir(parents=True, exist_ok=True)
     raw.write_bytes(r.content)
     run(API_PY, "pipeline/anilist.py")
+    # The snapshot can lag for months; AniList's live season lists add new announcements and current status.
+    run(API_PY, "pipeline/anilist_seasons.py")
     run(API_PY, "pipeline/catalog.py")
     run(ML_PY, "export.py", cwd=ROOT / "ml")
     run(ML_PY, "calibrate.py", cwd=ROOT / "ml")

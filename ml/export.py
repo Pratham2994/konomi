@@ -47,13 +47,21 @@ def main() -> None:
 
     # Features (+ cached synopsis embeddings).
     x, vocab = featurize(cat)
-    syn_path = BUILD / "synopsis_minilm.npy"
+    # Synopsis embeddings are cached per title, so a catalogue refresh only embeds the new ones.
+    syn_path = BUILD / "synopsis_minilm.npz"
+    keys = cat["aod_key"].to_list()
+    cache: dict[str, np.ndarray] = {}
     if syn_path.exists():
-        syn = np.load(syn_path)
-    else:
-        log("embedding synopses with MiniLM…")
-        syn = synopsis_embeddings(cat["synopsis"].to_list())
-        np.save(syn_path, syn)
+        z = np.load(syn_path, allow_pickle=False)
+        cache = dict(zip(z["keys"].tolist(), z["emb"]))
+    missing = [i for i, k in enumerate(keys) if k not in cache]
+    if missing:
+        log(f"embedding {len(missing)} synopses with MiniLM…")
+        texts = cat["synopsis"].to_list()
+        for i, e in zip(missing, synopsis_embeddings([texts[i] for i in missing])):
+            cache[keys[i]] = e
+        np.savez(syn_path, keys=np.array(keys), emb=np.stack([cache[k] for k in keys]))
+    syn = np.stack([cache[k] for k in keys])
     x = np.concatenate([x, syn], 1).astype(np.float32)
     log(f"features: {x.shape}")
 
