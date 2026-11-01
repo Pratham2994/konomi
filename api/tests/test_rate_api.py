@@ -41,3 +41,12 @@ def test_duel_requires_rated_titles(client):
     signup_verified(client)
     a, b = top_ids(2)
     assert client.post("/api/rate/duel", json={"a": a, "b": b, "outcome": "a"}).status_code == 422
+
+
+def test_facets_answered_one_at_a_time_are_all_kept(client):
+    signup_verified(client)
+    aid = top_ids(1)[0]
+    client.post(f"/api/rate/{aid}/tier", json={"tier": 4})
+    client.post(f"/api/rate/{aid}/facets", json={"facets": {"rewatch": "Yes"}})
+    r = client.post(f"/api/rate/{aid}/facets", json={"facets": {"still_think": "Often"}})
+    assert r.json()["facets"] == {"rewatch": "Yes", "still_think": "Often"}

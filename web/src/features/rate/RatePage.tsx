@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { api } from '../../lib/api'
@@ -24,6 +24,7 @@ export function RatePage() {
   const qc = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [answered, setAnswered] = useState(0)
+  const [picked, setPicked] = useState<{ key: string; vals: Record<string, string> }>({ key: '', vals: {} })
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['rate-next'],
     queryFn: () => api<{ question: Question | null; unrated: number }>('/api/rate/session/next'),
@@ -43,6 +44,23 @@ export function RatePage() {
 
   const q = data?.question
   const key = !q ? 'none' : q.kind === 'duel' ? `d-${q.a.id}-${q.b.id}` : `${q.kind}-${q.anime.id}`
+  const vals = picked.key === key ? picked.vals : {}
+
+  function tier(animeId: number, t: number) {
+    send(() => api(`/api/rate/${animeId}/tier`, { method: 'POST', json: { tier: t } }))
+  }
+
+  // 1 to 5 answer the feeling question, like in the rating panel (which wins while it is open).
+  useEffect(() => {
+    if (q?.kind !== 'tier') return
+    const id = q.anime.id
+    const onKey = (e: KeyboardEvent) => {
+      if (busy || !/^[1-5]$/.test(e.key) || (e.target as HTMLElement).tagName === 'INPUT' || document.querySelector('.rp')) return
+      tier(id, 6 - Number(e.key))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
 
   return (
     <div className="page ratepage">
@@ -73,11 +91,11 @@ export function RatePage() {
                 <div className="rate-tier-side">
                   <h2 className="display rate-ask">How was <span className="rate-name">{q.anime.title_en ?? q.anime.title}</span>?</h2>
                   <div className="rp-tiers">
-                    {TIERS.map((t) => (
+                    {TIERS.map((t, i) => (
                       <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={busy}
-                        onClick={() => send(() => api(`/api/rate/${q.anime.id}/tier`, { method: 'POST', json: { tier: t.tier } }))}>
+                        onClick={() => tier(q.anime.id, t.tier)}>
                         <span>{t.label}</span>
-                        <span className="rp-band">{t.band}</span>
+                        <span className="rp-band">{t.band}<kbd aria-hidden="true">{i + 1}</kbd></span>
                       </button>
                     ))}
                   </div>
@@ -99,10 +117,14 @@ export function RatePage() {
                       <h2 className="display rate-ask-s">{f.q}</h2>
                       <div className="rp-chips">
                         {f.opts.map((o) => (
-                          <button key={o} className="chip chip-l" disabled={busy}
-                            onClick={() => i === FACETS.length - 1
-                              ? send(() => api(`/api/rate/${q.anime.id}/facets`, { method: 'POST', json: { facets: { [f.key]: o } } }))
-                              : api(`/api/rate/${q.anime.id}/facets`, { method: 'POST', json: { facets: { [f.key]: o } } })}>
+                          <button key={o} className={`chip chip-l${vals[f.key] === o ? ' is-on' : ''}`} disabled={busy}
+                            aria-pressed={vals[f.key] === o}
+                            onClick={() => {
+                              setPicked({ key, vals: { ...vals, [f.key]: o } })
+                              const save = () => api(`/api/rate/${q.anime.id}/facets`, { method: 'POST', json: { facets: { [f.key]: o } } })
+                              if (i === FACETS.length - 1) send(save)
+                              else save()
+                            }}>
                             {o}
                           </button>
                         ))}

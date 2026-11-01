@@ -102,7 +102,8 @@ def set_facets(anime_id: int, body: FacetsIn, user: CurrentUser, db: Db) -> dict
     entry = db.get(ListEntry, (user.id, anime_id))
     if entry is None:
         raise HTTPException(404, {"code": "not_on_list"})
-    entry.facets = {k: str(v)[:20] for k, v in body.facets.items() if k in FACET_KEYS}
+    # Merge: the Rate page sends one answer at a time and must not erase the others.
+    entry.facets = (entry.facets or {}) | {k: str(v)[:20] for k, v in body.facets.items() if k in FACET_KEYS}
     db.commit()
     return {"facets": entry.facets}
 
