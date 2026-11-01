@@ -6,6 +6,7 @@ import { api } from '../../lib/api'
 import { currentSeason, useList, useMe } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { QuickAdd } from '../add/QuickAdd'
+import { SeasonGrid } from '../add/SeasonGrid'
 import { Tile } from '../list/ChartPage'
 import './home.css'
 
@@ -47,47 +48,81 @@ export function HomePage() {
     queryFn: () => api<{ unrated: number; question: unknown }>('/api/rate/session/next'),
   })
   const now = currentSeason()
+  const { data: season } = useQuery({
+    queryKey: ['sweep', now.year, now.season],
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${now.year}&season=${now.season}`),
+    staleTime: Infinity,
+  })
   const recent = entries.slice(0, 18)
   const empty = entries.length === 0
+  const guesses = recs?.mode === 'model' ? recs.items.filter((r) => r.predicted != null).slice(0, 5) : []
 
   return (
     <div className="page home">
-      <div className="home-top">
-      <section className="home-add">
-        <h1 className="display home-title">{empty ? `Welcome, ${me?.display_name}. What have you watched?` : 'Add what you watched'}</h1>
-        <QuickAdd variant="hero" autoFocus={empty} />
-        {empty && (
-          <p className="muted home-hint">
-            Type a title and press Enter — it lands on your chart. Have years of anime behind you?{' '}
-            <Link to="/sweep">Walk back through past seasons</Link> and tap what you’ve seen,
-            or <Link to="/settings#import">import your MyAnimeList or AniList list</Link>.
-          </p>
-        )}
-      </section>
+      <div className="home-grid">
+        <div className="home-main">
+          <section className="home-add">
+            <h1 className="display home-title">{empty ? `Welcome, ${me?.display_name}. What have you watched?` : 'Add what you watched'}</h1>
+            <QuickAdd variant="hero" autoFocus={empty} />
+            {empty && (
+              <p className="muted home-hint">
+                Type a title and press Enter — it lands on your chart. Or tap what you’ve seen this season below,{' '}
+                <Link to="/sweep">walk back through past seasons</Link>,
+                or <Link to="/settings#import">import your MyAnimeList or AniList list</Link>.
+              </p>
+            )}
+          </section>
 
-      {next && next.unrated > 0 && (
-        <Link to="/rate" className="home-rate">
-          <span className="display home-rate-n">{next.unrated}</span>
-          <span>
-            <strong>{next.unrated === 1 ? 'title is' : 'titles are'} waiting for a feeling.</strong>
-            <span className="muted"> A few quick answers turn them into scores.</span>
-          </span>
-          <span className="btn btn-primary">Rate now</span>
-        </Link>
-      )}
+          {season && season.items.length > 0 && (
+            <SeasonBand season={now.season} year={now.year} count="airing now — tap what you’re watching"
+              aside={<Link to="/sweep" className="btn">Earlier seasons</Link>}>
+              <SeasonGrid items={season.items.slice(0, 12)} compact />
+            </SeasonBand>
+          )}
+        </div>
+
+        <aside className="home-rail" aria-label="Rate and guesses">
+          {next && next.unrated > 0 && (
+            <Link to="/rate" className="home-rate">
+              <span className="display home-rate-n">{next.unrated}</span>
+              <span>
+                <strong>{next.unrated === 1 ? 'title is' : 'titles are'} waiting for a feeling.</strong>
+                <span className="muted"> A few quick answers turn them into scores.</span>
+              </span>
+              <span className="btn btn-primary">Rate now</span>
+            </Link>
+          )}
+          {guesses.length > 0 && (
+            <section className="home-guesses">
+              <h2 className="display">Konomi’s guesses</h2>
+              <p className="muted">What you’d score these, if you watched them.</p>
+              <ol>
+                {guesses.map((r) => (
+                  <li key={r.anime.id}>
+                    <Link to={`/anime/${r.anime.id}`}>
+                      <Cover id={r.anime.id} title={r.anime.title} src={r.anime.thumbnail} color={r.anime.color} size="xs" />
+                      <span className="home-guess-title">{r.anime.title_en ?? r.anime.title}</span>
+                      <span className="display home-guess-n">{r.predicted!.toFixed(1)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+        </aside>
       </div>
 
       {recs && recs.items.length > 0 && (
-        <SeasonBand season={now.season} year={null} label="For you" count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks — rate a few favourites to personalise'}
-          aside={<Link to="/taste" className="btn btn-ghost">See your taste</Link>}>
-          <h2 className="sr-only">For you</h2>
+        <SeasonBand neutral season={null} year={null} label="For you"
+          count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks — rate a few favourites to personalise'}
+          aside={<Link to="/taste" className="btn">See your taste</Link>}>
           <div className="recs">{recs.items.slice(0, 12).map((r) => <RecCard key={r.anime.id} r={r} />)}</div>
         </SeasonBand>
       )}
 
       {recent.length > 0 && (
-        <SeasonBand season={now.season} year={null} label="Recently added"
-          aside={<Link to="/chart" className="btn btn-ghost">Whole chart</Link>}>
+        <SeasonBand neutral season={null} year={null} label="Recently added"
+          aside={<Link to="/chart" className="btn">Whole chart</Link>}>
           <CoverGrid dense>{recent.map((e) => <Tile key={e.anime_id} e={e} />)}</CoverGrid>
         </SeasonBand>
       )}

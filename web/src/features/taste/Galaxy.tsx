@@ -122,10 +122,17 @@ function ClusterLabels({ points, clusters }: { points: Point[]; clusters: Cluste
       const s = sum.get(p[4]) ?? [0, 0, 0, 0]
       sum.set(p[4], [s[0] + p[1], s[1] + p[2], s[2] + p[3], s[3] + 1])
     }
-    return [...clusters].sort((a, b) => b.size - a.size).slice(0, 9).map((c) => {
-      const s = sum.get(c.id) ?? [0, 0, 0, 1]
-      return { id: c.id, label: c.label, at: [s[0] / s[3] * SCALE, s[1] / s[3] * SCALE, s[2] / s[3] * SCALE] as [number, number, number] }
-    })
+    // Largest clusters first; skip any whose centre sits too close to a label already placed, so none overlap.
+    const placed: { id: number; label: string; at: [number, number, number] }[] = []
+    for (const c of [...clusters].sort((a, b) => b.size - a.size)) {
+      const s = sum.get(c.id)
+      if (!s) continue
+      const at = [s[0] / s[3] * SCALE, s[1] / s[3] * SCALE, s[2] / s[3] * SCALE] as [number, number, number]
+      if (placed.some((p) => Math.hypot(p.at[0] - at[0], p.at[1] - at[1], p.at[2] - at[2]) < 1.6)) continue
+      placed.push({ id: c.id, label: c.label, at })
+      if (placed.length === 8) break
+    }
+    return placed
   }, [points, clusters])
   return (
     <>

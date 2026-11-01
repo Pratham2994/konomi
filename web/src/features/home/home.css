@@ -1,12 +1,12 @@
-.home-add { display: grid; gap: var(--s4); max-width: 980px; padding: clamp(8px, 4vh, 48px) 0 var(--s4); }
+.home-add { display: grid; gap: var(--s4); max-width: 980px; padding: clamp(8px, 3vh, 40px) 0 0; }
 .home-title { font-size: clamp(28px, 4.4vw, 60px); line-height: 1.04; }
 .home-hint { max-width: 60ch; }
 .home-hint a { color: var(--season); font-weight: 700; }
 
 .home-rate {
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s4);
-  margin-top: var(--s5); padding: var(--s4) var(--s5); border-radius: var(--r-panel);
-  background: var(--ink-2); border: 1px solid var(--line); text-decoration: none; max-width: 980px;
+  padding: var(--s4) var(--s5); border-radius: var(--r-panel);
+  background: var(--ink-2); border: 1px solid var(--line); text-decoration: none;
   transition: border-color 0.2s;
 }
 .home-rate:hover { border-color: var(--season); }
@@ -27,8 +27,25 @@
 .rec-guess .display { color: var(--season); font-size: 17px; }
 .rec-why { font-size: 12px; color: var(--paper-3); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-@media (min-width: 1500px) {
-  .home-top { display: grid; grid-template-columns: minmax(0, 980px) minmax(320px, 440px); gap: var(--s6); align-items: end; }
-  .home-top .home-rate { margin: 0 0 var(--s4); grid-template-columns: auto 1fr; }
-  .home-top .home-rate .btn { grid-column: 1 / -1; }
+
+.home-grid { display: grid; gap: var(--s5); }
+.home-main { min-width: 0; }
+.home-rail { display: grid; gap: var(--s5); align-content: start; }
+.home-guesses h2 { font-size: 22px; }
+.home-guesses ol { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: 2px; }
+.home-guesses a {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3); align-items: center;
+  padding: 6px 8px; border-radius: 10px; text-decoration: none;
 }
+.home-guesses a:hover { background: var(--ink-2); }
+.home-guess-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-guess-n { color: var(--season); font-size: 20px; }
+.sweep-grid-compact { grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 9vw, 150px), 1fr)); }
+
+@media (min-width: 1280px) {
+  .home-grid { grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 420px); gap: clamp(32px, 3vw, 64px); }
+  .home-rail { position: sticky; top: calc(var(--topbar) + 24px); padding-top: clamp(8px, 3vh, 40px); }
+  .home-rate { grid-template-columns: auto 1fr; }
+  .home-rate .btn { grid-column: 1 / -1; }
+}
+@media (max-width: 1279px) { .home-rail { order: 2; } .home-guesses { display: none; } }

@@ -44,3 +44,4 @@
 .tile:hover .cover-art { transform: translateY(-3px); }
 .tile .cover-art { transition: transform 0.25s var(--ease-out); }
 .band-head:has(.band-aside) .band-kanji { display: none; }
+.bands .grid { grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 8vw, 140px), 1fr)); }

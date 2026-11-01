@@ -37,6 +37,7 @@ function ModelView({ net }: { net: { axes: Axis[]; inputs: NetNode[]; outputs: N
   const n = Math.max(net.inputs.length, net.outputs.length, net.axes.length)
   const H = n * rowH + 20
   const col = [150, 500, 850]
+  const PILL = 70 // half-width of a middle node; edges meet its sides
   const y = (i: number, len: number) => 10 + (H - 20) * ((i + 0.5) / len)
   const maxIn = Math.max(...net.inputs.flatMap((x) => x.edges.map(Math.abs)), 1e-6)
   const maxOut = Math.max(...net.outputs.flatMap((x) => x.edges.map(Math.abs)), 1e-6)
@@ -54,9 +55,9 @@ function ModelView({ net }: { net: { axes: Axis[]; inputs: NetNode[]; outputs: N
     <div className="net">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="net-svg" aria-hidden="true">
         {net.inputs.map((inp, i) => inp.edges.map((v, j) =>
-          edge(col[0] + 70, y(i, net.inputs.length), col[1] - 90, y(j, net.axes.length), v, maxIn, `i${i}-${j}`, i * 0.04)))}
+          edge(col[0] + 70, y(i, net.inputs.length), col[1] - PILL, y(j, net.axes.length), v, maxIn, `i${i}-${j}`, i * 0.04)))}
         {net.outputs.map((out, i) => out.edges.map((v, j) =>
-          edge(col[1] + 90, y(j, net.axes.length), col[2] - 70, y(i, net.outputs.length), v, maxOut, `o${i}-${j}`, 0.5 + i * 0.04)))}
+          edge(col[1] + PILL, y(j, net.axes.length), col[2] - 70, y(i, net.outputs.length), v, maxOut, `o${i}-${j}`, 0.5 + i * 0.04)))}
       </svg>
       <div className="net-cols" style={{ height: H }}>
         <ul className="net-col net-in">
@@ -70,7 +71,7 @@ function ModelView({ net }: { net: { axes: Axis[]; inputs: NetNode[]; outputs: N
         <ul className="net-col net-mid">
           {net.axes.map((a, i) => (
             <li key={a.id} style={{ top: `${(y(i, net.axes.length) / H) * 100}%` }}>
-              <span className="net-axis">{a.value >= 0 ? a.pos[0] : a.neg[0]}</span>
+              <span className="net-axis" title={(a.value >= 0 ? a.pos : a.neg).join(' · ')}>{(a.value >= 0 ? a.pos : a.neg)[0]}</span>
             </li>
           ))}
         </ul>

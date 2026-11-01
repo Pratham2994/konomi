@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { SeasonBand } from '../../components/SeasonBand'
 import { api } from '../../lib/api'
-import { currentSeason, SEASON_LABEL, SEASON_ORDER, STATUS_LABEL, useListIndex, useRemove, useSetStatus } from '../../lib/hooks'
-import type { AnimeBrief, Season, Status } from '../../lib/types'
+import { currentSeason, SEASON_LABEL, SEASON_ORDER, useListIndex } from '../../lib/hooks'
+import type { AnimeBrief, Season } from '../../lib/types'
+import { SeasonGrid } from './SeasonGrid'
 import './sweep.css'
 
 function step(year: number, season: Season, dir: -1 | 1): { year: number; season: Season } {
@@ -25,10 +25,7 @@ export function SweepPage() {
   const year = Number(params.get('year')) || now.year
   const season = (params.get('season') as Season) || now.season
   const [walked, setWalked] = useState(0)
-  const [focus, setFocus] = useState<number | null>(null)
   const onList = useListIndex()
-  const setStatus = useSetStatus()
-  const remove = useRemove()
 
   const { data, isLoading } = useQuery({
     queryKey: ['sweep', year, season],
@@ -46,22 +43,10 @@ export function SweepPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function mark(a: AnimeBrief, status: Status) {
-    const cur = onList.get(a.id)?.status
-    if (cur === status) remove.mutate(a.id)
-    else setStatus.mutate({ anime: a, status })
-  }
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT') return
-      const a = items.find((x) => x.id === focus)
-      const k = e.key.toLowerCase()
-      if (a && k === 's') mark(a, 'completed')
-      else if (a && k === 'd') mark(a, 'dropped')
-      else if (a && k === 'w') mark(a, 'planned')
-      else if (a && k === 'x' && onList.get(a.id)) remove.mutate(a.id)
-      else if (e.key === 'ArrowLeft' && e.shiftKey) go(prev)
+      if (e.key === 'ArrowLeft' && e.shiftKey) go(prev)
       else if (e.key === 'ArrowRight' && e.shiftKey && !isFuture) go(next)
     }
     window.addEventListener('keydown', onKey)
@@ -95,24 +80,7 @@ export function SweepPage() {
           </button>
         </span>}>
         {!isLoading && items.length === 0 && <p className="muted">Nothing charted for this season.</p>}
-        <div className="sweep-grid">
-          {items.map((a) => {
-            const st = onList.get(a.id)?.status
-            return (
-              <div key={a.id} className={`sw${st ? ' is-marked' : ''}`} onMouseEnter={() => setFocus(a.id)}>
-                <button type="button" className="sw-main" onClick={() => mark(a, 'completed')} onFocus={() => setFocus(a.id)}
-                  aria-pressed={st === 'completed'} aria-label={`${a.title_en ?? a.title}${st ? ` — ${STATUS_LABEL[st]}` : ''}`}>
-                  <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={st} animateMark />
-                  <span className="tile-title">{a.title_en ?? a.title}</span>
-                </button>
-                <span className="sw-alt">
-                  <button type="button" className={st === 'dropped' ? 'is-on' : ''} onClick={() => mark(a, 'dropped')}>Dropped</button>
-                  <button type="button" className={st === 'planned' ? 'is-on' : ''} onClick={() => mark(a, 'planned')}>Want</button>
-                </span>
-              </div>
-            )
-          })}
-        </div>
+        <SeasonGrid items={items} />
       </SeasonBand>
 
       <footer className="sweep-foot">

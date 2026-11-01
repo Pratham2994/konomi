@@ -72,7 +72,7 @@ def taste_axes(emb_cf: np.ndarray, tags_cf: list[list[str]], weights: np.ndarray
     pca = PCA(n_components=n, random_state=0).fit(x, )
     proj = (x - pca.mean_) @ pca.components_.T
     m, vocab = tag_matrix(tags_cf, 40)
-    axes = []
+    axes, used = [], set()
     for k in range(n):
         p = proj[:, k]
         hi, lo = p >= np.quantile(p, 0.85), p <= np.quantile(p, 0.15)
@@ -82,8 +82,19 @@ def taste_axes(emb_cf: np.ndarray, tags_cf: list[list[str]], weights: np.ndarray
         base = (m * weights[:, None]).sum(0) / weights.sum()
         lift_hi = (rate_hi + 0.01) / (base + 0.01) * np.sqrt(rate_hi)
         lift_lo = (rate_lo + 0.01) / (base + 0.01) * np.sqrt(rate_lo)
-        pos = [nice(vocab[j]) for j in np.argsort(-lift_hi)[:2]]
-        neg = [nice(vocab[j]) for j in np.argsort(-lift_lo)[:2] if vocab[j] not in {v.lower() for v in pos}][:2]
+
+        def pick(lift: np.ndarray) -> list[str]:
+            # Each tag names at most one pole across all axes, so no two axes read the same.
+            out = []
+            for j in np.argsort(-lift):
+                if vocab[j] not in used:
+                    out.append(vocab[j])
+                    used.add(vocab[j])
+                if len(out) == 2:
+                    break
+            return [nice(t) for t in out]
+
+        pos, neg = pick(lift_hi), pick(lift_lo)
         axes.append({"id": k, "pos": pos, "neg": neg,
                      "lo": float(np.quantile(p, 0.02)), "hi": float(np.quantile(p, 0.98))})
     return np.vstack([pca.mean_[None], pca.components_]), axes

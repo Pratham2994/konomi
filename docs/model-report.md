@@ -23,17 +23,17 @@ Mult-VAE always runs in serving: it gives the shared user/item taste space behin
 
 25,717 catalogue titles have no ratings (mostly post-2020). A 1736-feature MLP (tags, studios, genres, type, year, length, MiniLM synopsis embedding) predicts where each sits in the taste space. On 10% held-out rated titles:
 
-- mean cosine to the true vector: **0.802**
-- top-10 neighbour overlap: **19.2%** (random vectors: 0.1%)
+- mean cosine to the true vector: **0.801**
+- top-10 neighbour overlap: **18.1%** (random vectors: 0.1%)
 
 ## Taste axes
 
 1. Drama · Tragedy ↔ Kids · Music
-2. Drama · Romance ↔ School · Comedy
-3. Drama · Tragedy ↔ Ecchi · Female harem
+2. Romance · Seinen ↔ School · Comedy
+3. Coming of age · Philosophy ↔ Ecchi · Female harem
 4. Shounen · Action ↔ Cute girls doing cute things · Slice of life
-5. Shoujo · Slice of life ↔ Action · Ecchi
-6. Action · Science fiction ↔ Shoujo · Romance
+5. Shoujo · Cute boys doing cute things ↔ Military · Harem
+6. Science fiction · Robot ↔ Magic · Contemporary fantasy
 
 ## Score prediction
 
