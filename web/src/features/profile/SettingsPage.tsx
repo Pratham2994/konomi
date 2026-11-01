@@ -384,7 +384,7 @@ export function SettingsPage() {
         <aside className="set-preview" aria-label="Live preview">
           <div className="set-preview-bar"><span className="faint">Live preview</span><Link to={`/u/${s.username}`}>Open</Link></div>
           <div className="set-preview-frame">
-            <iframe ref={frame} src={`/u/${s.username}?preview=1`} title="Profile preview" loading="lazy" tabIndex={-1} />
+            <iframe ref={frame} src={`/u/${s.username}?preview=1`} title="Profile preview" loading="lazy" />
           </div>
         </aside>
       </div>

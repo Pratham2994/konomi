@@ -14,6 +14,8 @@
 .rail-label {
   position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap;
   font-size: 12px; font-weight: 700;
+  /* A solid ink backing keeps the label readable over any title tint. */
+  padding: 0 5px; border-radius: 4px; background: var(--ink);
 }
 .rail-you .rail-label { bottom: calc(100% + 2px); color: var(--season); }
 .rail-guess .rail-label { top: calc(100% + 2px); color: var(--paper); }

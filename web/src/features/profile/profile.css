@@ -7,7 +7,7 @@
 .prof .prof-head-inner { position: relative; padding-top: clamp(32px, 8vh, 96px); padding-bottom: var(--s6); display: grid; gap: var(--s4); }
 .prof-fan { display: none; }
 @media (min-width: 1100px) {
-  .prof-fan { display: block; position: absolute; right: var(--gutter); bottom: var(--s5); width: clamp(300px, 30vw, 520px); height: 100%; pointer-events: none; }
+  .prof-fan { display: block; position: absolute; right: var(--gutter); bottom: var(--s7); width: clamp(300px, 30vw, 520px); height: 100%; pointer-events: none; }
   .prof-fan-card { position: absolute; bottom: 0; width: 42%; transform-origin: bottom center; }
   .prof-fan-0 { right: 44%; transform: rotate(-9deg) translateY(4%); opacity: 0.85; }
   .prof-fan-1 { right: 22%; transform: rotate(-3deg) translateY(1%); }
@@ -138,4 +138,8 @@
 @media (max-width: 720px) {
   .head-poster .prof-head { min-height: 0; }
   .prof.head-poster .prof-head-inner { padding-top: 36vh; }
+}
+@media (min-width: 1100px) {
+  /* The fanned covers need the header to be at least as tall as they are, whatever the name size. */
+  .prof .prof-head-inner:has(.prof-fan) { min-height: clamp(400px, 31vw, 600px); align-content: end; }
 }

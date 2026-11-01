@@ -208,7 +208,7 @@ export function ProfilePage() {
     ) : null,
     hill: show('hill') && p.hill ? (
       <section key="hill" className="prof-sec hill" data-season={p.hill.anime.season ?? undefined}>
-        <Link to={`/anime/${p.hill.anime.id}`} className="hill-cover">
+        <Link to={`/anime/${p.hill.anime.id}`} className="hill-cover" aria-label={p.hill.anime.title_en ?? p.hill.anime.title}>
           <Cover id={p.hill.anime.id} title={p.hill.anime.title} src={p.hill.anime.picture ?? p.hill.anime.thumbnail} color={p.hill.anime.color} />
         </Link>
         <div className="hill-body">
