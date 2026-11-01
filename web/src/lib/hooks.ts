@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api, ApiError } from './api'
 import type { AnimeBrief, Entry, Me, Season, Status } from './types'
 import { dropFromProfiles, listChanged, moveInProfiles } from './sync'
@@ -34,9 +34,19 @@ export function useListIndex() {
   return new Map((data ?? []).map((e) => [e.anime_id, e]))
 }
 
+/**
+ * Chart writes share one queue: they reach the server in the order you tapped, so "mark, then unmark" can never
+ * end up marked. Views refresh once the queue is empty, so a quick run of taps never blinks.
+ */
+const LIST_WRITE = { mutationKey: ['list-write'], scope: { id: 'list-write' } }
+function settledListWrite(qc: QueryClient) {
+  if (qc.isMutating({ mutationKey: LIST_WRITE.mutationKey }) <= 1) listChanged(qc)
+}
+
 export function useSetStatus() {
   const qc = useQueryClient()
   return useMutation({
+    ...LIST_WRITE,
     mutationFn: ({ anime, status }: { anime: AnimeBrief; status: Status }) =>
       api<Omit<Entry, 'anime'>>(`/api/list/${anime.id}`, { method: 'PUT', json: { status } }),
     onMutate: async ({ anime, status }) => {
@@ -52,13 +62,14 @@ export function useSetStatus() {
       return { prev }
     },
     onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(['list'], ctx.prev),
-    onSettled: () => listChanged(qc),
+    onSettled: () => settledListWrite(qc),
   })
 }
 
 export function useRemove() {
   const qc = useQueryClient()
   return useMutation({
+    ...LIST_WRITE,
     mutationFn: (animeId: number) => api(`/api/list/${animeId}`, { method: 'DELETE' }),
     onMutate: async (animeId) => {
       await qc.cancelQueries({ queryKey: ['list'] })
@@ -68,7 +79,7 @@ export function useRemove() {
       return { prev }
     },
     onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(['list'], ctx.prev),
-    onSettled: () => listChanged(qc),
+    onSettled: () => settledListWrite(qc),
   })
 }
 
