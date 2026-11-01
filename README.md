@@ -55,6 +55,15 @@ cd web && npm install && npm run dev        # http://localhost:5173 (proxies /ap
 - Demo login: see `api/seed_users.example.json`.
 - Sign-up emails (6-digit codes) land in Mailpit: http://localhost:8025.
 
+### Getting new seasons
+
+The catalogue comes from anime-offline-database, which publishes weekly. To pull the latest titles (they are placed
+in the taste space by the content bridge, no retraining needed):
+
+```bash
+api/.venv/Scripts/python pipeline/refresh.py          # then restart the API
+```
+
 ### Rebuilding the data and the model (optional, ~1 h on a 12 GB GPU)
 
 ```bash
