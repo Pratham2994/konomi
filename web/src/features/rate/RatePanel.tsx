@@ -6,9 +6,10 @@ import { ScoreRail } from '../../components/ScoreRail'
 import { useQueryClient } from '@tanstack/react-query'
 import { asked } from '../../lib/ask'
 import { listChanged } from '../../lib/sync'
-import { TIERS, useList } from '../../lib/hooks'
+import { useList } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
+import { Feelings } from './Feelings'
 import { useRateFlow } from './flow'
 import './ratepanel.css'
 
@@ -71,15 +72,7 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
       <AnimatePresence mode="wait" initial={false}>
         {flow.phase.kind === 'tier' && (
           <motion.div key="tier" className="rp-body" exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}>
-            <div className="rp-tiers">
-              {TIERS.map((t, i) => (
-                <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={flow.busy}
-                  onClick={() => flow.chooseTier(t.tier)}>
-                  <span>{t.label}</span>
-                  <span className="rp-band">{t.band}<kbd aria-hidden="true">{i + 1}</kbd></span>
-                </button>
-              ))}
-            </div>
+            <Feelings busy={flow.busy} onPick={flow.chooseTier} keys />
             <button className="btn btn-ghost rp-later" onClick={onClose}>Rate later</button>
           </motion.div>
         )}

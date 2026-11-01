@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pgvector.sqlalchemy import HALFVEC
 from sqlalchemy import (ARRAY, BigInteger, Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer,
-                        SmallInteger, String, Text, func)
+                        SmallInteger, String, Text, false, func)
 from sqlalchemy.dialects.postgresql import CITEXT, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -90,6 +90,8 @@ class ListEntry(Base):
     status: Mapped[str] = mapped_column(String(10))
     episodes_watched: Mapped[int | None] = mapped_column(Integer)
     tier: Mapped[int | None] = mapped_column(SmallInteger)
+    # "In between": the title starts on the edge between its tier's band and the band below.
+    between: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     facets: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     score: Mapped[float | None] = mapped_column(Float)
     predicted: Mapped[float | None] = mapped_column(Float)

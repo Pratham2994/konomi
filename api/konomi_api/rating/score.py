@@ -1,6 +1,12 @@
-"""Konomi score: feeling tier picks a band, Bradley-Terry strengths from duels order titles inside it."""
+"""Konomi score. Your feeling picks a starting point; your comparisons decide the score.
+
+Every title gets a prior: the middle of its feeling's band (or the band edge for "in between"), nudged a little
+inside the band by the taste model's guess. All comparisons are then fitted together with Bradley-Terry, across
+bands, so a title that keeps beating higher-band titles crosses into their band. One answer is never enough.
+"""
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -15,14 +21,35 @@ class DuelRec:
     outcome: str  # 'a' | 'b' | 'tie'
 
 
-def strengths(items: list[int], duels: list[DuelRec], iters: int = 200) -> dict[int, float]:
-    """Bradley-Terry via MM iterations. Each item also plays one virtual tie against a phantom of strength 1,
-    a weak prior that keeps unbeaten / winless items finite."""
-    present = set(items)
-    wins: dict[int, float] = {i: 0.5 for i in items}
+# How one score point maps to Bradley-Terry log-strength, and how many virtual games the prior is worth.
+# Tuned so one win over a higher band moves a title up but keeps it in its band; three straight wins cross.
+BETA = 1.5
+PRIOR_GAMES = 3.0
+
+
+def prior(tier: int, between: bool = False, guess: float | None = None) -> float:
+    """Where a title starts on the 1 to 10 scale before any comparison."""
+    lo, hi = BANDS[tier]
+    if between and tier > 1:
+        return (lo + BANDS[tier - 1][1]) / 2  # on the edge with the band below
+    mid = (lo + hi) / 2
+    if guess is None:
+        return mid
+    # The taste model's guess only orders uncompared titles inside their band, never moves them out of it.
+    return mid + 0.5 * max(-(hi - lo) / 2, min((hi - lo) / 2, guess - mid))
+
+
+def fit(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozenset[int] = frozenset(),
+        guess: dict[int, float] | None = None, iters: int = 400) -> dict[int, float]:
+    """anime_id -> unrounded score. MM iterations; each title also plays PRIOR_GAMES ties against a phantom
+    fixed at its prior, which anchors the scale and pulls titles with little evidence back to their feeling."""
+    guess = guess or {}
+    ids = list(tiers)
+    q = {i: math.exp(BETA * (prior(tiers[i], i in between, guess.get(i)) - 6)) for i in ids}
+    wins = {i: PRIOR_GAMES / 2 for i in ids}
     games: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
     for d in duels:
-        if d.a not in present or d.b not in present or d.a == d.b:
+        if d.a not in q or d.b not in q or d.a == d.b:
             continue
         games[d.a][d.b] += 1
         games[d.b][d.a] += 1
@@ -33,39 +60,22 @@ def strengths(items: list[int], duels: list[DuelRec], iters: int = 200) -> dict[
         else:
             wins[d.a] += 0.5
             wins[d.b] += 0.5
-    p = {i: 1.0 for i in items}
+    p = dict(q)
     for _ in range(iters):
-        new = {}
-        for i in items:
-            denom = 1.0 / (p[i] + 1.0) + sum(n / (p[i] + p[j]) for j, n in games[i].items())
-            new[i] = wins[i] / denom
-        norm = sum(new.values()) / len(new)
-        p = {i: v / norm for i, v in new.items()}
-    return p
+        p = {i: wins[i] / (PRIOR_GAMES / (p[i] + q[i]) + sum(n / (p[i] + p[j]) for j, n in games[i].items()))
+             for i in ids}
+    return {i: min(10.0, max(1.0, 6 + math.log(p[i]) / BETA)) for i in ids}
 
 
-def fit_scores(tiers: dict[int, int], duels: list[DuelRec]) -> dict[int, float]:
-    """anime_id -> tier (1..5)  =>  anime_id -> score. Within a band: n=1 -> midpoint; else spread so the
-    best title sits exactly at the band top and the worst at the bottom."""
-    if not tiers:
-        return {}
-    p = strengths(list(tiers), duels)
-    out: dict[int, float] = {}
-    by_tier: dict[int, list[int]] = defaultdict(list)
-    for aid, t in tiers.items():
-        by_tier[t].append(aid)
-    for t, ids in by_tier.items():
-        lo, hi = BANDS[t]
-        ids.sort(key=lambda i: (p[i], -i))
-        n = len(ids)
-        for r, aid in enumerate(ids):
-            v = (lo + hi) / 2 if n == 1 else lo + (hi - lo) * r / (n - 1)
-            out[aid] = round(v + 1e-9, 1)
-    return out
+def fit_scores(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozenset[int] = frozenset(),
+               guess: dict[int, float] | None = None) -> dict[int, float]:
+    """anime_id -> score on 1.0 to 10.0, one decimal."""
+    return {i: round(v + 1e-9, 1) for i, v in fit(tiers, duels, between, guess).items()}
 
 
-def ranked_in_tier(tiers: dict[int, int], duels: list[DuelRec], tier: int, exclude: int | None = None) -> list[int]:
-    """Titles in one tier ordered worst -> best."""
+def ranked_in_tier(tiers: dict[int, int], duels: list[DuelRec], tier: int, exclude: int | None = None,
+                   between: set[int] | frozenset[int] = frozenset()) -> list[int]:
+    """Titles in one tier ordered worst -> best, by the same fit that makes the scores."""
     ids = [a for a, t in tiers.items() if t == tier and a != exclude]
-    p = strengths(list(tiers), duels)
-    return sorted(ids, key=lambda i: (p[i], -i))
+    v = fit(tiers, duels, between)
+    return sorted(ids, key=lambda i: (v[i], -i))

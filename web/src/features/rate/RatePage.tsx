@@ -7,9 +7,10 @@ import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
 import { asked } from '../../lib/ask'
 import { listChanged, scoresChanged } from '../../lib/sync'
-import { TIERS, useList } from '../../lib/hooks'
+import { useList } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
+import { Feelings } from './Feelings'
 import './ratepage.css'
 
 type Question =
@@ -100,8 +101,8 @@ export function RatePage() {
   // Leaving the page ends the rating session: the model views catch up once.
   useEffect(() => () => { listChanged(qc) }, [qc])
 
-  function tier(animeId: number, t: number) {
-    send(() => api(`/api/rate/${animeId}/tier`, { method: 'POST', json: { tier: t } }))
+  function tier(animeId: number, t: number, between = false) {
+    send(() => api(`/api/rate/${animeId}/tier`, { method: 'POST', json: { tier: t, between } }))
   }
 
   // 1 to 5 answer the feeling question, like in the rating panel (which wins while it is open).
@@ -156,15 +157,7 @@ export function RatePage() {
                 <div className="rate-cover"><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></div>
                 <div className="rate-tier-side">
                   <h2 className="display rate-ask">How was <span className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</span>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
-                  <div className="rp-tiers">
-                    {TIERS.map((t, i) => (
-                      <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={busy}
-                        onClick={() => tier(q.anime.id, t.tier)}>
-                        <span>{t.label}</span>
-                        <span className="rp-band">{t.band}<kbd aria-hidden="true">{i + 1}</kbd></span>
-                      </button>
-                    ))}
-                  </div>
+                  <Feelings busy={busy} onPick={(t, between) => tier(q.anime.id, t, between)} keys />
                 </div>
               </div>
             ) : q.kind === 'duel' ? (

@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, Duel, ListEntry
-from .score import DuelRec, fit_scores
+from .score import DuelRec, fit, fit_scores
 from .select import next_insertion_duel, next_session_question
 
 router = APIRouter(prefix="/api/rate", tags=["rate"])
@@ -19,6 +20,7 @@ FACET_KEYS = {"story", "characters", "animation", "music", "ending", "rewatch", 
 
 class TierIn(BaseModel):
     tier: int = Field(ge=1, le=5)
+    between: bool = False  # "between this feeling and the one below": starts on the band edge
 
 
 class DuelIn(BaseModel):
@@ -32,17 +34,26 @@ class FacetsIn(BaseModel):
     facets: dict[str, str]
 
 
-def _state(db: Session, user_id: uuid.UUID) -> tuple[dict[int, int], list[DuelRec]]:
-    tiers = dict(db.execute(select(ListEntry.anime_id, ListEntry.tier)
-                            .where(ListEntry.user_id == user_id, ListEntry.tier.is_not(None))).all())
+@dataclass
+class RatingState:
+    tiers: dict[int, int]
+    duels: list[DuelRec]
+    between: set[int]
+    guess: dict[int, float]
+
+
+def _state(db: Session, user_id: uuid.UUID) -> RatingState:
+    rows = db.execute(select(ListEntry.anime_id, ListEntry.tier, ListEntry.between, ListEntry.predicted)
+                      .where(ListEntry.user_id == user_id, ListEntry.tier.is_not(None))).all()
     duels = [DuelRec(a, b, o) for a, b, o in db.execute(
         select(Duel.a_id, Duel.b_id, Duel.outcome).where(Duel.user_id == user_id).order_by(Duel.id)).all()]
-    return tiers, duels
+    return RatingState({a: t for a, t, _, _ in rows}, duels, {a for a, _, b, _ in rows if b},
+                       {a: g for a, _, _, g in rows if g is not None})
 
 
 def recompute(db: Session, user_id: uuid.UUID) -> dict[int, float]:
-    tiers, duels = _state(db, user_id)
-    scores = fit_scores(tiers, duels)
+    st = _state(db, user_id)
+    scores = fit_scores(st.tiers, st.duels, st.between, st.guess)
     for e in db.scalars(select(ListEntry).where(ListEntry.user_id == user_id, ListEntry.tier.is_not(None))):
         if e.score != scores.get(e.anime_id):
             e.score = scores.get(e.anime_id)
@@ -70,14 +81,14 @@ def set_tier(anime_id: int, body: TierIn, user: CurrentUser, db: Db) -> dict:
     predicted = entry.predicted if entry else None
     if predicted is None:
         predicted = _predict(db, user, anime_id)
-    values = {"status": "completed", "tier": body.tier, "predicted": predicted}
+    values = {"status": "completed", "tier": body.tier, "between": body.between and body.tier > 1, "predicted": predicted}
     db.execute(insert(ListEntry).values(user_id=user.id, anime_id=anime_id, **values)
                .on_conflict_do_update(index_elements=["user_id", "anime_id"], set_=values))
     db.commit()
     scores = recompute(db, user.id)
-    tiers, duels = _state(db, user.id)
+    st = _state(db, user.id)
     return {"score": scores.get(anime_id), "predicted": predicted,
-            "next_duel": _duel_out(db, anime_id, next_insertion_duel(tiers, duels, anime_id))}
+            "next_duel": _duel_out(db, anime_id, next_insertion_duel(st.tiers, st.duels, anime_id, st.between))}
 
 
 @router.post("/duel")
@@ -91,8 +102,8 @@ def duel(body: DuelIn, user: CurrentUser, db: Db) -> dict:
     scores = recompute(db, user.id)
     out: dict = {"scores": {str(k): v for k, v in scores.items() if k in (body.a, body.b)}}
     if body.placing in (body.a, body.b):
-        tiers, duels = _state(db, user.id)
-        out["next_duel"] = _duel_out(db, body.placing, next_insertion_duel(tiers, duels, body.placing))
+        st = _state(db, user.id)
+        out["next_duel"] = _duel_out(db, body.placing, next_insertion_duel(st.tiers, st.duels, body.placing, st.between))
         out["score"] = scores.get(body.placing)
     return out
 
@@ -110,7 +121,7 @@ def set_facets(anime_id: int, body: FacetsIn, user: CurrentUser, db: Db) -> dict
 
 @router.get("/session/next")
 def session_next(user: CurrentUser, db: Db) -> dict:
-    tiers, duels = _state(db, user.id)
+    st = _state(db, user.id)
     untiered = list(db.scalars(
         select(ListEntry.anime_id).join(Anime, Anime.id == ListEntry.anime_id)
         .where(ListEntry.user_id == user.id, ListEntry.status == "completed", ListEntry.tier.is_(None))
@@ -118,7 +129,7 @@ def session_next(user: CurrentUser, db: Db) -> dict:
     facets_missing = list(db.scalars(
         select(ListEntry.anime_id).where(ListEntry.user_id == user.id, ListEntry.tier >= 4,
                                          ListEntry.facets == {}).order_by(ListEntry.score.desc()).limit(5)))
-    q = next_session_question(tiers, duels, untiered, facets_missing)
+    q = next_session_question(st.tiers, st.duels, untiered, facets_missing, fit(st.tiers, st.duels, st.between, st.guess))
     remaining = db.query(ListEntry).filter(ListEntry.user_id == user.id, ListEntry.status == "completed",
                                            ListEntry.tier.is_(None)).count()
     if q is None:

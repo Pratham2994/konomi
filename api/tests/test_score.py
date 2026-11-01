@@ -2,7 +2,7 @@ from konomi_api.rating.score import BANDS, DuelRec, fit_scores
 from konomi_api.rating.select import insertion_bounds
 
 
-def test_bands_respected():
+def test_no_duels_sits_mid_band():
     tiers = {1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 6: 5, 7: 3}
     s = fit_scores(tiers, [])
     for aid, t in tiers.items():
@@ -21,9 +21,9 @@ def test_single_item_midband():
     assert fit_scores({1: 5}, [])[1] == 9.5
 
 
-def test_best_is_ten():
-    s = fit_scores({1: 5, 2: 5}, [DuelRec(1, 2, "a")])
-    assert s[1] == 10.0 and s[2] == 9.0
+def test_one_win_spreads_inside_the_band():
+    s = fit_scores({1: 4, 2: 4}, [DuelRec(1, 2, "a")])
+    assert 8.0 <= s[2] < s[1] <= 8.9
 
 
 def test_all_loved_stays_in_band():
@@ -34,6 +34,29 @@ def test_all_loved_stays_in_band():
 def test_tie_keeps_close():
     s = fit_scores({1: 3, 2: 3, 3: 3}, [DuelRec(1, 2, "tie"), DuelRec(1, 3, "a"), DuelRec(2, 3, "a")])
     assert s[3] < s[1] and s[3] < s[2]
+
+
+def test_one_win_does_not_cross_a_band():
+    # A "liked" title that beats one "loved" title moves up, but one answer is not enough to change its band.
+    s = fit_scores({0: 3, 1: 4, 2: 4, 3: 4}, [DuelRec(0, 1, "a")])
+    assert fit_scores({0: 3}, [])[0] < s[0] < 8.0
+
+
+def test_consistent_wins_cross_a_band():
+    # Beating every "loved" title it meets is enough: comparisons decide, the first feeling only starts it.
+    s = fit_scores({0: 3, 1: 4, 2: 4, 3: 4}, [DuelRec(0, 1, "a"), DuelRec(0, 2, "a"), DuelRec(0, 3, "a")])
+    assert s[0] >= 8.0
+
+
+def test_in_between_starts_on_the_edge():
+    s = fit_scores({1: 4, 2: 4, 3: 3}, [], between={1})
+    assert s[3] < s[1] < s[2]
+    assert 7.8 <= s[1] <= 8.1
+
+
+def test_guess_orders_uncompared_titles_inside_their_band():
+    s = fit_scores({1: 3, 2: 3}, [], guess={1: 7.8, 2: 6.6})
+    assert 6.5 <= s[2] < s[1] <= 7.9
 
 
 def test_insertion_le_6_duels():

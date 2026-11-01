@@ -24,10 +24,10 @@ export function useRateFlow(anime: AnimeBrief) {
   const [predicted, setPredicted] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function chooseTier(tier: number) {
+  async function chooseTier(tier: number, between = false) {
     setBusy(true)
     try {
-      const r = await api<TierOut>(`/api/rate/${anime.id}/tier`, { method: 'POST', json: { tier } })
+      const r = await api<TierOut>(`/api/rate/${anime.id}/tier`, { method: 'POST', json: { tier, between } })
       setPredicted(r.predicted)
       setPhase(r.next_duel ? { kind: 'duel', pair: r.next_duel, n: 1 } : { kind: 'reveal', score: r.score, predicted: r.predicted })
     } finally {

@@ -23,5 +23,6 @@ COPY --from=web /web/dist /app/web/dist
 RUN useradd --create-home konomi && chown -R konomi /app
 USER konomi
 EXPOSE 8000
+# Pending database migrations run first on every start, so a deploy never meets an older schema.
 # Behind Render/Cloudflare: trust the proxy's forwarded client address so rate limits key on real users.
-CMD ["sh", "-c", "uvicorn konomi_api.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn konomi_api.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

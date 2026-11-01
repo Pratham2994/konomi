@@ -55,3 +55,12 @@
 .chip:hover { border-color: var(--paper-3); }
 .chip.is-on { background: var(--paper); color: var(--ink); border-color: var(--paper); }
 .rp-done { width: 100%; }
+/* "In between": a slim choice tucked between two feelings, for when neither fits. */
+.rp-tier-row { display: grid; gap: 4px; }
+.rp-between {
+  justify-self: center; min-height: 24px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: none;
+  color: var(--paper-3); font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+}
+.rp-between:hover:not(:disabled) { color: var(--paper); background: var(--ink-3); }
+.rp-between:focus-visible { outline: 2px solid var(--season); outline-offset: 2px; }
+.rp-tiers { gap: 2px; }

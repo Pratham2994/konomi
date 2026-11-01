@@ -26,7 +26,9 @@ def test_tier_then_insertion_duels_place_title(client):
                                                "placing": ids[5]}).json()
         n += 1
     assert 1 <= n <= 6
-    assert r["score"] == 8.9
+    # It beat every title it met, so it ends above all of them (soft bands: it may even reach past the band top).
+    others = [e["score"] for e in client.get("/api/list").json()["entries"] if e["anime_id"] in ids[:5]]
+    assert r["score"] > max(others) and r["score"] >= 8.45
 
 
 def test_session_asks_untiered_first(client):
@@ -50,3 +52,11 @@ def test_facets_answered_one_at_a_time_are_all_kept(client):
     client.post(f"/api/rate/{aid}/facets", json={"facets": {"rewatch": "Yes"}})
     r = client.post(f"/api/rate/{aid}/facets", json={"facets": {"still_think": "Often"}})
     assert r.json()["facets"] == {"rewatch": "Yes", "still_think": "Often"}
+
+
+
+def test_in_between_feeling_starts_on_the_edge(client):
+    signup_verified(client)
+    aid = top_ids(1)[0]
+    r = client.post(f"/api/rate/{aid}/tier", json={"tier": 4, "between": True}).json()
+    assert 7.8 <= r["score"] <= 8.1
