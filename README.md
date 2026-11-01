@@ -21,6 +21,7 @@ An anime list that never asks you for a number.
   match, galaxy, "how Konomi picks" network. Numbers in [docs/model-report.md](docs/model-report.md).
 - Profiles: private by default, public link, hidden sections removed server-side, hot takes, anime years, share
   card / link preview, customise page.
+- Design: two rounds of independent design review applied; system recorded in [DESIGN.md](DESIGN.md).
 - Tests: API 40/40 (pytest), search ranking 17/17 (vitest), full journey E2E 2/2 (phone + desktop).
 
 **Not done yet**
