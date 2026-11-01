@@ -31,6 +31,11 @@ function hint(set?: boolean): boolean {
   } catch { return false }
 }
 
+/** Highest score first. Titles that show the same score keep the model's finer order, the same on every page. */
+export function byRank(a: { score: number | null; strength?: number | null }, b: { score: number | null; strength?: number | null }) {
+  return (b.score ?? -1) - (a.score ?? -1) || (b.strength ?? b.score ?? -1) - (a.strength ?? a.score ?? -1)
+}
+
 export function useMe() {
   return useQuery<Me | null>({
     queryKey: ['me'],

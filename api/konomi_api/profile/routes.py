@@ -158,12 +158,16 @@ def visible_user(db, username: str, viewer: User | None) -> User:
 
 
 def profile_payload(db, u: User) -> dict:
+    from ..rating.routes import ensure_strength  # late import: rating imports the taste engine
+    ensure_strength(db, u.id)
     rows = db.execute(select(ListEntry, Anime).join(Anime, Anime.id == ListEntry.anime_id)
                       .where(ListEntry.user_id == u.id)).all()
-    entries = [{"anime": brief(a), "status": e.status, "score": e.score, "tier": e.tier} for e, a in rows]
+    entries = [{"anime": brief(a), "status": e.status, "score": e.score, "strength": e.strength, "tier": e.tier}
+               for e, a in rows]
     done = [(e, a) for e, a in rows if e.status == "completed"]
     s = settings_out(u)
-    fav_ids = s["favourites"] or [a.id for e, a in sorted(done, key=lambda t: -(t[0].score or 0)) if e.score][:10]
+    fav_ids = s["favourites"] or [a.id for e, a in sorted(done, key=lambda t: (-(t[0].score or 0), -(t[0].strength or 0)))
+                                   if e.score][:10]
     by_id = {a.id: a for _, a in rows}
     favourites = [brief(by_id[i]) | {"score": next((e.score for e, a in rows if a.id == i), None)}
                   for i in fav_ids if i in by_id]
@@ -225,7 +229,7 @@ def public_view(p: dict) -> dict:
     out["stats"] = stats
     if look["scores"] == "off":
         # Hidden scores are removed from the payload, not just from the page.
-        out["entries"] = [e | {"score": None} for e in out["entries"]]
+        out["entries"] = [e | {"score": None, "strength": None} for e in out["entries"]]
         out["favourites"] = [f | {"score": None} for f in out["favourites"]]
         out["hot_takes"], out["track"] = [], None
         if out["hill"]:

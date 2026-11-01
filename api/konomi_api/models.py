@@ -94,6 +94,8 @@ class ListEntry(Base):
     between: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     facets: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     score: Mapped[float | None] = mapped_column(Float)
+    # The model's exact position behind the rounded score: orders titles that show the same score, on every page.
+    strength: Mapped[float | None] = mapped_column(Float)
     predicted: Mapped[float | None] = mapped_column(Float)
     source: Mapped[str] = mapped_column(String(10), default="konomi", server_default="konomi")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

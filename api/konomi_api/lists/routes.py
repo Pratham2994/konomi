@@ -20,12 +20,15 @@ class EntryIn(BaseModel):
 
 def entry_out(e: ListEntry) -> dict:
     return {"anime_id": e.anime_id, "status": e.status, "episodes_watched": e.episodes_watched,
-            "tier": e.tier, "between": e.between, "score": e.score, "predicted": e.predicted, "facets": e.facets,
+            "tier": e.tier, "between": e.between, "score": e.score, "strength": e.strength, "predicted": e.predicted,
+            "facets": e.facets,
             "source": e.source, "updated_at": e.updated_at.isoformat() if e.updated_at else None}
 
 
 @router.get("")
 def get_list(user: CurrentUser, db: Db) -> dict:
+    from ..rating.routes import ensure_strength  # late import: rating imports the taste engine
+    ensure_strength(db, user.id)
     rows = db.execute(select(ListEntry, Anime).join(Anime, Anime.id == ListEntry.anime_id)
                       .where(ListEntry.user_id == user.id).order_by(ListEntry.updated_at.desc())).all()
     return {"entries": [entry_out(e) | {"anime": brief(a)} for e, a in rows]}

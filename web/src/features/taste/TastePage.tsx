@@ -4,7 +4,7 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { api } from '../../lib/api'
-import { useList, useStored } from '../../lib/hooks'
+import { byRank, useList, useStored } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { RecCard, useRecs } from '../home/HomePage'
 import { galaxyQuery, loadGalaxy } from './preload'
@@ -126,13 +126,13 @@ export default function TastePage() {
     queryKey: ['similar', focusId], enabled: focusId != null, staleTime: Infinity,
     queryFn: () => api<{ items: AnimeBrief[] }>(`/api/taste/similar/${focusId}?k=6`),
   })
-  const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 10), [entries])
+  const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort(byRank).slice(0, 10), [entries])
   const focus = useMemo(() => (focusId != null && near.data ? { id: focusId, near: near.data.items.map((a) => a.id) } : null), [focusId, near.data])
   const focused = entries.find((e) => e.anime_id === focusId)
   // Your three best-rated titles get name tags on the map.
   const named = useMemo(() => (focus && focused && near.data
     ? [{ id: focus.id, label: focused.anime.title_en ?? focused.anime.title }, ...near.data.items.map((a) => ({ id: a.id, label: a.title_en ?? a.title }))]
-    : entries.filter((e) => e.score != null).sort((a, b) => b.score! - a.score!).slice(0, 3)
+    : entries.filter((e) => e.score != null).sort(byRank).slice(0, 3)
       .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title }))), [entries, focus, focused, near.data])
   // The neighbourhoods you watch most in, by the cluster each of your titles sits in.
   const hoods = useMemo(() => {

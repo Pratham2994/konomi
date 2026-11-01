@@ -133,3 +133,23 @@ def test_back_takes_answers_back(client):
     e = {e["anime_id"]: e for e in client.get("/api/list").json()["entries"]}[b]
     assert e["tier"] is None and e["score"] is None and e["facets"] == {} and e["status"] == "completed"
     assert client.get("/api/rate/session/next").json()["question"]["anime"]["id"] == b
+
+
+def test_same_score_titles_keep_one_order_everywhere(client):
+    signup_verified(client)
+    a, b, c = top_ids(3)
+    for aid in (a, b, c):
+        client.post(f"/api/rate/{aid}/tier", json={"tier": 5})
+    for _ in range(3):  # a beats b beats c, again and again: all three end at the 10 cap
+        client.post("/api/rate/duel", json={"a": a, "b": b, "outcome": "a"})
+        client.post("/api/rate/duel", json={"a": b, "b": c, "outcome": "a"})
+    mine = {e["anime_id"]: e for e in client.get("/api/list").json()["entries"]}
+    assert mine[a]["strength"] > mine[b]["strength"] > mine[c]["strength"]
+    username = client.get("/api/me").json()["username"]
+    shown = {e["anime"]["id"]: e["strength"] for e in client.get(f"/api/u/{username}").json()["entries"]}
+    assert all(shown[i] == mine[i]["strength"] for i in (a, b, c))
+    # Titles scored before strengths existed get theirs on the next read.
+    with engine.begin() as conn:
+        conn.execute(text("update list_entries set strength = null"))
+    again = {e["anime_id"]: e["strength"] for e in client.get("/api/list").json()["entries"]}
+    assert again[a] > again[b] > again[c]

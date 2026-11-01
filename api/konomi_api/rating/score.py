@@ -39,10 +39,11 @@ def prior(tier: int, between: bool = False, guess: float | None = None) -> float
     return mid + 0.5 * max(-(hi - lo) / 2, min((hi - lo) / 2, guess - mid))
 
 
-def fit(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozenset[int] = frozenset(),
-        guess: dict[int, float] | None = None, iters: int = 400) -> dict[int, float]:
-    """anime_id -> unrounded score. MM iterations; each title also plays PRIOR_GAMES ties against a phantom
-    fixed at its prior, which anchors the scale and pulls titles with little evidence back to their feeling."""
+def strength(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozenset[int] = frozenset(),
+             guess: dict[int, float] | None = None, iters: int = 400) -> dict[int, float]:
+    """anime_id -> the model's exact position, on the score scale but neither rounded nor capped at 1 and 10.
+    MM iterations; each title also plays PRIOR_GAMES ties against a phantom fixed at its prior, which anchors the
+    scale and pulls titles with little evidence back to their feeling."""
     guess = guess or {}
     ids = list(tiers)
     q = {i: math.exp(BETA * (prior(tiers[i], i in between, guess.get(i)) - 6)) for i in ids}
@@ -64,13 +65,24 @@ def fit(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozens
     for _ in range(iters):
         p = {i: wins[i] / (PRIOR_GAMES / (p[i] + q[i]) + sum(n / (p[i] + p[j]) for j, n in games[i].items()))
              for i in ids}
-    return {i: min(10.0, max(1.0, 6 + math.log(p[i]) / BETA)) for i in ids}
+    return {i: 6 + math.log(p[i]) / BETA for i in ids}
+
+
+def to_score(v: float) -> float:
+    """A strength as a shown score: 1.0 to 10.0, one decimal."""
+    return round(min(10.0, max(1.0, v)) + 1e-9, 1)
+
+
+def fit(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozenset[int] = frozenset(),
+        guess: dict[int, float] | None = None, iters: int = 400) -> dict[int, float]:
+    """anime_id -> unrounded score on 1 to 10."""
+    return {i: min(10.0, max(1.0, v)) for i, v in strength(tiers, duels, between, guess, iters).items()}
 
 
 def fit_scores(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | frozenset[int] = frozenset(),
                guess: dict[int, float] | None = None) -> dict[int, float]:
     """anime_id -> score on 1.0 to 10.0, one decimal."""
-    return {i: round(v + 1e-9, 1) for i, v in fit(tiers, duels, between, guess).items()}
+    return {i: to_score(v) for i, v in strength(tiers, duels, between, guess).items()}
 
 
 def ranked_in_tier(tiers: dict[int, int], duels: list[DuelRec], tier: int, exclude: int | None = None,

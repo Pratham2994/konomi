@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, Duel, ListEntry
-from .score import DuelRec, fit, fit_scores, prior
+from .score import DuelRec, fit, prior, strength, to_score
 from .select import next_insertion_duel, next_session_question
 
 router = APIRouter(prefix="/api/rate", tags=["rate"])
@@ -44,6 +44,7 @@ class Row:
     score: float | None
     facets: dict
     popularity: int
+    strength: float | None = None
 
 
 @dataclass
@@ -68,25 +69,30 @@ class RatingState:
 
 def _state(db: Session, user_id: uuid.UUID) -> RatingState:
     rows = db.execute(select(ListEntry.anime_id, ListEntry.status, ListEntry.tier, ListEntry.between,
-                             ListEntry.predicted, ListEntry.score, ListEntry.facets, Anime.popularity)
+                             ListEntry.predicted, ListEntry.score, ListEntry.facets, Anime.popularity, ListEntry.strength)
                       .join(Anime, Anime.id == ListEntry.anime_id).where(ListEntry.user_id == user_id)).all()
     duels = [DuelRec(a, b, o) for a, b, o in db.execute(
         select(Duel.a_id, Duel.b_id, Duel.outcome).where(Duel.user_id == user_id).order_by(Duel.id)).all()]
-    return RatingState({a: Row(s, t, bool(bw), p, sc, f or {}, pop or 0) for a, s, t, bw, p, sc, f, pop in rows}, duels)
+    return RatingState({a: Row(s, t, bool(bw), p, sc, f or {}, pop or 0, sg) for a, s, t, bw, p, sc, f, pop, sg in rows},
+                       duels)
 
 
 def recompute(db: Session, user_id: uuid.UUID, st: RatingState | None = None, commit: bool = True) -> dict[int, float]:
     """Refit every score and write the changed ones in a single statement."""
     st = st or _state(db, user_id)
-    scores = fit_scores(st.tiers, st.duels, st.between, st.guess)
-    changed = [(a, scores[a]) for a, r in st.rows.items() if a in scores and r.score != scores[a]]
+    exact = strength(st.tiers, st.duels, st.between, st.guess)
+    scores = {a: to_score(v) for a, v in exact.items()}
+    changed = [a for a, r in st.rows.items()
+               if a in scores and (r.score != scores[a] or r.strength is None or abs(r.strength - exact[a]) > 1e-9)]
     if changed:
-        db.execute(text("UPDATE list_entries AS e SET score = v.score "
-                        "FROM unnest(CAST(:ids AS integer[]), CAST(:scores AS double precision[])) AS v(anime_id, score) "
+        db.execute(text("UPDATE list_entries AS e SET score = v.score, strength = v.strength "
+                        "FROM unnest(CAST(:ids AS integer[]), CAST(:scores AS double precision[]), "
+                        "CAST(:strengths AS double precision[])) AS v(anime_id, score, strength) "
                         "WHERE e.user_id = :u AND e.anime_id = v.anime_id"),
-                   {"ids": [a for a, _ in changed], "scores": [x for _, x in changed], "u": user_id})
-        for a, x in changed:
-            st.rows[a].score = x
+                   {"ids": changed, "scores": [scores[a] for a in changed], "strengths": [exact[a] for a in changed],
+                    "u": user_id})
+        for a in changed:
+            st.rows[a].score, st.rows[a].strength = scores[a], exact[a]
     if commit:
         db.commit()
     return scores
@@ -186,7 +192,7 @@ def duel(body: DuelIn, user: CurrentUser, db: Db, response: Response, next: bool
 @router.delete("/{anime_id}/tier")
 def clear_tier(anime_id: int, user: CurrentUser, db: Db) -> dict:
     db.execute(update(ListEntry).where(ListEntry.user_id == user.id, ListEntry.anime_id == anime_id)
-               .values(tier=None, between=False, score=None))
+               .values(tier=None, between=False, score=None, strength=None))
     recompute(db, user.id)
     return {"ok": True}
 
@@ -265,10 +271,17 @@ def _session(db: Session, st: RatingState) -> dict:
 def reset(user: CurrentUser, db: Db) -> dict:
     """Start rating over: every feeling, comparison and answer goes. Titles and their statuses stay."""
     n = db.execute(update(ListEntry).where(ListEntry.user_id == user.id, ListEntry.tier.is_not(None))
-                   .values(tier=None, between=False, predicted=None, score=None, facets={})).rowcount
+                   .values(tier=None, between=False, predicted=None, score=None, strength=None, facets={})).rowcount
     d = db.execute(delete(Duel).where(Duel.user_id == user.id)).rowcount
     db.commit()
     return {"cleared": n, "comparisons": d}
+
+
+def ensure_strength(db: Session, user_id: uuid.UUID) -> None:
+    """Titles scored before strengths were saved get theirs once, on the first read that needs them."""
+    if db.scalar(select(ListEntry.anime_id).where(ListEntry.user_id == user_id, ListEntry.tier.is_not(None),
+                                                  ListEntry.strength.is_(None)).limit(1)) is not None:
+        recompute(db, user_id)
 
 
 @router.get("/session/next")

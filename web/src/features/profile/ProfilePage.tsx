@@ -7,7 +7,7 @@ import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
 import { api, ApiError } from '../../lib/api'
-import { SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
+import { byRank, SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
 import type { AnimeBrief, Season, Status } from '../../lib/types'
 import './profile.css'
 
@@ -34,7 +34,7 @@ interface Profile {
   hot_takes: { anime: AnimeBrief; you: number; everyone: number }[]
   years: [number, number][]
   dna: { id: number; neg: string[]; pos: string[]; value: number }[] | null
-  entries: { anime: AnimeBrief; status: Status; score: number | null }[]
+  entries: { anime: AnimeBrief; status: Status; score: number | null; strength?: number | null }[]
   track: { n: number; within1: number } | null
   is_owner: boolean
 }
@@ -131,12 +131,12 @@ export function ProfilePage() {
 
   const grouped = useMemo(() => {
     const rows = (p?.entries ?? []).filter((e) => e.status === tab)
-    if (group === 'flat') return [{ key: 'all', season: null, year: null, label: undefined, items: [...rows].sort((a, b) => (b.score ?? -1) - (a.score ?? -1)) }]
+    if (group === 'flat') return [{ key: 'all', season: null, year: null, label: undefined, items: [...rows].sort(byRank) }]
     if (group === 'score') {
       return SCORE_BANDS.map((b, i) => ({
         key: b.label, season: null, year: null, label: b.label,
         items: rows.filter((e) => (e.score ?? -1) >= b.min && (i === 0 || (e.score ?? -1) < SCORE_BANDS[i - 1].min))
-          .sort((x, y) => (y.score ?? 0) - (x.score ?? 0)),
+          .sort(byRank),
       })).filter((g) => g.items.length)
     }
     const m = new Map<string, { key: string; season: Season | null; year: number | null; label: string | undefined; items: Profile['entries'] }>()
@@ -147,6 +147,7 @@ export function ProfilePage() {
     }
     const rank = (s: Season | null) => (s ? SEASON_ORDER.indexOf(s) : -1)
     return [...m.values()].sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || rank(b.season) - rank(a.season))
+      .map((g) => ({ ...g, items: g.items.sort(byRank) }))
   }, [p, tab, group])
 
   if (isLoading) return <PageLoading />

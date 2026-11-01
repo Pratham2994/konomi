@@ -6,7 +6,7 @@ import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { PageLoading } from '../../components/PageLoading'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
-import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, useList, useStored } from '../../lib/hooks'
+import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, byRank, useList, useStored } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
 import './chart.css'
 
@@ -107,10 +107,10 @@ export function ChartPage() {
     const rank = (s: Season | null) => (s ? SEASON_ORDER.indexOf(s) : -1)
     return [...m.values()]
       .sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || rank(b.season) - rank(a.season))
-      .map((g) => ({ ...g, items: g.items.sort((x, y) => (y.score ?? -1) - (x.score ?? -1)) }))
+      .map((g) => ({ ...g, items: g.items.sort(byRank) }))
   }, [shown])
 
-  const byScore = useMemo(() => [...shown].sort((a, b) => (b.score ?? -1) - (a.score ?? -1)), [shown])
+  const byScore = useMemo(() => [...shown].sort(byRank), [shown])
   const hours = useMemo(() => Math.round(entries.filter((e) => e.status === 'completed')
     .reduce((s, e) => s + (e.anime.episodes ?? 1) * (e.anime.duration_s ?? 1440), 0) / 3600), [entries])
 

@@ -35,6 +35,8 @@ export interface Entry {
   tier: number | null
   between?: boolean
   score: number | null
+  /** The model's exact position behind the rounded score: orders titles that show the same score. */
+  strength?: number | null
   predicted: number | null
   facets: Record<string, string>
   source: string
