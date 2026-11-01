@@ -101,3 +101,10 @@ def test_repeat_signup_does_not_reveal_pending_account(client):
     assert client.post("/api/auth/signup", json=body).status_code == 202
     # A second sign-up inside the resend gap looks exactly like a first one (no 429 that would reveal it).
     assert client.post("/api/auth/signup", json=body).status_code == 202
+
+
+def test_neon_style_database_url_is_accepted():
+    from konomi_api.config import Settings
+    s = Settings(database_url="postgresql://u:p@ep-x.neon.tech/konomi?sslmode=require")
+    assert s.database_url.startswith("postgresql+psycopg://u:p@ep-x.neon.tech/")
+    assert Settings(database_url="postgresql+psycopg://a@b/c").database_url == "postgresql+psycopg://a@b/c"

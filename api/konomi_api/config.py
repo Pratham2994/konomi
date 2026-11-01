@@ -1,6 +1,8 @@
+import re
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +24,12 @@ class Settings(BaseSettings):
     session_days: int = 30
     otp_ttl_minutes: int = 10
     otp_max_attempts: int = 5
+
+    @field_validator("database_url")
+    @classmethod
+    def _driver(cls, v: str) -> str:
+        """Accept the URL exactly as Neon shows it (postgresql://...): use the psycopg 3 driver."""
+        return re.sub(r"^postgres(ql)?://", "postgresql+psycopg://", v.strip())
 
 
 @lru_cache

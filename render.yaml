@@ -1,0 +1,21 @@
+# Render Blueprint: New > Blueprint > pick this repo. Free plan, Singapore (next to the Neon database).
+services:
+  - type: web
+    name: konomi
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: master
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: KONOMI_DATABASE_URL       # paste the Neon connection string as Neon shows it
+        sync: false
+      - key: KONOMI_RESEND_API_KEY     # paste the Resend API key
+        sync: false
+      - key: KONOMI_SECRET             # signs sessions and codes; Render generates a random one
+        generateValue: true
+      - key: KONOMI_PUBLIC_URL
+        value: https://konomi.prathampanchal.dev
+      - key: KONOMI_MAIL_FROM
+        value: Konomi <hello@konomi.prathampanchal.dev>
