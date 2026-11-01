@@ -74,7 +74,7 @@ def _predict(db: Session, user, anime_id: int) -> float | None:
 
 
 @router.post("/{anime_id}/tier")
-def set_tier(anime_id: int, body: TierIn, user: CurrentUser, db: Db) -> dict:
+def set_tier(anime_id: int, body: TierIn, user: CurrentUser, db: Db, next: bool = False) -> dict:
     if db.get(Anime, anime_id) is None:
         raise HTTPException(404, {"code": "not_found"})
     entry = db.get(ListEntry, (user.id, anime_id))
@@ -87,12 +87,13 @@ def set_tier(anime_id: int, body: TierIn, user: CurrentUser, db: Db) -> dict:
     db.commit()
     scores = recompute(db, user.id)
     st = _state(db, user.id)
-    return {"score": scores.get(anime_id), "predicted": predicted,
-            "next_duel": _duel_out(db, anime_id, next_insertion_duel(st.tiers, st.duels, anime_id, st.between))}
+    out = {"score": scores.get(anime_id), "predicted": predicted,
+           "next_duel": _duel_out(db, anime_id, next_insertion_duel(st.tiers, st.duels, anime_id, st.between))}
+    return out | ({"session": session_next(user, db)} if next else {})
 
 
 @router.post("/duel")
-def duel(body: DuelIn, user: CurrentUser, db: Db) -> dict:
+def duel(body: DuelIn, user: CurrentUser, db: Db, next: bool = False) -> dict:
     owned = set(db.scalars(select(ListEntry.anime_id).where(
         ListEntry.user_id == user.id, ListEntry.anime_id.in_([body.a, body.b]), ListEntry.tier.is_not(None))))
     if owned != {body.a, body.b} or body.a == body.b:
@@ -105,18 +106,20 @@ def duel(body: DuelIn, user: CurrentUser, db: Db) -> dict:
         st = _state(db, user.id)
         out["next_duel"] = _duel_out(db, body.placing, next_insertion_duel(st.tiers, st.duels, body.placing, st.between))
         out["score"] = scores.get(body.placing)
+    if next:  # the Rate page: send the next question back with the answer, one round trip instead of two
+        out["session"] = session_next(user, db)
     return out
 
 
 @router.post("/{anime_id}/facets")
-def set_facets(anime_id: int, body: FacetsIn, user: CurrentUser, db: Db) -> dict:
+def set_facets(anime_id: int, body: FacetsIn, user: CurrentUser, db: Db, next: bool = False) -> dict:
     entry = db.get(ListEntry, (user.id, anime_id))
     if entry is None:
         raise HTTPException(404, {"code": "not_on_list"})
     # Merge: the Rate page sends one answer at a time and must not erase the others.
     entry.facets = (entry.facets or {}) | {k: str(v)[:20] for k, v in body.facets.items() if k in FACET_KEYS}
     db.commit()
-    return {"facets": entry.facets}
+    return {"facets": entry.facets} | ({"session": session_next(user, db)} if next else {})
 
 
 @router.get("/session/next")

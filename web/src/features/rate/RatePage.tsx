@@ -79,10 +79,12 @@ export function RatePage() {
     // The round's "before" picture of your scores, taken at its first answer.
     if (!before) setBefore(new Map(entries.map((e) => [e.anime_id, e.score])))
     try {
-      await fn()
+      // Answers are sent with ?next=1, so the reply already carries the next question: one round trip, not two.
+      const r = (await fn()) as { session?: { question: Question | null; unrated: number } } | undefined
       setAnswered((n) => n + 1)
       setInRound((n) => n + 1)
-      await refetch()
+      if (r?.session) qc.setQueryData(['rate-next'], r.session)
+      else await refetch()
       scoresChanged(qc, ['rate-next'])
     } finally {
       setBusy(false)
@@ -102,7 +104,7 @@ export function RatePage() {
   useEffect(() => () => { listChanged(qc) }, [qc])
 
   function tier(animeId: number, t: number, between = false) {
-    send(() => api(`/api/rate/${animeId}/tier`, { method: 'POST', json: { tier: t, between } }))
+    send(() => api(`/api/rate/${animeId}/tier?next=1`, { method: 'POST', json: { tier: t, between } }))
   }
 
   // 1 to 5 answer the feeling question, like in the rating panel (which wins while it is open).
@@ -164,7 +166,7 @@ export function RatePage() {
               <div className="rate-duel">
                 <h2 className="display rate-ask">Which did you enjoy more?</h2>
                 <Duel big a={q.a} b={q.b} busy={busy}
-                  onPick={(o) => send(() => api('/api/rate/duel', { method: 'POST', json: { a: q.a.id, b: q.b.id, outcome: o } }))} />
+                  onPick={(o) => send(() => api('/api/rate/duel?next=1', { method: 'POST', json: { a: q.a.id, b: q.b.id, outcome: o } }))} />
               </div>
             ) : (
               <div className="rate-tier">
@@ -180,9 +182,9 @@ export function RatePage() {
                             aria-pressed={vals[f.key] === o}
                             onClick={() => {
                               setPicked({ key, vals: { ...vals, [f.key]: o } })
-                              const save = () => api(`/api/rate/${q.anime.id}/facets`, { method: 'POST', json: { facets: { [f.key]: o } } })
-                              if (i === FACETS.length - 1) send(save)
-                              else save()
+                              const save = (next: boolean) => api(`/api/rate/${q.anime.id}/facets${next ? '?next=1' : ''}`, { method: 'POST', json: { facets: { [f.key]: o } } })
+                              if (i === FACETS.length - 1) send(() => save(true))
+                              else save(false)
                             }}>
                             {o}
                           </button>

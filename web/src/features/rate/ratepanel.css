@@ -64,3 +64,5 @@
 .rp-between:hover:not(:disabled) { color: var(--paper); background: var(--ink-3); }
 .rp-between:focus-visible { outline: 2px solid var(--season); outline-offset: 2px; }
 .rp-tiers { gap: 2px; }
+.rp-tier.is-chosen { outline: 3px solid var(--paper); outline-offset: 2px; }
+.rp-between.is-chosen { color: var(--paper); background: var(--ink-3); }

@@ -60,3 +60,16 @@ def test_in_between_feeling_starts_on_the_edge(client):
     aid = top_ids(1)[0]
     r = client.post(f"/api/rate/{aid}/tier", json={"tier": 4, "between": True}).json()
     assert 7.8 <= r["score"] <= 8.1
+
+
+def test_answer_can_carry_the_next_question(client):
+    # One round trip per answer on the Rate page: the reply already holds the next question.
+    signup_verified(client)
+    ids = top_ids(3)
+    for aid in ids:
+        client.post(f"/api/rate/{aid}/tier", json={"tier": 4})
+    r = client.post("/api/rate/duel?next=1", json={"a": ids[0], "b": ids[1], "outcome": "a"}).json()
+    assert "session" in r and set(r["session"]) == {"question", "unrated"}
+    assert r["session"] == client.get("/api/rate/session/next").json()
+    t = client.post(f"/api/rate/{ids[2]}/tier?next=1", json={"tier": 3}).json()
+    assert "session" in t

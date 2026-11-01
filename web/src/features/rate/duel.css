@@ -23,3 +23,8 @@
 .duel-big .duel-pair { gap: clamp(16px, 4vw, 56px); }
 .duel-big .duel-title { font-size: clamp(15px, 1.4vw, 19px); }
 .duel-big .duel-vs { width: 60px; height: 60px; font-size: 18px; }
+.duel-side { transition: opacity 0.18s, transform 0.18s var(--ease-out); }
+.duel-side.is-picked { transform: scale(1.03); }
+.duel-side.is-picked .cover-art { outline: 3px solid var(--season); outline-offset: 3px; }
+.duel-side.is-passed { opacity: 0.4; transform: scale(0.97); }
+.duel-tie.is-picked { color: var(--paper); background: var(--ink-3); }
