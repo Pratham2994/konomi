@@ -3,6 +3,7 @@
 .ratepage { max-width: 1280px; }
 .rate-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
 .rate-title { font-size: clamp(36px, 6vw, 72px); line-height: 1; }
+.rate-lead { max-width: 62ch; color: var(--paper-2); margin-top: var(--s3); }
 .rate-count { color: var(--season); }
 .rate-stage { margin-top: clamp(24px, 5vh, 64px); min-height: 60vh; }
 .rate-q { display: grid; }

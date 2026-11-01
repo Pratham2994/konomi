@@ -119,9 +119,9 @@ export function Layout() {
           {me ? (
             <>
               <NavLink to="/chart">Chart</NavLink>
-              <NavLink to="/sweep">Season walk</NavLink>
+              <NavLink to="/sweep">Add by season</NavLink>
               <NavLink to="/rate" className="has-badge">
-                Rate{unrated > 0 && <span className="badge">{unrated > 99 ? '99+' : unrated}</span>}
+                Rate titles{unrated > 0 && <span className="badge">{unrated > 99 ? '99+' : unrated}</span>}
               </NavLink>
               <NavLink to="/taste" onPointerEnter={warmTaste} onFocus={warmTaste}>Taste</NavLink>
             </>
@@ -157,7 +157,7 @@ export function Layout() {
         <nav className="bottombar" aria-label="Main">
           <NavLink to="/" end><Icon name="taste" size={22} /><span>Home</span></NavLink>
           <NavLink to="/chart"><Icon name="chart" size={22} /><span>Chart</span></NavLink>
-          <NavLink to="/sweep" className="bb-add"><span className="bb-plus"><Icon name="plus" size={26} stroke={2.6} /></span><span>Walk</span></NavLink>
+          <NavLink to="/sweep" className="bb-add"><span className="bb-plus"><Icon name="plus" size={26} stroke={2.6} /></span><span>Add</span></NavLink>
           <NavLink to="/rate" className="has-badge"><Icon name="duel" size={22} /><span>Rate</span>
             {unrated > 0 && <span className="badge">{unrated > 99 ? '99+' : unrated}</span>}</NavLink>
           <NavLink to="/taste" onTouchStart={warmTaste} onPointerEnter={warmTaste}><Icon name="sparkle" size={22} /><span>Taste</span></NavLink>

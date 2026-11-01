@@ -59,8 +59,8 @@ export function SweepPage() {
     <div className="page sweep" data-season={season}>
       <header className="sweep-head">
         <div>
-          <h1 className="display sweep-title">Season walk</h1>
-          <p className="muted sweep-lead">Tap everything you’ve watched. Walk back in time, one season at a time.</p>
+          <h1 className="display sweep-title">Add by season</h1>
+          <p className="muted sweep-lead">Seeing the covers brings back what you watched. Tap everything you’ve seen, then step back a season.</p>
         </div>
         <div className="sweep-eras" role="group" aria-label="Jump to a year">
           {ERAS.map((y) => (
@@ -85,7 +85,7 @@ export function SweepPage() {
 
       <footer className="sweep-foot">
         <button className="btn btn-primary sweep-next" onClick={() => go(prev)}>
-          Walk back to {SEASON_LABEL[prev.season]} {prev.year} <Icon name="arrowRight" size={18} />
+          Back to {SEASON_LABEL[prev.season]} {prev.year} <Icon name="arrowRight" size={18} />
         </button>
         {walked > 0 && <Link to="/rate" className="btn">Rate what you marked</Link>}
         <p className="faint sweep-keys">Keyboard: hover a cover, then <kbd>S</kbd> watched · <kbd>D</kbd> dropped · <kbd>W</kbd> want · <kbd>X</kbd> clear · <kbd>Shift</kbd>+<kbd>←</kbd> earlier</p>

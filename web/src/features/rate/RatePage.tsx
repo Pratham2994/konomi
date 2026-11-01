@@ -68,12 +68,16 @@ export function RatePage() {
   return (
     <div className="page ratepage">
       <header className="rate-head">
-        <h1 className="display rate-title">Rate</h1>
+        <h1 className="display rate-title">Rate titles</h1>
         <p className="muted">
           {answered > 0 && <><strong className="rate-count">{answered}</strong> answered · </>}
           {data && data.unrated > 0 ? `${data.unrated} watched title${data.unrated === 1 ? '' : 's'} still need a feeling` : 'Every answer sharpens your scores and Konomi’s guesses.'}
         </p>
       </header>
+      <p className="rate-lead">
+        Konomi asks how each title felt, then which of two you enjoyed more. Your scores come from these answers,
+        never from a slider.
+      </p>
 
       <div className="rate-stage">
         <AnimatePresence mode="wait">
@@ -84,7 +88,7 @@ export function RatePage() {
                 <h2 className="display">All caught up</h2>
                 <p className="muted">Add more anime, or walk through a few past seasons.</p>
                 <div className="rate-done-actions">
-                  <Link to="/sweep" className="btn btn-primary">Season walk</Link>
+                  <Link to="/sweep" className="btn btn-primary">Add by season</Link>
                   <Link to="/taste" className="btn">See your taste</Link>
                 </div>
               </div>

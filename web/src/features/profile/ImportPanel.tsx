@@ -65,7 +65,7 @@ export function ImportPanel() {
         <p className="import-ok">
           Added <strong>{res.added}</strong>{res.skipped ? `, ${res.skipped} already on your chart` : ''}
           {res.unmatched ? `, ${res.unmatched} not in the catalogue` : ''}. Their old scores only picked a feeling.
-          A few duels in <a href="/rate">Rate</a> will sharpen them.
+          A few quick comparisons in <a href="/rate">Rate titles</a> will sharpen them.
         </p>
       )}
       {err && <p className="auth-err" role="alert">{err}</p>}
