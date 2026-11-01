@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
+import { PageLoading } from '../../components/PageLoading'
 import { api, ApiError } from '../../lib/api'
+import { profileChanged } from '../../lib/sync'
 import { STATUS_LABEL, useList } from '../../lib/hooks'
 import type { Status } from '../../lib/types'
 import { ImportPanel } from './ImportPanel'
@@ -23,6 +25,16 @@ interface Settings extends Look {
 const SECTION_LABEL: Record<string, string> = {
   favourites: 'All-time favourites', hill: 'The hill I’ll die on', watching: 'Watching now', hot_takes: 'Hot takes',
   years: 'Anime years', dna: 'Taste DNA', drops: 'The drop wall', chart: 'The chart',
+}
+const SECTION_NOTE: Record<string, string> = {
+  favourites: 'Your top ten, in your order',
+  hill: 'One title you’ll always defend, with a line why',
+  watching: 'What you’re in the middle of right now',
+  hot_takes: 'Where your score is furthest from everyone else’s',
+  years: 'How many of your anime came out each year',
+  dna: 'Six sliders the taste model learned from your ratings',
+  drops: 'Shows you stopped watching (off unless you turn it on)',
+  chart: 'Your whole list, which visitors can browse',
 }
 const ACCENTS = [
   { id: 'auto', label: 'Match my banner' }, { id: 'spring', label: 'Spring' }, { id: 'summer', label: 'Summer' },
@@ -74,8 +86,8 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   )
 }
 
-const NAV = [['visibility', 'Visibility'], ['you', 'You'], ['look', 'Look'], ['favs', 'Favourites'], ['hill', 'Hill'],
-  ['layout', 'Sections'], ['chart', 'Chart & scores'], ['import', 'Import']] as const
+const NAV = [['visibility', 'Privacy'], ['you', 'About you'], ['look', 'Look'], ['favs', 'Favourites'], ['hill', 'Pinned opinion'],
+  ['layout', 'What it shows'], ['chart', 'Chart & scores'], ['import', 'Import']] as const
 
 export function SettingsPage() {
   const qc = useQueryClient()
@@ -91,15 +103,36 @@ export function SettingsPage() {
   const [hillText, setHillText] = useState('')
   const [pickFor, setPickFor] = useState<'favourites' | 'banner' | 'hill' | null>(null)
   const frame = useRef<HTMLIFrameElement>(null)
+  const nav = useNavigate()
+
+  // A link clicked in the preview opens here, in the main app.
+  useEffect(() => {
+    const on = (e: MessageEvent<{ type?: string; to?: string }>) => {
+      if (e.origin !== window.location.origin || e.source !== frame.current?.contentWindow) return
+      if (e.data?.type === 'konomi:open' && e.data.to?.startsWith('/')) nav(e.data.to)
+    }
+    window.addEventListener('message', on)
+    return () => window.removeEventListener('message', on)
+  }, [nav])
   const save = useMutation({
+    mutationKey: ['settings-save'],
+    scope: { id: 'settings-save' }, // saves run one after another, so the server never applies them out of order
     mutationFn: (patch: Partial<Settings>) => api<Settings>('/api/profile', { method: 'PATCH', json: patch }),
-    onSuccess: (d) => {
-      qc.setQueryData(['settings'], d)
-      qc.invalidateQueries({ queryKey: ['profile'] })
-      qc.invalidateQueries({ queryKey: ['me'] })
-      frame.current?.contentWindow?.postMessage('konomi:refresh', window.location.origin)
+    // Every switch moves the moment you touch it; the server's answer lands quietly a moment later.
+    onMutate: (patch) => {
+      qc.cancelQueries({ queryKey: ['settings'] })
+      const prev = qc.getQueryData<Settings>(['settings'])
+      if (prev) qc.setQueryData<Settings>(['settings'], { ...prev, ...patch } as Settings)
+      return { prev }
     },
-    onError: (e) => toast({ text: e instanceof ApiError && e.code === 'bad_link' ? 'That link doesn’t look like a web address' : 'Couldn’t save that. Try again' }),
+    // Quick taps send several saves; only the last one to finish refreshes, so no switch flickers back.
+    onSettled: () => {
+      if (qc.isMutating({ mutationKey: ['settings-save'] }) <= 1) profileChanged(qc)
+    },
+    onError: (e, _patch, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['settings'], ctx.prev)
+      toast({ text: e instanceof ApiError && e.code === 'bad_link' ? 'That link doesn’t look like a web address' : 'Couldn’t save that. Try again' })
+    },
   })
 
   useEffect(() => {
@@ -107,7 +140,7 @@ export function SettingsPage() {
     setName(s.display_name); setBio(s.bio); setPronouns(s.pronouns); setLocation(s.location); setFavTitle(s.fav_title)
     setLinks([...s.links, '', '', '', ''].slice(0, 4)); setHillText(s.hill?.text ?? '')
   }, [s])
-  if (!s) return <div className="page" />
+  if (!s) return <PageLoading />
 
   const watched = entries.filter((e) => e.status === 'completed').sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
   const pickable = pickFor === 'hill' ? entries.filter((e) => e.status !== 'planned').sort((a, b) => (b.score ?? 0) - (a.score ?? 0)) : watched
@@ -150,7 +183,7 @@ export function SettingsPage() {
 
       <div className="set-layout">
         <div className="set-main">
-          <Group id="visibility" title="Who can see it">
+          <Group id="visibility" title="Who can see your profile">
             <label className="toggle">
               <input type="checkbox" checked={s.is_public} onChange={(e) => set({ is_public: e.target.checked })} />
               <span className="toggle-ui" aria-hidden="true" />
@@ -161,7 +194,7 @@ export function SettingsPage() {
             </label>
           </Group>
 
-          <Group id="you" title="You">
+          <Group id="you" title="About you" lead="Shown under your name.">
             <div className="set-grid">
               <label className="set-field">
                 <span>Display name</span>
@@ -200,7 +233,7 @@ export function SettingsPage() {
             </div>
           </Group>
 
-          <Group id="look" title="Look">
+          <Group id="look" title="Look" lead="How the top of your profile looks. The preview on the right updates as you go.">
             <Row label="Colour" hint="Used for your name, numbers and headings">
               <div className="accents">
                 {ACCENTS.map((a) => (
@@ -326,7 +359,7 @@ export function SettingsPage() {
             </section>
           )}
 
-          <Group id="layout" title="Sections" lead="Choose what your profile shows, and in what order. Empty sections hide themselves.">
+          <Group id="layout" title="What your profile shows" lead="Turn parts on or off, and use the arrows to change their order. A part with nothing in it stays hidden.">
             <ul className="set-sections">
               {s.sections.map((sec, i) => (
                 <li key={sec.id}>
@@ -334,7 +367,7 @@ export function SettingsPage() {
                     <input type="checkbox" checked={sec.visible}
                       onChange={(e) => set({ sections: s.sections.map((x) => x.id === sec.id ? { ...x, visible: e.target.checked } : x) })} />
                     <span className="toggle-ui" aria-hidden="true" />
-                    <span>{SECTION_LABEL[sec.id] ?? sec.id}</span>
+                    <span className="set-sec-text"><span>{SECTION_LABEL[sec.id] ?? sec.id}</span><span className="faint">{SECTION_NOTE[sec.id]}</span></span>
                   </label>
                   <span className="set-move">
                     <button className="btn btn-ghost" disabled={i === 0} onClick={() => moveSection(i, -1)} aria-label={`Move ${SECTION_LABEL[sec.id]} up`}><Icon name="arrowUp" size={16} /></button>
@@ -345,7 +378,7 @@ export function SettingsPage() {
             </ul>
           </Group>
 
-          <Group id="chart" title="Chart & scores">
+          <Group id="chart" title="Chart & scores" lead="How your list and your numbers appear to visitors.">
             <Row label="Scores" hint={s.scores === 'off' ? 'Visitors see no numbers, and hot takes are hidden' : undefined}>
               <Choice label="Score format" value={s.scores} onChange={(v) => set({ scores: v })}
                 options={[{ id: 'ten', label: '8.7' }, { id: 'hundred', label: '87' }, { id: 'off', label: 'Hidden' }]} />

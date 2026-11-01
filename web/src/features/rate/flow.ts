@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../lib/api'
+import { listChanged } from '../../lib/sync'
 import type { AnimeBrief } from '../../lib/types'
 
 export interface DuelPair {
@@ -31,7 +32,7 @@ export function useRateFlow(anime: AnimeBrief) {
       setPhase(r.next_duel ? { kind: 'duel', pair: r.next_duel, n: 1 } : { kind: 'reveal', score: r.score, predicted: r.predicted })
     } finally {
       setBusy(false)
-      qc.invalidateQueries({ queryKey: ['list'] })
+      listChanged(qc)
     }
   }
 
@@ -46,7 +47,7 @@ export function useRateFlow(anime: AnimeBrief) {
         : { kind: 'reveal', score: r.score ?? null, predicted })
     } finally {
       setBusy(false)
-      qc.invalidateQueries({ queryKey: ['list'] })
+      listChanged(qc)
     }
   }
 
@@ -58,6 +59,7 @@ export function useRateFlow(anime: AnimeBrief) {
 
   async function saveFacets(facets: Record<string, string>) {
     await api(`/api/rate/${anime.id}/facets`, { method: 'POST', json: { facets } })
+    listChanged(qc)
   }
 
   return { phase, busy, chooseTier, answer, skipDuels, saveFacets }

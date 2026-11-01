@@ -15,6 +15,10 @@ function hitToBrief(h: Hit): AnimeBrief {
 
 const TYPE_LABEL: Record<string, string> = { TV: 'TV', MOVIE: 'Movie', ONA: 'ONA', OVA: 'OVA', SPECIAL: 'Special' }
 
+const STATUS_SAID: Record<Status, string> = {
+  completed: 'Marked as watched', watching: 'Marked as watching', planned: 'Saved to watch later', dropped: 'Marked as dropped',
+}
+
 export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'hero'; autoFocus?: boolean }) {
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
@@ -54,7 +58,8 @@ export function QuickAdd({ variant = 'bar', autoFocus }: { variant?: 'bar' | 'he
     }
     setStatus.mutate({ anime, status })
     toast({
-      text: `${h.title_en ?? h.title}: ${STATUS_LABEL[status].toLowerCase()}`,
+      title: h.title_en ?? h.title,
+      text: STATUS_SAID[status],
       action: existing ? undefined : { label: 'Undo', run: () => remove.mutate(h.id) },
     })
     if (status === 'completed') rater.prompt(anime)

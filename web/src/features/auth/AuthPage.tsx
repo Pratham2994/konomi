@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { api, ApiError } from '../../lib/api'
+import { authChanged } from '../../lib/sync'
 import type { Me } from '../../lib/types'
 import './auth.css'
 
@@ -101,6 +102,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
   function signedIn(me: Me) {
     qc.setQueryData(['me'], me)
     qc.invalidateQueries()
+    authChanged()
     nav('/')
   }
 

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from './api'
 import type { AnimeBrief, Entry, Me, Season, Status } from './types'
+import { dropFromProfiles, listChanged, moveInProfiles } from './sync'
 
 export function useMe() {
   return useQuery<Me | null>({
@@ -47,10 +48,11 @@ export function useSetStatus() {
         : { anime_id: anime.id, status, episodes_watched: null, tier: null, score: null, predicted: null,
             facets: {}, source: 'konomi', updated_at: new Date().toISOString(), anime }
       qc.setQueryData<Entry[]>(['list'], [next, ...(prev ?? []).filter((e) => e.anime_id !== anime.id)])
+      moveInProfiles(qc, anime, status)
       return { prev }
     },
     onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(['list'], ctx.prev),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['list'] }),
+    onSettled: () => listChanged(qc),
   })
 }
 
@@ -59,12 +61,14 @@ export function useRemove() {
   return useMutation({
     mutationFn: (animeId: number) => api(`/api/list/${animeId}`, { method: 'DELETE' }),
     onMutate: async (animeId) => {
+      await qc.cancelQueries({ queryKey: ['list'] })
       const prev = qc.getQueryData<Entry[]>(['list'])
       qc.setQueryData<Entry[]>(['list'], (prev ?? []).filter((e) => e.anime_id !== animeId))
+      dropFromProfiles(qc, animeId)
       return { prev }
     },
     onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(['list'], ctx.prev),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['list'] }),
+    onSettled: () => listChanged(qc),
   })
 }
 

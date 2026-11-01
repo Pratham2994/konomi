@@ -3,7 +3,10 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
+import { asked } from '../../lib/ask'
+import { listChanged } from '../../lib/sync'
 import { TIERS } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
@@ -36,7 +39,7 @@ export function RatePage() {
       await fn()
       setAnswered((n) => n + 1)
       await refetch()
-      qc.invalidateQueries({ queryKey: ['list'] })
+      listChanged(qc)
     } finally {
       setBusy(false)
     }
@@ -76,7 +79,7 @@ export function RatePage() {
         <AnimatePresence mode="wait">
           <motion.div key={key} className="rate-q" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}>
-            {isLoading ? null : !q ? (
+            {isLoading ? <PageLoading /> : !q ? (
               <div className="rate-done">
                 <h2 className="display">All caught up</h2>
                 <p className="muted">Add more anime, or walk through a few past seasons.</p>
@@ -89,7 +92,7 @@ export function RatePage() {
               <div className="rate-tier">
                 <div className="rate-cover"><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></div>
                 <div className="rate-tier-side">
-                  <h2 className="display rate-ask">How was <span className="rate-name">{q.anime.title_en ?? q.anime.title}</span>?</h2>
+                  <h2 className="display rate-ask">How was <span className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</span>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
                   <div className="rp-tiers">
                     {TIERS.map((t, i) => (
                       <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={busy}

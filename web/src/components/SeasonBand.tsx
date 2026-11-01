@@ -21,8 +21,9 @@ export function SeasonBand({ season, year, count, children, aside, label, neutra
       <header className="band-head">
         {!neutral && season && <span className="band-kanji display" aria-hidden="true">{SEASON_KANJI[season]}</span>}
         <h2 className="band-title">
-          <span className="display">{label ?? (season ? SEASON_LABEL[season] : 'Unknown season')}</span>
-          {!label && year && <span className="band-year display">{year}</span>}
+          {/* Films and specials have a year but no season: the year alone says it. */}
+          <span className="display">{label ?? (season ? SEASON_LABEL[season] : year ?? 'Date unknown')}</span>
+          {!label && season && year && <span className="band-year display">{year}</span>}
         </h2>
         {count && <span className="band-count">{count}</span>}
         {aside && <span className="band-aside">{aside}</span>}

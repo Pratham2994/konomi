@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { ApiError } from '../../lib/api'
+import { listChanged } from '../../lib/sync'
 
 interface Result { added: number; skipped: number; unmatched: number }
 
@@ -30,7 +31,7 @@ export function ImportPanel() {
       const body = await r.json()
       if (!r.ok) throw new ApiError(r.status, body?.detail?.code ?? `http_${r.status}`, body?.detail)
       setRes(body)
-      qc.invalidateQueries()
+      listChanged(qc)
     } catch (e) {
       setErr(e instanceof ApiError ? (ERR[e.code] ?? 'Import failed. Try again.') : 'Import failed. Try again.')
     } finally {

@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '../features/auth/AuthPage'
@@ -11,6 +12,7 @@ import { RatePage } from '../features/rate/RatePage'
 import { SweepPage } from '../features/add/SweepPage'
 import TastePage from '../features/taste/TastePage'
 import { useMe } from '../lib/hooks'
+import { listenForChanges } from '../lib/sync'
 import { Layout } from './Layout'
 
 
@@ -42,6 +44,8 @@ function useSplash(ready: boolean) {
 }
 
 export function App() {
+  const qc = useQueryClient()
+  useEffect(() => listenForChanges(qc), [qc])
   const { isLoading } = useMe()
   useSplash(!isLoading)
   return (

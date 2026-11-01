@@ -133,7 +133,11 @@
 .drops .tile-title { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--bad); }
 .drops .tile:hover .cover-art { filter: none; }
 
-.shell-preview .prof-head-inner { padding-top: var(--s6); }
+.in-preview { scrollbar-width: none; }
+.in-preview::-webkit-scrollbar { display: none; }
+.shell-preview .prof .prof-head-inner { padding-top: var(--s6); padding-bottom: var(--s4); }
+.shell-preview .prof-body { padding-top: 0; padding-bottom: var(--s6); }
+.shell-preview .prof-sec { margin-top: var(--s6); }
 .favs-even li:first-child .tile-title, .favs-podium li:first-child .tile-title { font-size: inherit; }
 @media (max-width: 720px) {
   .head-poster .prof-head { min-height: 0; }

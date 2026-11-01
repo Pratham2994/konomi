@@ -4,6 +4,8 @@ import './toast.css'
 
 interface ToastItem {
   id: number
+  /** Shown in bold above the text, e.g. the anime it is about. */
+  title?: string
   text: string
   action?: { label: string; run: () => void }
 }
@@ -27,7 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div key={t.id} className="toast" layout initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
               transition={{ type: 'spring', stiffness: 500, damping: 34 }}>
-              <span>{t.text}</span>
+              <span className="toast-text">{t.title && <strong>{t.title}</strong>}<span>{t.text}</span></span>
               {t.action && (
                 <button className="toast-action" onClick={() => {
                   t.action!.run()

@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } fr
 import { Icon } from '../components/Icon'
 import { morph } from '../components/VtLink'
 import { galaxyQuery, loadGalaxy } from '../features/taste/preload'
+import { authChanged } from '../lib/sync'
 import { QuickAdd } from '../features/add/QuickAdd'
 import { api } from '../lib/api'
 import { currentSeason, useMe } from '../lib/hooks'
@@ -83,12 +84,29 @@ export function Layout() {
     main.current?.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
       { duration: 360, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' })
   }, [pathname])
+  const preview = new URLSearchParams(search).has('preview')
+  // Inside the Customise preview, links open in the main app: the frame always stays your profile.
+  useEffect(() => {
+    if (!preview) return
+    const root = document.documentElement
+    root.classList.add('in-preview')
+    const on = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]')
+      if (!a || a.origin !== window.location.origin) return
+      e.preventDefault()
+      e.stopPropagation()
+      window.parent.postMessage({ type: 'konomi:open', to: a.pathname + a.search }, window.location.origin)
+    }
+    document.addEventListener('click', on, true)
+    return () => { document.removeEventListener('click', on, true); root.classList.remove('in-preview') }
+  }, [preview])
   // Customise shows the profile in a small frame: no app chrome there.
-  if (new URLSearchParams(search).has('preview')) return <div className="shell shell-preview" data-season={season}><Outlet /></div>
+  if (preview) return <div className="shell shell-preview" data-season={season}><Outlet /></div>
 
   async function logout() {
     await api('/api/auth/logout', { method: 'POST' })
     qc.clear()
+    authChanged()
     nav('/')
   }
 

@@ -1,0 +1,5 @@
+.page-loading { min-height: 60vh; display: grid; place-items: center; }
+.page-loading-mark { font-size: 40px; color: var(--season); animation: pl-breathe 1.4s ease-in-out infinite, pl-in 0.3s ease-out both; }
+@keyframes pl-breathe { 50% { opacity: 0.35; transform: scale(0.94); } }
+@keyframes pl-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .page-loading-mark { animation: none; } }

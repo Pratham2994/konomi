@@ -15,3 +15,6 @@
   border: 0; background: var(--ink); color: var(--paper); font-weight: 700;
   border-radius: var(--r-pill); padding: 8px 14px; min-height: 36px;
 }
+.toast-text { display: grid; gap: 1px; min-width: 0; }
+.toast-text strong { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast-text strong + span { font-size: 14px; color: color-mix(in oklab, var(--ink) 70%, var(--paper)); }

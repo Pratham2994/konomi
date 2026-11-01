@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { BackButton } from '../../components/BackButton'
 import { Cover } from '../../components/Cover'
 import { ScoreRail } from '../../components/ScoreRail'
+import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
 import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemove, useSetStatus } from '../../lib/hooks'
 import type { AnimeDetail, Status } from '../../lib/types'
@@ -46,7 +47,7 @@ export function AnimePage() {
       </div>
     )
   }
-  if (!a) return <div className="page" />
+  if (!a) return <PageLoading />
 
   const entry = onList.get(a.id)
   const name = a.title_en ?? a.title

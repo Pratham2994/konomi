@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { useToast } from '../../components/Toast'
+import { PageLoading } from '../../components/PageLoading'
 import { api, ApiError } from '../../lib/api'
 import { SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
 import type { AnimeBrief, Season, Status } from '../../lib/types'
@@ -117,17 +118,9 @@ export function ProfilePage() {
   const toast = useToast()
   const preview = useSearchParams()[0].has('preview')
   const [picked, setTab] = useState<Status | null>(null)
-  const { data: p, error, isLoading, refetch } = useQuery({
+  const { data: p, error, isLoading } = useQuery({
     queryKey: ['profile', username], queryFn: () => api<Profile>(`/api/u/${username}`), retry: false,
   })
-
-  // Customise shows this page in a frame and asks it to reload after each change.
-  useEffect(() => {
-    if (!preview) return
-    const on = (e: MessageEvent) => { if (e.origin === window.location.origin && e.data === 'konomi:refresh') refetch() }
-    window.addEventListener('message', on)
-    return () => window.removeEventListener('message', on)
-  }, [preview, refetch])
 
   const lists = p?.look.chart_lists ?? []
   const tab: Status = picked && lists.includes(picked) ? picked : lists.includes(p?.look.chart_tab ?? 'completed') ? p!.look.chart_tab : lists[0] ?? 'completed'
@@ -153,7 +146,7 @@ export function ProfilePage() {
     return [...m.values()].sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || rank(b.season) - rank(a.season))
   }, [p, tab, group])
 
-  if (isLoading) return <div className="page" />
+  if (isLoading) return <PageLoading />
   if (error || !p) {
     const missing = error instanceof ApiError && error.status === 404
     return (

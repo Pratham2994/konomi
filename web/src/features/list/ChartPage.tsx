@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { VtLink } from '../../components/VtLink'
 import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
+import { PageLoading } from '../../components/PageLoading'
 import { SEASON_ORDER, STATUS_LABEL, useList } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
 import './chart.css'
@@ -50,7 +51,7 @@ export function ChartPage() {
   const hours = useMemo(() => Math.round(entries.filter((e) => e.status === 'completed')
     .reduce((s, e) => s + (e.anime.episodes ?? 1) * (e.anime.duration_s ?? 1440), 0) / 3600), [entries])
 
-  if (isLoading) return <div className="page" />
+  if (isLoading) return <PageLoading />
 
   if (entries.length === 0) {
     return (

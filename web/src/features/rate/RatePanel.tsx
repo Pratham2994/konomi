@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { ScoreRail } from '../../components/ScoreRail'
-import { TIERS } from '../../lib/hooks'
+import { asked } from '../../lib/ask'
+import { TIERS, useList } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { Duel } from './Duel'
 import { useRateFlow } from './flow'
@@ -19,6 +20,16 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
   const flow = useRateFlow(anime)
   const [facets, setFacets] = useState<Record<string, string>>({})
   const name = anime.title_en ?? anime.title
+  const { data: list } = useList()
+  const onChart = list?.find((e) => e.anime_id === anime.id)
+
+  // Removed, undone, or moved off "watched" somewhere else: there is nothing left to rate, so the panel goes too.
+  // Only after the title was seen as watched, because a fresh add reaches the list a moment after the panel opens.
+  const seen = useRef(false)
+  useEffect(() => {
+    if (onChart?.status === 'completed') seen.current = true
+    else if (seen.current && list) onClose()
+  }, [list, onChart, onClose])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,7 +56,7 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
       <header className="rp-head">
         <Cover id={anime.id} title={anime.title} src={anime.thumbnail} color={anime.color} size="s" status="completed" animateMark />
         <h2 className="rp-sub">
-          {flow.phase.kind === 'tier' && <>How was <span className="rp-name">{name}</span>?</>}
+          {flow.phase.kind === 'tier' && <>How was <span className="rp-name">{asked(name)[0]}</span>{asked(name)[1]}</>}
           {flow.phase.kind === 'duel' && <>Which did you enjoy more? <span className="rp-step">Question {flow.phase.n} of up to 6</span></>}
           {flow.phase.kind === 'reveal' && <><span className="rp-name">{name}</span> is on your chart</>}
         </h2>
