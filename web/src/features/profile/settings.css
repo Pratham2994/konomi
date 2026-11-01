@@ -126,3 +126,35 @@
 @keyframes sheet-fade { from { opacity: 0; } }
 @keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sheet-back, .sheet { animation: none; } }
+
+/* One-tap looks: each card is a tiny drawing of the header it gives you. */
+.set-themes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s3); }
+@media (max-width: 720px) { .set-themes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.set-theme { display: grid; gap: 2px; padding: 10px 10px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--ink-2); text-align: left; font-size: 14px; transition: border-color 0.2s, transform 0.2s var(--ease-out); }
+.set-theme:hover { transform: translateY(-2px); }
+.set-theme .faint { font-size: 12px; }
+.set-theme.is-on { border-color: var(--season); box-shadow: inset 0 0 0 1px var(--season); }
+.set-theme-art { position: relative; display: block; height: 84px; border-radius: 10px; margin-bottom: 8px; overflow: hidden; background: var(--ink-3); }
+.set-theme-art i { position: absolute; left: 10px; bottom: 12px; width: 22px; height: 22px; border-radius: 50%; background: var(--season); }
+.set-theme-art b { position: absolute; left: 38px; bottom: 22px; width: 44%; height: 10px; border-radius: 3px; background: var(--paper); }
+.set-theme-art em { position: absolute; left: 38px; bottom: 12px; width: 28%; height: 5px; border-radius: 3px; background: var(--paper-3); }
+.theme-soft .set-theme-art { background: linear-gradient(160deg, color-mix(in oklab, var(--season) 45%, var(--ink-3)), var(--ink-2)); }
+.theme-poster .set-theme-art { background: linear-gradient(to right, var(--ink-2) 55%, transparent), linear-gradient(120deg, var(--winter), var(--spring) 55%, var(--summer)); }
+.theme-poster .set-theme-art::after { content: ''; position: absolute; right: 10px; top: 10px; bottom: 10px; width: 30%; border-radius: 6px; background: linear-gradient(160deg, var(--spring), var(--winter)); transform: rotate(3deg); }
+.theme-ink .set-theme-art { background: var(--season); }
+.theme-ink .set-theme-art i { background: var(--ink); }
+.theme-ink .set-theme-art b { background: var(--ink); }
+.theme-ink .set-theme-art em { background: rgb(13 12 18 / 0.45); }
+.theme-quiet .set-theme-art { background: var(--ink); border: 1px solid var(--line); }
+.theme-quiet .set-theme-art i { display: none; }
+.theme-quiet .set-theme-art b, .theme-quiet .set-theme-art em { left: 10px; }
+.theme-quiet .set-theme-art b { height: 8px; }
+
+/* Rarely needed options fold away. */
+.set-more { border: 1px solid var(--line); border-radius: 16px; background: var(--ink-2); }
+.set-more > summary { cursor: pointer; list-style: none; padding: 14px 18px; font-weight: 700; font-size: 14px; color: var(--paper-2); display: flex; justify-content: space-between; align-items: center; }
+.set-more > summary::-webkit-details-marker { display: none; }
+.set-more > summary::after { content: '+'; font-size: 20px; line-height: 1; color: var(--paper-3); transition: transform 0.2s; }
+.set-more[open] > summary::after { transform: rotate(45deg); }
+.set-more > summary:hover { color: var(--paper); }
+.set-more-body { display: grid; gap: var(--s5); padding: var(--s2) 18px 18px; }

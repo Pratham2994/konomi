@@ -47,6 +47,14 @@ const HEADERS = [
   { id: 'ink', label: 'Solid ink', note: 'A block of your colour' },
   { id: 'plain', label: 'Plain', note: 'No banner at all' },
 ] as const
+/** Complete looks in one tap. Fine-tune below changes any single part. */
+const THEMES = [
+  { id: 'soft', label: 'Soft', note: 'Blurred art, big name', look: { header: 'art', avatar: 'initial', name_style: 'poster', fav_layout: 'hero', fan: true } },
+  { id: 'poster', label: 'Poster', note: 'Your banner art, sharp', look: { header: 'poster', avatar: 'cover', name_style: 'poster', fav_layout: 'podium', fan: false } },
+  { id: 'ink', label: 'Bold ink', note: 'A block of colour', look: { header: 'ink', avatar: 'initial', name_style: 'poster', fav_layout: 'hero', fan: true } },
+  { id: 'quiet', label: 'Quiet', note: 'Plain and calm', look: { header: 'plain', avatar: 'none', name_style: 'quiet', fav_layout: 'even', fan: false } },
+] as const
+
 const STATS = [
   { id: 'hours', label: 'Hours watched' }, { id: 'watching', label: 'Watching now count' },
   { id: 'studio', label: 'Top studio' }, { id: 'track', label: 'How well Konomi guesses you' },
@@ -214,6 +222,16 @@ export function SettingsPage() {
                 <input className="field" value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
                   onBlur={() => name.trim() && name.trim() !== s.display_name && set({ display_name: name.trim() })} />
               </label>
+              <label className="set-field set-span">
+                <span>Bio <em className="faint">{bio.length}/160</em></span>
+                <textarea className="field set-bio" value={bio} maxLength={160} rows={3} onChange={(e) => setBio(e.target.value)}
+                  onBlur={() => bio !== s.bio && set({ bio })} placeholder="What do you watch for?" />
+              </label>
+            </div>
+            <details className="set-more" open={!!(s.pronouns || s.location || s.links.length) || undefined}>
+              <summary>More about you: pronouns, location, links</summary>
+              <div className="set-more-body">
+            <div className="set-grid">
               <label className="set-field">
                 <span>Pronouns <em className="faint">optional</em></span>
                 <input className="field" value={pronouns} maxLength={24} placeholder="they/them"
@@ -223,11 +241,6 @@ export function SettingsPage() {
                 <span>Location <em className="faint">optional</em></span>
                 <input className="field" value={location} maxLength={40} placeholder="Mumbai"
                   onChange={(e) => setLocation(e.target.value)} onBlur={blurSave('location', location, s.location)} />
-              </label>
-              <label className="set-field set-span">
-                <span>Bio <em className="faint">{bio.length}/160</em></span>
-                <textarea className="field set-bio" value={bio} maxLength={160} rows={3} onChange={(e) => setBio(e.target.value)}
-                  onBlur={() => bio !== s.bio && set({ bio })} placeholder="What do you watch for?" />
               </label>
             </div>
             <div className="set-field">
@@ -244,9 +257,24 @@ export function SettingsPage() {
                 ))}
               </div>
             </div>
+              </div>
+            </details>
           </Group>
 
-          <Group id="look" title="Look" lead="How the top of your profile looks. The preview on the right updates as you go.">
+          <Group id="look" title="Look" lead="Pick a look, then a colour. The preview on the right updates as you go.">
+            <div className="set-themes" role="radiogroup" aria-label="Look">
+              {THEMES.map((t) => {
+                const on = Object.entries(t.look).every(([k, v]) => s[k as keyof Settings] === v)
+                return (
+                  <button key={t.id} role="radio" aria-checked={on} className={`set-theme theme-${t.id}${on ? ' is-on' : ''}`}
+                    onClick={() => set(t.look as Partial<Settings>)}>
+                    <span className="set-theme-art" aria-hidden="true"><i /><b /><em /></span>
+                    <strong>{t.label}</strong>
+                    <span className="faint">{t.note}</span>
+                  </button>
+                )
+              })}
+            </div>
             <Row label="Colour" hint="Used for your name, numbers and headings">
               <div className="accents">
                 {ACCENTS.map((a) => (
@@ -257,6 +285,9 @@ export function SettingsPage() {
                 ))}
               </div>
             </Row>
+            <details className="set-more">
+              <summary>Fine-tune: header, banner, picture, name and numbers</summary>
+              <div className="set-more-body">
             <Row label="Header">
               <div className="set-cards" role="radiogroup" aria-label="Header style">
                 {HEADERS.map((h) => (
@@ -308,17 +339,11 @@ export function SettingsPage() {
                 ))}
               </div>
             </Row>
+              </div>
+            </details>
           </Group>
 
           <Group id="favs" title="Favourites" lead="In order. Leave empty and Konomi shows your highest scores.">
-            <Row label="Heading">
-              <input className="field set-short" value={favTitle} maxLength={32} placeholder="All-time favourites"
-                onChange={(e) => setFavTitle(e.target.value)} onBlur={blurSave('fav_title', favTitle, s.fav_title)} />
-            </Row>
-            <Row label="Layout">
-              <Choice label="Favourites layout" value={s.fav_layout} onChange={(v) => set({ fav_layout: v })}
-                options={[{ id: 'hero', label: 'Number one big' }, { id: 'podium', label: 'Top three big' }, { id: 'even', label: 'All equal' }]} />
-            </Row>
             <div className="set-favs">
               {s.favourites.map((id, i) => byId.get(id) && (
                 <button key={id} className="set-fav" onClick={() => toggleFav(id)} aria-label={`Remove ${byId.get(id)!.anime.title}`}>
@@ -327,9 +352,22 @@ export function SettingsPage() {
                 </button>
               ))}
               <button className="btn" onClick={() => setPickFor(pickFor === 'favourites' ? null : 'favourites')}>
-                <Icon name="plus" size={18} /> {s.favourites.length}/10 · Pick favourites
+                <Icon name="plus" size={18} /> {s.favourites.length ? `Edit favourites (${s.favourites.length}/10)` : 'Pick favourites (now your top scores)'}
               </button>
             </div>
+            <details className="set-more">
+              <summary>Heading and layout</summary>
+              <div className="set-more-body">
+            <Row label="Heading" hint="Optional">
+              <input className="field set-short" value={favTitle} maxLength={32} placeholder="All-time favourites"
+                onChange={(e) => setFavTitle(e.target.value)} onBlur={blurSave('fav_title', favTitle, s.fav_title)} />
+            </Row>
+            <Row label="Layout">
+              <Choice label="Favourites layout" value={s.fav_layout} onChange={(v) => set({ fav_layout: v })}
+                options={[{ id: 'hero', label: 'Number one big' }, { id: 'podium', label: 'Top three big' }, { id: 'even', label: 'All equal' }]} />
+            </Row>
+              </div>
+            </details>
           </Group>
 
           <Group id="hill" title="The hill I’ll die on" lead="Pin one opinion to your profile: a title and one line about why.">
@@ -396,6 +434,9 @@ export function SettingsPage() {
           </Group>
 
           <Group id="chart" title="Chart & scores" lead="How your list and your numbers appear to visitors.">
+            <details className="set-more">
+              <summary>Scores, grouping and which lists visitors see</summary>
+              <div className="set-more-body">
             <Row label="Scores" hint={s.scores === 'off' ? 'Visitors see no numbers, and hot takes are hidden' : undefined}>
               <Choice label="Score format" value={s.scores} onChange={(v) => set({ scores: v })}
                 options={[{ id: 'ten', label: '8.7' }, { id: 'hundred', label: '87' }, { id: 'off', label: 'Hidden' }]} />
@@ -424,6 +465,8 @@ export function SettingsPage() {
               <Choice label="Default list" value={s.chart_tab} onChange={(v) => set({ chart_tab: v })}
                 options={ALL_LISTS.filter((x) => s.chart_lists.includes(x)).map((x) => ({ id: x, label: STATUS_LABEL[x] }))} />
             </Row>
+              </div>
+            </details>
           </Group>
 
           <Group id="import" title="Bring your list over" lead="From MyAnimeList (Profile → Export → Anime list) or a public AniList profile. Nothing already on your chart is changed.">
