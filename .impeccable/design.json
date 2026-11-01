@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-01T00:00:00Z",
+  "title": "Design System: Konomi",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "Night Ink", "canonical": "oklch(15.9% 0.013 292.5)", "tonalRamp": ["#0b0a10","#26252c","#45444b","#66656d","#898890","#aeadb5","#d1d0d9","#eeedf7"] },
+      "ink-2": { "role": "neutral", "displayName": "Raised Ink", "canonical": "oklch(19.3% 0.018 294.8)", "tonalRamp": ["#0c0a12","#27252f","#45434e","#666470","#8a8793","#aeacb9","#d1cfdc","#efecfa"] },
+      "ink-3": { "role": "neutral", "displayName": "Control Ink", "canonical": "oklch(23.1% 0.023 296.0)", "tonalRamp": ["#0c0914","#272431","#464350","#676472","#8a8796","#afabbb","#d2cedf","#efecfd"] },
+      "ink-4": { "role": "neutral", "displayName": "Hover Ink", "canonical": "oklch(28.0% 0.028 296.8)", "tonalRamp": ["#0c0915","#282433","#464252","#676374","#8a8698","#afabbe","#d2cee2","#f0ebff"] },
+      "line": { "role": "neutral", "displayName": "Rule Line", "canonical": "oklch(30.0% 0.029 296.1)", "tonalRamp": ["#0c0816","#282433","#464253","#676375","#8a8699","#afabbf","#d2cee2","#f0ebff"] },
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "oklch(95.9% 0.010 87.5)", "tonalRamp": ["#0d0b07","#282621","#47453f","#686660","#8c8983","#b0aea7","#d4d1ca","#f1eee7"] },
+      "paper-2": { "role": "neutral", "displayName": "Soft Paper", "canonical": "oklch(83.0% 0.025 298.5)", "tonalRamp": ["#0d0914","#282431","#474251","#686373","#8b8697","#b0abbc","#d3cee0","#f0ebfe"] },
+      "paper-3": { "role": "neutral", "displayName": "Faint Paper", "canonical": "oklch(64.4% 0.039 295.9)", "tonalRamp": ["#0d0719","#282237","#474158","#68627a","#8b859f","#b0a9c4","#d3cce8","#f0eaff"] },
+      "spring": { "role": "primary", "displayName": "Sakura Spring", "canonical": "oklch(74.4% 0.166 3.0)", "tonalRamp": ["#260007","#500021","#7d103d","#ad2e5d","#d7567f","#fd80a4","#ffaac8","#ffcee7"] },
+      "summer": { "role": "primary", "displayName": "Sun Summer", "canonical": "oklch(84.8% 0.156 82.4)", "tonalRamp": ["#1d0300","#411b00","#693800","#915900","#b77d00","#dda30c","#fbc965","#ffe895"] },
+      "fall": { "role": "primary", "displayName": "Persimmon Fall", "canonical": "oklch(71.6% 0.183 39.7)", "tonalRamp": ["#290000","#540000","#821400","#b33200","#e0571f","#ff8559","#ffaf89","#ffd2b0"] },
+      "winter": { "role": "primary", "displayName": "Ice Winter", "canonical": "oklch(79.2% 0.123 235.8)", "tonalRamp": ["#000c27","#002a51","#004c7d","#006fa2","#2793c9","#55b9f1","#7fddff","#acfaff"] },
+      "good": { "role": "status", "displayName": "Good", "canonical": "oklch(84.5% 0.119 153.8)", "tonalRamp": ["#001300","#00330b","#005624","#197945","#469e67","#6dc48b","#92e7ae","#bbffd1"] },
+      "bad": { "role": "status", "displayName": "Bad", "canonical": "oklch(71.2% 0.181 22.8)", "tonalRamp": ["#290000","#540004","#830a1a","#b52a33","#e25053","#ff7f7d","#ffaaa6","#ffcec8"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles, landing hero, galaxy title, profile names." },
+      "headline": { "displayName": "Headline", "purpose": "Section heads on Taste and Profile, usually in the season ink." },
+      "title": { "displayName": "Band Title", "purpose": "Season and year inside a season band head." },
+      "numeral": { "displayName": "Numeral", "purpose": "Scores, guesses, ranks and counts; always the display face." },
+      "body": { "displayName": "Body", "purpose": "Running text, 16px/1.5, tabular numerals." },
+      "tile-title": { "displayName": "Tile Title", "purpose": "Cover captions, clamped to two lines." },
+      "label": { "displayName": "Label", "purpose": "Nav, chips, segments, meta and rail labels; bold sentence case, untracked." }
+    },
+    "shadows": [
+      { "name": "cover-lift", "value": "0 10px 30px -12px rgb(0 0 0 / 0.7), 0 2px 6px -2px rgb(0 0 0 / 0.5)", "purpose": "Every cover and the duel vs disc." },
+      { "name": "obi", "value": "0 2px 6px rgb(0 0 0 / 0.45)", "purpose": "The paper score strip on a cover." },
+      { "name": "popover", "value": "0 24px 60px -20px rgb(0 0 0 / 0.9)", "purpose": "Quick-add results and the account menu." },
+      { "name": "sheet", "value": "0 30px 80px -20px rgb(0 0 0 / 0.95)", "purpose": "The floating rate panel." },
+      { "name": "toast", "value": "0 16px 40px -12px rgb(0 0 0 / 0.8)", "purpose": "Toasts and the galaxy hover card." },
+      { "name": "pen", "value": "drop-shadow(0 1px 1px rgb(0 0 0 / 0.6))", "purpose": "Filter on hand marks for legibility over art." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default curve for marks, lifts, presses and transitions." },
+      { "name": "mark-draw", "value": "stroke-dashoffset 1 to 0, 0.7s ease-out", "purpose": "The pen mark draws itself when a title is marked." },
+      { "name": "mark-fade", "value": "opacity 0 to 1, 0.4s ease-out", "purpose": "Dotted planned ring appears." },
+      { "name": "lift", "value": "translateY(-3px), 0.25s ease-out", "purpose": "Cover and duel side hover." },
+      { "name": "press", "value": "scale(0.97), 0.2s ease-out", "purpose": "Button press." },
+      { "name": "reduced-motion", "value": "durations 0.01ms", "purpose": "Global prefers-reduced-motion override." }
+    ],
+    "breakpoints": [
+      { "name": "xs", "value": "380px" },
+      { "name": "phone", "value": "700px" },
+      { "name": "nav", "value": "900px" },
+      { "name": "fan", "value": "1100px" },
+      { "name": "rail", "value": "1280px" },
+      { "name": "wide", "value": "1920px" },
+      { "name": "max", "value": "2200px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default pill button on Control Ink.",
+      "html": "<button class=\"ds-btn\">Season walk</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 24px; border-radius:999px; border:1px solid var(--line, #2f2b3b); background:var(--ink-3, #1e1b27); color:var(--paper, #f4f1ea); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; font-weight:700; transition:background .2s cubic-bezier(0.16,1,0.3,1), transform .2s cubic-bezier(0.16,1,0.3,1), border-color .2s; cursor:pointer; } .ds-btn:hover { background:var(--ink-4, #2a2635); border-color:var(--paper-3, #8f89a3); } .ds-btn:active { transform:scale(0.97); } .ds-btn:focus-visible { outline:2px solid var(--season, #ff7aa2); outline-offset:3px; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Season-ink pill for the main action of a context.",
+      "html": "<button class=\"ds-btn-primary\">Rate now</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 24px; border-radius:999px; border:1px solid transparent; background:var(--season, #ff7aa2); color:var(--ink, #0d0c12); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; font-weight:700; transition:transform .2s cubic-bezier(0.16,1,0.3,1), filter .2s; cursor:pointer; } .ds-btn-primary:hover { filter:brightness(1.08); } .ds-btn-primary:active { transform:scale(0.97); } .ds-btn-primary:focus-visible { outline:2px solid var(--season, #ff7aa2); outline-offset:3px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Transparent pill for secondary actions.",
+      "html": "<button class=\"ds-btn-ghost\">Later</button>",
+      "css": ".ds-btn-ghost { display:inline-flex; align-items:center; min-height:44px; padding:0 24px; border-radius:999px; border:1px solid transparent; background:transparent; color:var(--paper, #f4f1ea); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; font-weight:700; transition:background .2s; cursor:pointer; } .ds-btn-ghost:hover { background:var(--ink-3, #1e1b27); } .ds-btn-ghost:focus-visible { outline:2px solid var(--season, #ff7aa2); outline-offset:3px; }"
+    },
+    {
+      "name": "Quick Add",
+      "kind": "input",
+      "refersTo": "quick-add",
+      "description": "Pill search field that adds a title in one keystroke.",
+      "html": "<label class=\"ds-qa\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.2-4.2\"/></svg><input placeholder=\"Add an anime you've watched…\"><kbd class=\"ds-kbd\">/</kbd></label>",
+      "css": ".ds-qa { display:flex; align-items:center; gap:12px; width:420px; height:44px; padding:0 12px 0 16px; background:var(--ink-2, #15131c); border:1px solid var(--line, #2f2b3b); border-radius:999px; color:var(--paper-3, #8f89a3); transition:border-color .2s, background .2s; } .ds-qa:focus-within { border-color:var(--season, #ff7aa2); background:var(--ink-3, #1e1b27); color:var(--paper, #f4f1ea); } .ds-qa input { flex:1; min-width:0; border:0; background:transparent; outline:none; font:inherit; font-size:16px; color:var(--paper, #f4f1ea); } .ds-qa input::placeholder { color:var(--paper-3, #8f89a3); } .ds-kbd { font-size:12px; line-height:1; padding:4px 7px; border:1px solid var(--line, #2f2b3b); border-bottom-width:2px; border-radius:6px; color:var(--paper-2, #c9c4d6); }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "segment-on",
+      "description": "Pill track of filters; the selected option flips to Paper.",
+      "html": "<div class=\"ds-seg\"><button class=\"is-on\">All <span>18</span></button><button>Watched <span>18</span></button><button>Dropped <span>0</span></button></div>",
+      "css": ".ds-seg { display:inline-flex; gap:4px; padding:4px; border-radius:999px; background:var(--ink-2, #15131c); border:1px solid var(--line, #2f2b3b); } .ds-seg button { min-height:36px; padding:0 14px; border:0; border-radius:999px; background:transparent; color:var(--paper-2, #c9c4d6); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; font-weight:700; font-size:14px; cursor:pointer; } .ds-seg button span { font-weight:400; opacity:.7; } .ds-seg button:hover { color:var(--paper, #f4f1ea); } .ds-seg button.is-on { background:var(--paper, #f4f1ea); color:var(--ink, #0d0c12); } .ds-seg button:focus-visible { outline:2px solid var(--season, #ff7aa2); outline-offset:3px; }"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "description": "Kanji mark, text links in Soft Paper, active link with a season-ink underline.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-brand\"><b>好み</b> Konomi</span><a class=\"active\">Chart</a><a>Season walk</a><a>Rate <i>5</i></a><a>Taste</a></nav>",
+      "css": ".ds-nav { display:flex; align-items:center; gap:4px; height:64px; padding:0 24px; background:var(--ink, #0d0c12); border-bottom:1px solid var(--line, #2f2b3b); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; } .ds-brand { margin-right:auto; font-weight:700; color:var(--paper, #f4f1ea); } .ds-brand b { font-family:'Dela Gothic One', sans-serif; font-weight:400; font-size:24px; color:var(--season, #ff7aa2); } .ds-nav a { position:relative; padding:8px 14px; border-radius:999px; color:var(--paper-2, #c9c4d6); font-weight:700; font-size:15px; cursor:pointer; transition:color .15s, background .15s; } .ds-nav a:hover { color:var(--paper, #f4f1ea); background:var(--ink-3, #1e1b27); } .ds-nav a.active { color:var(--paper, #f4f1ea); } .ds-nav a.active::after { content:''; position:absolute; left:14px; right:14px; bottom:2px; height:2px; border-radius:2px; background:var(--season, #ff7aa2); } .ds-nav a i { display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px; margin-left:6px; border-radius:999px; background:var(--season, #ff7aa2); color:var(--ink, #0d0c12); font-size:11px; font-style:normal; }"
+    },
+    {
+      "name": "Cover Tile with Mark and Obi",
+      "kind": "card",
+      "refersTo": "obi",
+      "description": "5:7 cover, hand-drawn completed circle in the season ink, paper obi carrying the score.",
+      "html": "<a class=\"ds-tile\"><div class=\"ds-cover\"><div class=\"ds-art\">F</div><svg class=\"ds-mark\" viewBox=\"0 0 100 140\" preserveAspectRatio=\"none\" style=\"transform:rotate(-3deg)\"><path pathLength=\"1\" d=\"M18 22c20-16 58-14 70 8 12 22 8 70-6 88-15 19-52 17-64-6C6 90 4 50 14 30c6-11 18-18 30-19\"/></svg><span class=\"ds-obi\"><span>8.2</span></span></div><span class=\"ds-tile-title\">Frieren: Beyond Journey's End</span></a>",
+      "css": ".ds-tile { display:grid; gap:8px; width:150px; text-decoration:none; color:var(--paper, #f4f1ea); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; cursor:pointer; } .ds-cover { position:relative; aspect-ratio:5/7; } .ds-art { position:absolute; inset:0; display:grid; place-items:center; border-radius:6px; background:color-mix(in oklab, #4a7a6a 45%, #1e1b27); box-shadow:0 10px 30px -12px rgb(0 0 0 / .7), 0 2px 6px -2px rgb(0 0 0 / .5); font-family:'Dela Gothic One', sans-serif; font-size:2rem; transition:transform .25s cubic-bezier(0.16,1,0.3,1); } .ds-tile:hover .ds-art { transform:translateY(-3px); } .ds-mark { position:absolute; inset:-7% -9%; width:118%; height:114%; overflow:visible; fill:none; stroke:var(--season, #ff7340); stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 1px 1px rgb(0 0 0 / .6)); pointer-events:none; } .ds-mark path { stroke-dasharray:1; animation:ds-draw .7s cubic-bezier(0.16,1,0.3,1) both; } @keyframes ds-draw { from { stroke-dashoffset:1; } to { stroke-dashoffset:0; } } .ds-obi { position:absolute; z-index:2; left:-3px; right:-3px; bottom:9%; display:flex; align-items:center; padding:2px 8px; background:var(--paper, #f4f1ea); color:var(--ink, #0d0c12); box-shadow:0 2px 6px rgb(0 0 0 / .45); } .ds-obi::before { content:''; width:7px; height:7px; margin-right:auto; border-radius:50%; background:var(--season, #ff7340); } .ds-obi span { font-family:'Dela Gothic One', sans-serif; font-size:1rem; line-height:1.2; } .ds-tile-title { font-size:13px; font-weight:700; line-height:1.3; }"
+    },
+    {
+      "name": "Season Band Head",
+      "kind": "custom",
+      "refersTo": "season-band-head",
+      "description": "Solid season-ink slab with season, year, count and a kanji watermark.",
+      "html": "<div class=\"ds-band\"><span class=\"ds-band-title\">Fall 2023</span><span class=\"ds-band-count\">6</span><span class=\"ds-band-kanji\">秋</span></div>",
+      "css": ".ds-band { position:relative; overflow:hidden; display:flex; align-items:center; gap:12px; min-height:56px; padding:8px 16px; background:var(--fall, #ff7340); color:var(--ink, #0d0c12); border-radius:4px; font-family:'Zen Kaku Gothic New', system-ui, sans-serif; } .ds-band-title { font-family:'Dela Gothic One', sans-serif; font-size:32px; line-height:1.1; } .ds-band-count { font-size:14px; font-weight:700; color:color-mix(in oklab, #0d0c12 75%, #ff7340); } .ds-band-kanji { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:46px; line-height:1; opacity:.22; pointer-events:none; }"
+    },
+    {
+      "name": "Score Rail",
+      "kind": "custom",
+      "description": "The one 1-10 rail; solid season line for you, dashed paper line for Konomi's guess.",
+      "html": "<div class=\"ds-rail\"><div class=\"ds-rail-line\"></div><div class=\"ds-rail-m ds-you\" style=\"left:80%\"><b>You 8.2</b></div><div class=\"ds-rail-m ds-guess\" style=\"left:74%\"><b>Konomi 7.6</b></div></div>",
+      "css": ".ds-rail { position:relative; width:360px; height:84px; margin:0 14px; font-family:'Zen Kaku Gothic New', system-ui, sans-serif; } .ds-rail-line { position:absolute; left:0; right:0; top:50%; height:1px; background:var(--paper-3, #8f89a3); } .ds-rail-m { position:absolute; top:14px; bottom:14px; width:0; transform:translateX(-50%); } .ds-rail-m::before { content:''; position:absolute; top:0; bottom:0; left:-1px; width:2px; } .ds-you::before { background:var(--season, #ff7aa2); width:3px; left:-1.5px; } .ds-guess::before { background:repeating-linear-gradient(to bottom, var(--paper, #f4f1ea) 0 4px, transparent 4px 8px); } .ds-rail-m b { position:absolute; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:12px; } .ds-you b { bottom:calc(100% + 2px); color:var(--season, #ff7aa2); } .ds-guess b { top:calc(100% + 2px); color:var(--paper, #f4f1ea); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Facet pill in the rate panel; selected flips to Paper.",
+      "html": "<div style=\"display:flex;gap:6px\"><button class=\"ds-chip is-on\">Story</button><button class=\"ds-chip\">Animation</button></div>",
+      "css": ".ds-chip { min-height:34px; padding:0 14px; border-radius:999px; border:1px solid var(--line, #2f2b3b); background:var(--ink-3, #1e1b27); color:var(--paper, #f4f1ea); font-family:'Zen Kaku Gothic New', system-ui, sans-serif; font-size:13px; font-weight:700; cursor:pointer; } .ds-chip:hover { border-color:var(--paper-3, #8f89a3); } .ds-chip.is-on { background:var(--paper, #f4f1ea); color:var(--ink, #0d0c12); border-color:var(--paper, #f4f1ea); } .ds-chip:focus-visible { outline:2px solid var(--season, #ff7aa2); outline-offset:3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Seasonal Chart, Marked by Hand",
+    "overview": "Konomi is the seasonal anime chart poster fans share every quarter, made personal. Every title is pinned to the season it aired. Each season owns a solid band of its own ink, and the user's covers sit under it in a printed grid. State is drawn on the covers with a pen: a loose circle, a half arc, a strike, a dotted ring. The score rides on a paper obi strip wrapped across the cover foot, like the band on a boxed Blu-ray release.\n\nThe ground is near-black ink with warm paper-white text. Cover art supplies all the colour in the content; the chrome supplies only the four season inks, used as whole blocks and as the one live accent of the current context. Density is high on the chart (a poster, not a dashboard) and generous on the single-decision screens (rate, duel). Controls are soft pills; covers keep a tight 6px corner; season headers are near-square slabs.\n\nThe system refuses the AniList-style dark dashboard: no sidebar, no stat cards, no neon accent. Numbers appear as large display numerals or on the obi and the score rail, never in boxed metric tiles.",
+    "keyCharacteristics": [
+      "Ink ground (#0d0c12), paper text (#f4f1ea), four season inks that own whole bands.",
+      "Covers are the only imagery; everything else is type, ink, and hand-drawn strokes.",
+      "Title state is a pen mark over the cover, drawn in the season ink.",
+      "The score sits on the obi strip at the cover foot and on one 1-10 rail.",
+      "Dela Gothic One for display, numerals and the 好み mark; Zen Kaku Gothic New for all other text."
+    ],
+    "rules": [
+      { "name": "The One Season Rule", "body": "A screen speaks in one season ink at a time through `--season`. Several inks appear together only where several seasons are shown, each confined to its own band.", "section": "colors" },
+      { "name": "The Cover Is The Colour Rule", "body": "Chrome never adds hue beyond the season ink. Cover art and a title's own cover colour (the `--tint` used for the cover fallback and the title-page header wash) are the only other colour sources.", "section": "colors" },
+      { "name": "The Ink-On-Ink Rule", "body": "Text on a season-ink or paper surface is always Night Ink (#0d0c12), never white.", "section": "colors" },
+      { "name": "The Display Numbers Rule", "body": "Every score, guess, rank or count the user should notice is set in Dela Gothic One. Body text never carries a hero number.", "section": "typography" },
+      { "name": "The No Shouting Labels Rule", "body": "Labels are bold, sentence case, untracked. The built system has no uppercase tracked labels; do not add them.", "section": "typography" },
+      { "name": "The Objects Cast Shadows Rule", "body": "Covers and floating layers cast shadows; flat chrome (bands, buttons, chips, fields, rows) never does.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do route every accent through `--season` and set `data-season` on the region it belongs to.",
+      "Do show a title's state with the hand mark over its cover, and its score on the obi or the score rail.",
+      "Do use one tile size across all bands on the chart, and size each band to its titles.",
+      "Do set text on season ink or Paper surfaces in Night Ink (#0d0c12).",
+      "Do use Dela Gothic One for every prominent number, and Zen Kaku Gothic New at 700 for labels.",
+      "Do keep controls as full pills and covers at a 6px corner.",
+      "Do honour `prefers-reduced-motion`; the global rule cuts animation and transition durations to near zero."
+    ],
+    "donts": [
+      "Don't show a title's watch state as a coloured badge, pill or label; it is drawn by hand. (The numeric count badge in navigation is a counter, not a title state.)",
+      "Don't add a sidebar, stat-card grids or a neon accent; this is a chart poster, not a dashboard.",
+      "Don't introduce chrome hues beyond the four season inks and the ink/paper scale; Good and Bad stay as faint notice tints.",
+      "Don't use imagery other than cover art.",
+      "Don't add uppercase tracked kicker labels above headings.",
+      "Don't cast shadows from flat chrome such as bands, buttons, chips or fields.",
+      "Don't put a second score scale beside the 1-10 rail."
+    ]
+  }
+}
