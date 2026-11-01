@@ -1,6 +1,6 @@
 # One service: FastAPI serves the API and the built web app.
-# Build:  docker build --build-arg ARTIFACTS_URL=<url of konomi-artifacts.tar.gz> -t konomi .   (required in production)
-# The taste-model artifacts (~110 MB) are not in git; scripts/pack-artifacts.sh makes the tarball.
+# Build:  docker build -t konomi .
+# After retraining or a catalogue refresh, run scripts/pack-artifacts.sh and commit deploy/konomi-artifacts.tar.gz.
 
 FROM node:22-slim AS web
 WORKDIR /web
@@ -14,13 +14,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app/api
 COPY api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-# Production: pass ARTIFACTS_URL so the image carries the model. Without it, mount the artifacts at
-# /app/data/build/artifacts at run time (local testing).
-ARG ARTIFACTS_URL=""
-RUN if [ -n "$ARTIFACTS_URL" ]; then \
-      python -c "import io,sys,tarfile,urllib.request; tarfile.open(fileobj=io.BytesIO(urllib.request.urlopen(sys.argv[1]).read())).extractall('/app/data/build', filter='data')" "$ARTIFACTS_URL" \
-      && test -f /app/data/build/artifacts/items.parquet; \
-    fi
+# Taste-model artifacts: committed as deploy/konomi-artifacts.tar.gz (scripts/pack-artifacts.sh), ~78 MB.
+COPY deploy/konomi-artifacts.tar.gz /tmp/artifacts.tar.gz
+RUN python -c "import tarfile; tarfile.open('/tmp/artifacts.tar.gz').extractall('/app/data/build', filter='data')"  && rm /tmp/artifacts.tar.gz && test -f /app/data/build/artifacts/items.parquet
 COPY api/ ./
 COPY --from=web /web/dist /app/web/dist
 RUN useradd --create-home konomi && chown -R konomi /app

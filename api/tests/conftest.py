@@ -3,6 +3,7 @@ import re
 
 # Tests truncate user tables, so they run against their own database (created + seeded once, see README).
 os.environ.setdefault("KONOMI_DATABASE_URL", "postgresql+psycopg://konomi:konomi@localhost:5433/konomi_test")
+os.environ["KONOMI_RESEND_API_KEY"] = ""  # tests read codes from Mailpit, never send real email
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
