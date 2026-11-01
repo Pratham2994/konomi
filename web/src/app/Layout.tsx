@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { Icon } from '../components/Icon'
+import { morph } from '../components/VtLink'
 import { QuickAdd } from '../features/add/QuickAdd'
 import { api } from '../lib/api'
 import { currentSeason, useMe } from '../lib/hooks'
@@ -25,6 +26,31 @@ function useUnrated(enabled: boolean) {
   }).data?.unrated ?? 0
 }
 
+const scrollAt = new Map<string, number>()
+
+/** New pages open at the top; Back and Forward return to where you were, once the page is tall enough again. */
+function useScrollMemory() {
+  const { key, hash } = useLocation()
+  const type = useNavigationType()
+  useLayoutEffect(() => { history.scrollRestoration = 'manual' }, [])
+  useLayoutEffect(() => {
+    let raf = 0
+    if (type === 'POP') {
+      const target = scrollAt.get(key) ?? 0
+      const until = performance.now() + 2500
+      const tryRestore = () => {
+        const room = document.documentElement.scrollHeight - window.innerHeight
+        if (room >= target || performance.now() > until) window.scrollTo(0, Math.min(target, room))
+        else raf = requestAnimationFrame(tryRestore)
+      }
+      tryRestore()
+    } else if (!hash) window.scrollTo(0, 0)
+    const save = () => { scrollAt.set(key, window.scrollY) }
+    window.addEventListener('scroll', save, { passive: true })
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', save) }
+  }, [key, type, hash])
+}
+
 function Avatar({ name }: { name: string }) {
   return <span className="avatar display" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
 }
@@ -37,6 +63,17 @@ export function Layout() {
   const nav = useNavigate()
   const { season } = currentSeason()
   const { pathname, search } = useLocation()
+  const main = useRef<HTMLElement>(null)
+  useScrollMemory()
+  const first = useRef(true)
+
+  // Each new page rises in softly instead of cutting. The first page has the splash; cover morphs have their own.
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (morph.active || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    main.current?.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 360, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' })
+  }, [pathname])
   // Customise shows the profile in a small frame: no app chrome there.
   if (new URLSearchParams(search).has('preview')) return <div className="shell shell-preview" data-season={season}><Outlet /></div>
 
@@ -85,7 +122,7 @@ export function Layout() {
       </header>
       {me && pathname !== '/' && <div className="mobile-add"><QuickAdd /></div>}
 
-      <main className="main">
+      <main className="main" ref={main}>
         <Outlet />
       </main>
 

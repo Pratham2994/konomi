@@ -31,7 +31,10 @@
   font-weight: 700; text-align: left;
   transition: background 0.15s, border-color 0.15s, transform 0.15s var(--ease-out);
 }
-.rp-tier kbd { font-family: var(--body); font-size: 12px; color: var(--paper-3); }
+.rp-tier kbd { font-family: var(--body); font-size: 12px; color: var(--paper-3); margin-left: 12px; }
+.rp-band { display: inline-flex; align-items: center; font-weight: 400; font-size: 13px; color: var(--paper-2); font-variant-numeric: tabular-nums; }
+.rp-tier-5 .rp-band { color: color-mix(in oklab, var(--ink) 80%, var(--season)); }
+.rp-step { display: block; font-family: var(--body); font-weight: 400; font-size: 13px; color: var(--paper-3); margin-top: 4px; }
 @media (hover: none) { .rp-tier kbd { display: none; } }
 .rp-tier:hover { border-color: var(--season); transform: translateX(2px); }
 .rp-tier:active { transform: scale(0.98); }

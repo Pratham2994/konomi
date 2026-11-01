@@ -77,6 +77,7 @@ export function RatePage() {
                       <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={busy}
                         onClick={() => send(() => api(`/api/rate/${q.anime.id}/tier`, { method: 'POST', json: { tier: t.tier } }))}>
                         <span>{t.label}</span>
+                        <span className="rp-band">{t.band}</span>
                       </button>
                     ))}
                   </div>

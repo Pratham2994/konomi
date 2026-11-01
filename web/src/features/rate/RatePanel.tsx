@@ -46,7 +46,7 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
         <Cover id={anime.id} title={anime.title} src={anime.thumbnail} color={anime.color} size="s" status="completed" animateMark />
         <h2 className="rp-sub">
           {flow.phase.kind === 'tier' && <>How was <span className="rp-name">{name}</span>?</>}
-          {flow.phase.kind === 'duel' && 'Which did you enjoy more?'}
+          {flow.phase.kind === 'duel' && <>Which did you enjoy more? <span className="rp-step">Question {flow.phase.n} of up to 6</span></>}
           {flow.phase.kind === 'reveal' && <><span className="rp-name">{name}</span> is on your chart</>}
         </h2>
         <button className="rp-x" onClick={onClose} aria-label="Close"><Icon name="close" size={18} /></button>
@@ -60,7 +60,7 @@ export function RatePanel({ anime, onClose }: { anime: AnimeBrief; onClose: () =
                 <button key={t.tier} className={`rp-tier rp-tier-${t.tier}`} disabled={flow.busy}
                   onClick={() => flow.chooseTier(t.tier)}>
                   <span>{t.label}</span>
-                  <kbd aria-hidden="true">{i + 1}</kbd>
+                  <span className="rp-band">{t.band}<kbd aria-hidden="true">{i + 1}</kbd></span>
                 </button>
               ))}
             </div>

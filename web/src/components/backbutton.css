@@ -1,0 +1,6 @@
+.back-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px 0 10px; margin-left: -10px;
+  border: 0; border-radius: var(--r-pill); background: none; color: var(--paper-2); font-weight: 700; font-size: 14px;
+}
+.back-btn:hover { color: var(--paper); background: rgb(244 241 234 / 0.08); }
+.back-btn:focus-visible { outline: 2px solid var(--season); outline-offset: 2px; }

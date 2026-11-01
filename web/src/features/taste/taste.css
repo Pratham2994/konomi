@@ -3,10 +3,15 @@
   background: var(--ink);
 }
 .g-canvas { position: absolute; inset: 0; }
+/* Quiet the stars behind the intro text so it stays readable; the canvas still takes every drag. */
+.g-stage::before {
+  content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse min(900px, 80%) 380px at 0 0, rgb(13 12 18 / 0.88) 35%, transparent);
+}
 .g-stage canvas { touch-action: none; }
 .g-overlay { position: relative; z-index: 2; pointer-events: none; max-width: 720px; margin: 0; padding-top: var(--s6); }
 .g-title { font-size: clamp(40px, 7vw, 96px); line-height: 1; }
-.g-lead { margin-top: var(--s3); color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 12px var(--ink); }
+.g-lead { margin-top: var(--s3); color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 3px var(--ink), 0 0 18px var(--ink); }
 .g-key { font-weight: 700; }
 .g-key-mine { color: var(--paper); }
 .g-key-rec { color: var(--season); }
@@ -75,6 +80,6 @@
   padding: 3px 10px; border-radius: var(--r-pill); background: rgb(13 12 18 / 0.78); border: 1px solid currentColor; user-select: none;
 }
 @media (max-width: 640px) {
-  .g-label { font-size: 11px; padding: 2px 8px; max-width: 42vw; white-space: normal; text-align: center; }
+  .g-label { font-size: 11px; padding: 2px 8px; white-space: nowrap; }
   .g-overlay { background: linear-gradient(to bottom, rgb(13 12 18 / 0.88) 70%, transparent); padding-bottom: var(--s5); }
 }

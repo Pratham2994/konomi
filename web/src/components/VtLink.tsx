@@ -4,6 +4,9 @@ import { flushSync } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 
+/** True while a cover morph runs, so the plain page fade stays out of its way. */
+export const morph = { active: false }
+
 /**
  * Link to a title page whose cover morphs into the big cover there (View Transitions API).
  * Prefetches the title first so the destination is painted when the transition captures it.
@@ -22,7 +25,9 @@ export function VtLink({ animeId, className, children, ...rest }: {
       || matchMedia('(prefers-reduced-motion: reduce)').matches) return
     e.preventDefault()
     await Promise.race([prefetch(), new Promise((r) => setTimeout(r, 350))])
-    doc.startViewTransition(() => flushSync(() => nav(to)))
+    morph.active = true
+    const t = doc.startViewTransition(() => flushSync(() => nav(to))) as { finished?: Promise<unknown> } | undefined
+    Promise.resolve(t?.finished).finally(() => { morph.active = false })
   }
 
   return (

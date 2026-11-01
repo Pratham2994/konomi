@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
+import { BackButton } from '../../components/BackButton'
 import { Cover } from '../../components/Cover'
 import { ScoreRail } from '../../components/ScoreRail'
 import { api } from '../../lib/api'
@@ -55,6 +56,7 @@ export function AnimePage() {
     <div className="anime" data-season={a.season ?? undefined} style={{ ['--tint' as string]: a.color ?? 'var(--season)' }}>
       <div className="anime-wash" aria-hidden="true" />
       <div className="page anime-grid">
+        <div className="anime-back"><BackButton /></div>
         <div className="anime-cover">
           <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={entry?.status}
             score={entry?.score} size="l" eager vt />

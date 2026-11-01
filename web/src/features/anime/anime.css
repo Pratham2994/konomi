@@ -34,3 +34,4 @@
 }
 .prof-private { display: grid; gap: var(--s3); justify-items: center; text-align: center; padding-top: 16vh; }
 .prof-private h1 { font-size: clamp(28px, 4vw, 44px); }
+.anime-back { grid-column: 1 / -1; margin-bottom: calc(clamp(24px, 5vw, 80px) * -1 + 12px); }
