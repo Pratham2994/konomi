@@ -9,6 +9,7 @@ Artifacts (data/build/artifacts, produced by ml/export.py):
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -53,7 +54,7 @@ class TasteEngine:
         items = pl.read_parquet(art / "items.parquet")
         with db_engine.connect() as c:
             ids = dict(c.execute(text("select aod_key, id from anime")).all())
-            meta = c.execute(text("select id, type, popularity, year, score from anime")).all()
+            meta = c.execute(text("select id, type, popularity, year, score, related, title, season, status from anime")).all()
         keep = np.array([k in ids for k in items["aod_key"].to_list()])
         items = items.filter(pl.Series(keep))
         self.anime_ids = np.array([ids[k] for k in items["aod_key"].to_list()], dtype=np.int64)
@@ -66,6 +67,11 @@ class TasteEngine:
         self.xyz = items.select("x", "y", "z").to_numpy().astype(np.float32)
         self.cluster = items["cluster"].to_numpy()
         m = {r.id: r for r in meta}
+        order = {"WINTER": 0, "SPRING": 1, "SUMMER": 2, "FALL": 3}
+        self.tv_year = {r.id: (r.year, order.get(r.season or "", 4)) for r in meta if r.type == "TV" and r.year}
+        self.title = {r.id: r.title for r in meta}
+        self.upcoming = np.array([m[int(a)].status == "UPCOMING" for a in self.anime_ids])
+        self.related = {r.id: [x for x in (r.related or []) if x in m and m[x].type == "TV"] for r in meta if r.type == "TV"}
         self.type = np.array([m[int(a)].type for a in self.anime_ids])
         self.pop = np.array([m[int(a)].popularity for a in self.anime_ids], dtype=np.float64)
         self.year = np.array([m[int(a)].year or 0 for a in self.anime_ids])
@@ -73,6 +79,7 @@ class TasteEngine:
         self.W1, self.b1, self.Wmu, self.bmu = z["W1"], z["b1"], z["Wmu"], z["bmu"]
         self.n_cf = self.W1.shape[1]
         self.cf_rows = np.where(self.has_cf)[0]
+        self.bridge_rows = np.where(~self.has_cf)[0]
         self.unit_cf = self.unit[self.cf_rows]
         self.row_of_cf = np.full(self.n_cf, -1)
         self.row_of_cf[self.cf_i[self.cf_rows]] = self.cf_rows
@@ -128,26 +135,32 @@ class TasteEngine:
     def positives(self, entries: list[UserEntry]) -> int:
         return sum(1 for e in entries if entry_weight(e) >= 0.4 and e.anime_id in self.row_of)
 
+    BRIDGE_SHRINK = 0.9
+
     def scores(self, z: np.ndarray, x: np.ndarray | None = None) -> np.ndarray:
-        """Taste score for every catalogue title. With a served blend, rated titles mix in EASE (both z-scored)."""
+        """Taste score for every catalogue title, on one standardised scale.
+        Rated titles: Mult-VAE logits, blended with EASE when served. Unrated (bridge-placed) titles: their bridged
+        logits regress toward the mean, so they are re-standardised among themselves and mapped onto the rated
+        titles' scale (shrunk a little, since the bridge is less sure) — otherwise post-2020 anime never surface."""
         s = self.emb @ z + self.bias
-        if self.ease is None or x is None:
-            return s
         cf = s[self.cf_rows]
-        mu, sd = cf.mean(), cf.std() + 1e-9
-        s = (s - mu) / sd
-        e = np.asarray(self.ease.T.dot(x)).ravel()[self.cf_i[self.cf_rows]]
-        e = (e - e.mean()) / (e.std() + 1e-9)
-        s[self.cf_rows] = (1 - self.blend) * s[self.cf_rows] + self.blend * e
-        cf = s[self.cf_rows]  # re-standardise so blended rated titles and bridge-only titles share one scale
-        return (s - cf.mean()) / (cf.std() + 1e-9)
+        out = (s - cf.mean()) / (cf.std() + 1e-9)
+        if self.ease is not None and x is not None:
+            e = np.asarray(self.ease.T.dot(x)).ravel()[self.cf_i[self.cf_rows]]
+            e = (e - e.mean()) / (e.std() + 1e-9)
+            blended = (1 - self.blend) * out[self.cf_rows] + self.blend * e
+            out[self.cf_rows] = (blended - blended.mean()) / (blended.std() + 1e-9)
+        if len(self.bridge_rows):
+            b = s[self.bridge_rows]
+            out[self.bridge_rows] = self.BRIDGE_SHRINK * (b - b.mean()) / (b.std() + 1e-9)
+        return out
 
     # ---- products ---------------------------------------------------------------------------------------
     def recommend(self, entries: list[UserEntry], k: int = 24, types: set[str] | None = None,
                   era: tuple[int, int] | None = None, gems: bool = False) -> tuple[list[dict], str]:
         listed = {e.anime_id for e in entries}
         types = types or {"TV", "MOVIE", "ONA", "OVA"}
-        mask = np.isin(self.type, list(types)) & (self.pop > 0)
+        mask = np.isin(self.type, list(types)) & (self.pop > 0) & ~self.upcoming
         if era:
             mask &= (self.year >= era[0]) & (self.year <= era[1])
         if gems:
@@ -164,8 +177,20 @@ class TasteEngine:
             s = self.scores(self.user_z(x), x)
             mode = "model"
         s = np.where(mask, s, -np.inf)
-        top = np.argsort(-s)[:k]
-        top = top[np.isfinite(s[top])]
+        ranked = np.argsort(-s)[: k * 5]
+        ranked = ranked[np.isfinite(s[ranked])]
+        top, roots = [], set()
+        for r in ranked:
+            root = self.franchise_root(int(self.anime_ids[r]), listed) if not era else int(self.anime_ids[r])
+            rr = self.row_of.get(root, r)
+            if not mask[rr]:
+                rr, root = r, int(self.anime_ids[r])
+            if root in roots:
+                continue
+            roots.add(root)
+            top.append(rr)
+            if len(top) == k:
+                break
         likes = [e for e in entries if entry_weight(e) >= 0.4 and e.anime_id in self.row_of]
         like_rows = np.array([self.row_of[e.anime_id] for e in likes], dtype=np.int64)
         out = []
@@ -176,6 +201,45 @@ class TasteEngine:
                 because = [likes[j].anime_id for j in np.argsort(-sims)[:2]]
             out.append({"anime_id": int(self.anime_ids[r]), "because": because})
         return out, mode
+
+    def series_key(self, anime_id: int) -> str:
+        """First word of the romaji title, e.g. 'shingeki' for every Attack on Titan season. Related links in the
+        catalogue also join different series by the same author; seasons of one series share this key."""
+        words = re.findall(r"[a-z0-9]+", (self.title.get(anime_id) or "").lower())
+        return words[0] if words else ""
+
+    def _norm(self, anime_id: int) -> str:
+        t = re.sub(r"\(\d{4}\)", "", (self.title.get(anime_id) or "").lower())
+        return re.sub(r"[^a-z0-9]+", "", t)
+
+    def is_remake(self, older: int, newer: int) -> bool:
+        """A remake reuses (a prefix of) the older title years later: Dororo (2019) vs Dororo to Hyakkimaru (1969),
+        Hunter x Hunter (2011) vs Hunter x Hunter. A sequel extends it: Bleach -> Bleach: Sennen Kessen-hen."""
+        if abs(self.tv_year[older][0] - self.tv_year[newer][0]) <= 5:
+            return False
+        o, n = self._norm(older), self._norm(newer)
+        return bool(n) and o.startswith(n)
+
+    def franchise_root(self, anime_id: int, listed: set[int]) -> int:
+        """The first unwatched TV season in a title's franchise (seasons linked as related TV entries, up to
+        three hops). Recommending season 4 to someone who never saw season 1 is useless."""
+        if anime_id not in self.tv_year:
+            return anime_id
+        key = self.series_key(anime_id)
+        seen, frontier = {anime_id}, [anime_id]
+        for _ in range(3):
+            nxt = []
+            for a in frontier:
+                for r in self.related.get(a, []):
+                    # Same series, but not a remake: Dororo (2019) shouldn't send you to Dororo (1969), while
+                    # Bleach: Thousand-Year Blood War (2022) rightly sends you to Bleach (2004).
+                    if (r not in seen and r in self.tv_year and self.series_key(r) == key
+                            and not (self.tv_year[r] < self.tv_year[a] and self.is_remake(r, a))):
+                        seen.add(r)
+                        nxt.append(r)
+            frontier = nxt
+        unseen = [a for a in seen if a not in listed and self.tv_year[a] <= self.tv_year[anime_id]]
+        return min(unseen, key=lambda a: (self.tv_year[a], a)) if unseen else anime_id
 
     def predict(self, entries: list[UserEntry], anime_id: int) -> float | None:
         r = self.row_of.get(anime_id)

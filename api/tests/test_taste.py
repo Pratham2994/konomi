@@ -53,3 +53,63 @@ def test_recs_exclude_listed_and_predict_in_range(client):
     assert any(it["because"] for it in r["items"])
     dna = client.get("/api/taste/dna").json()["axes"]
     assert len(dna) == 6 and all(-1 <= a["value"] <= 1 for a in dna)
+
+
+def test_recent_titles_surface_in_recommendations():
+    # Titles after 2020 have no ratings and are placed by the content bridge; they must still compete.
+    eng = get_engine()
+    entries = [UserEntry(a, "completed", 5, 9.5) for a in cf_ids(12)]
+    recs, mode = eng.recommend(entries, k=40)
+    assert mode == "model"
+    recent = [r for r in recs if not eng.has_cf[eng.row_of[r["anime_id"]]]]
+    assert len(recent) >= 4, f"only {len(recent)} post-2020 titles in the top 40"
+
+
+def test_recs_start_franchises_at_first_unwatched_entry():
+    eng = get_engine()
+    entries = [UserEntry(a, "completed", 5, 9.5) for a in cf_ids(12)]
+    listed = {e.anime_id for e in entries}
+    recs, _ = eng.recommend(entries, k=40)
+    ids = [r["anime_id"] for r in recs]
+    with engine.connect() as c:
+        rows = dict(c.execute(text("select id, related from anime where id = any(:ids)"), {"ids": ids}).all())
+        years = dict(c.execute(text("select id, year from anime where type = 'TV'")).all())
+    for a in ids:
+        if a not in years:
+            continue  # only TV seasons have a watch order
+        earlier_unseen = [r for r in (rows[a] or []) if r in years and years[r] and years.get(a)
+                          and years[r] < years[a] and r not in listed
+                          and eng.series_key(r) == eng.series_key(a)]  # same series, not a shared-universe spin-off
+        assert not earlier_unseen, f"{a} recommended before its earlier entry {earlier_unseen}"
+    roots = [eng.franchise_root(a, listed) for a in ids]
+    assert len(roots) == len(set(roots)), "two picks from one franchise"
+
+
+def test_recs_skip_unaired_and_stay_in_series():
+    eng = get_engine()
+    entries = [UserEntry(a, "completed", 5, 9.5) for a in cf_ids(12)]
+    listed = {e.anime_id for e in entries}
+    recs, _ = eng.recommend(entries, k=40)
+    ids = [r["anime_id"] for r in recs]
+    with engine.connect() as c:
+        status = dict(c.execute(text("select id, status from anime where id = any(:ids)"), {"ids": ids}).all())
+    assert not [a for a in ids if status[a] == "UPCOMING"], "recommended an anime that hasn't aired"
+    for a in ids:
+        root = eng.franchise_root(a, listed)
+        assert eng.series_key(root) == eng.series_key(a), f"{a} jumped to another series {root}"
+
+
+def test_remake_not_replaced_by_decades_old_original():
+    eng = get_engine()
+    with engine.connect() as c:
+        new = c.execute(text("select id from anime where title = 'Dororo' and year = 2019 and type = 'TV'")).scalar()
+    assert new is not None
+    assert eng.franchise_root(new, set()) == new
+
+
+def test_long_gap_sequel_still_starts_at_original():
+    eng = get_engine()
+    with engine.connect() as c:
+        tybw = c.execute(text("select id from anime where title = 'Bleach: Sennen Kessen-hen' and type = 'TV'")).scalar()
+        bleach = c.execute(text("select id from anime where title = 'Bleach' and type = 'TV' and year = 2004")).scalar()
+    assert eng.franchise_root(tybw, set()) == bleach

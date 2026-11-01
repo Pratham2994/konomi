@@ -46,3 +46,13 @@ Predicting a held-out rating (1–10) for 310,284 test ratings:
 | rank + title quality (served) | **0.886** |
 
 Title quality = a title's mean standardised rating among training users. Fitted on validation users: z = 0.66·rank + 0.69·quality + -0.04. Titles with no ratings estimate quality from their community score.
+
+## Serving rules (applied after ranking)
+
+- **Recent titles compete fairly.** Bridge-placed titles (no ratings, mostly post-2020) regress toward the mean, so
+  their scores are standardised among themselves and mapped onto the rated titles' scale (×0.9 for uncertainty).
+  Before this, the top 40 for a typical profile held 0 titles from 2021 on.
+- **Start where you are in a series.** A recommended TV season is swapped for the first unwatched season of the same
+  series (related TV entries sharing the title's first word; remakes such as Dororo 2019 vs 1969 are not chained,
+  long-gap sequels such as Bleach: Thousand-Year Blood War are). One pick per series.
+- **Only what has aired.** Upcoming titles are never recommended.
