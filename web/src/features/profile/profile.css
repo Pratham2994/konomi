@@ -83,7 +83,8 @@
 .prof-poster { display: block; width: 46%; max-width: 220px; margin-bottom: var(--s2); }
 .prof-poster img { display: block; width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 14px; box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.9); }
 @media (min-width: 900px) {
-  .prof .head-poster-inner { min-height: clamp(380px, 34vw, 560px); align-content: end; }
+  /* Room on the right for the poster, so the name and numbers never run underneath it. */
+  .prof .head-poster-inner { min-height: clamp(380px, 34vw, 560px); align-content: end; padding-right: calc(var(--gutter) + clamp(200px, 26vw, 400px)); }
   .prof-poster { position: absolute; right: var(--gutter); bottom: var(--s6); width: auto; max-width: none; height: calc(100% - var(--s6) - var(--s7)); margin: 0; transform: rotate(2.5deg); }
   .prof-poster img { width: auto; height: 100%; }
 }
@@ -112,11 +113,9 @@
 .favs-even li:first-child { grid-column: auto; grid-row: auto; }
 .favs-even li:first-child .favs-n { font-size: clamp(26px, 3vw, 42px); }
 .favs-podium li:first-child { grid-column: auto; grid-row: auto; }
-.favs-podium { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .favs-podium li:nth-child(-n + 3) { grid-column: span 2; }
 .favs-podium li:nth-child(-n + 3) .favs-n { font-size: clamp(36px, 4.4vw, 64px); color: var(--season); }
 @media (max-width: 720px) {
-  .favs-podium { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .favs-podium li:nth-child(-n + 3) { grid-column: auto; }
 }
 

@@ -122,7 +122,10 @@ export function ProfilePage() {
     queryKey: ['profile', username], queryFn: () => api<Profile>(`/api/u/${username}`), retry: false,
   })
 
-  const lists = p?.look.chart_lists ?? []
+  // Lists with nothing in them are left out, unless one is all there is.
+  const allowed = p?.look.chart_lists ?? []
+  const filled = allowed.filter((s) => p?.entries.some((e) => e.status === s))
+  const lists = filled.length ? filled : allowed.slice(0, 1)
   const tab: Status = picked && lists.includes(picked) ? picked : lists.includes(p?.look.chart_tab ?? 'completed') ? p!.look.chart_tab : lists[0] ?? 'completed'
   const group = p?.look.scores === 'off' && p.look.chart_group === 'score' ? 'season' : p?.look.chart_group ?? 'season'
 
