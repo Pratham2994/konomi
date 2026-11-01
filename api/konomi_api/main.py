@@ -1,7 +1,9 @@
 import threading
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .auth.routes import me_router
 from .auth.routes import router as auth_router
@@ -12,9 +14,8 @@ from .rating.routes import router as rate_router
 from .taste.routes import router as taste_router
 from .profile.routes import router as profile_router
 from .profile.og import router as og_router
+from .config import ROOT
 from .imports.routes import router as import_router
-
-
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -40,3 +41,19 @@ app.include_router(import_router)
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True}
+
+
+# Production: the same service serves the built web app, so pages and API share one origin (simple, first-party
+# cookies). In development Vite serves the app and this block is skipped because web/dist doesn't exist.
+WEB = ROOT / "web" / "dist"
+if (WEB / "index.html").exists():
+    app.mount("/assets", StaticFiles(directory=WEB / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str) -> FileResponse:
+        if path.startswith(("api/", "og/")):
+            raise HTTPException(404)
+        f = (WEB / path).resolve()
+        if path and f.is_file() and WEB.resolve() in f.parents:
+            return FileResponse(f)
+        return FileResponse(WEB / "index.html")
