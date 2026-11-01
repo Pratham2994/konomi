@@ -4,7 +4,7 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { api } from '../../lib/api'
-import { useList } from '../../lib/hooks'
+import { useList, useStored } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
 import { RecCard, useRecs } from '../home/HomePage'
 import { galaxyQuery, loadGalaxy } from './preload'
@@ -109,7 +109,7 @@ const FILTERS = [
 
 export default function TastePage() {
   const nav = useNavigate()
-  const [filter, setFilter] = useState('')
+  const [filter, setFilter] = useStored('konomi-recs-filter', '', FILTERS.map((f) => f.key))
   const [hover, setHover] = useState<{ id: number; at: { x: number; y: number } } | null>(null)
   const galaxy = useQuery(galaxyQuery)
   const me = useQuery({ queryKey: ['taste-me'], queryFn: () => api<{ mine: { id: number; score: number | null }[]; centroid: [number, number, number] | null; recs: number[] }>('/api/taste/me') })

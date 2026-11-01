@@ -11,7 +11,10 @@ RUN npm run build
 
 FROM python:3.13-slim
 # MALLOC_ARENA_MAX: glibc otherwise grows a memory pool per worker thread, which alone can blow a 512 MB host.
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MALLOC_ARENA_MAX=2
+# One maths thread: the host shows ~20 cores but gives a fraction of one, so numpy's thread pool fights itself
+# (one taste guess took 7 s live instead of 0.1 s).
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 WORKDIR /app/api
 COPY api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

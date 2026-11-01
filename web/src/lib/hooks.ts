@@ -1,8 +1,25 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { api, ApiError } from './api'
 import type { AnimeBrief, Entry, Me, Season, Status } from './types'
 import { dropFromProfiles, listChanged, moveInProfiles } from './sync'
 import { useToast } from '../components/Toast'
+
+/** A small view choice (sort, filter) remembered in this browser, so it is still set after you open a title and
+ *  come back. Falls back to plain state when storage is blocked. */
+export function useStored<T extends string>(key: string, initial: T, allowed?: readonly T[]): [T, (v: T) => void] {
+  const [v, setV] = useState<T>(() => {
+    try {
+      const got = localStorage.getItem(key) as T | null
+      return got != null && (!allowed || allowed.includes(got)) ? got : initial
+    } catch { return initial }
+  })
+  const set = (next: T) => {
+    setV(next)
+    try { localStorage.setItem(key, next) } catch { /* storage blocked: fine */ }
+  }
+  return [v, set]
+}
 
 export function useMe() {
   return useQuery<Me | null>({

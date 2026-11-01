@@ -6,7 +6,7 @@ import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { PageLoading } from '../../components/PageLoading'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
-import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, useList } from '../../lib/hooks'
+import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, useList, useStored } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
 import './chart.css'
 
@@ -44,8 +44,8 @@ export function Tile({ e, sub, picking, picked, onPick }: {
 
 export function ChartPage() {
   const { data: entries = [], isLoading } = useList()
-  const [filter, setFilter] = useState<Filter>('all')
-  const [sort, setSort] = useState<Sort>('season')
+  const [filter, setFilter] = useStored<Filter>('konomi-chart-filter', 'all', ['all', 'completed', 'watching', 'planned', 'dropped'])
+  const [sort, setSort] = useStored<Sort>('konomi-chart-sort', 'season', ['season', 'score'])
   const [picking, setPicking] = useState(false)
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const bulk = useBulk()
