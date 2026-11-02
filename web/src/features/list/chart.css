@@ -36,7 +36,7 @@
 }
 
 /* Select mode: covers toggle a tick; one bar along the bottom changes them all. */
-.chart-tools { display: flex; gap: var(--s2); align-items: center; }
+.chart-tools { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; min-width: 0; }
 .tile-pick { position: relative; width: 100%; padding: 0; border: 0; background: none; text-align: left; color: inherit; font: inherit; cursor: pointer; }
 .tile-pick .cover-art { transition: transform 0.15s var(--ease-out), filter 0.15s; }
 .tile-pick:not(.is-picked) .cover-art { filter: brightness(0.75); }

@@ -6,8 +6,9 @@ import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
 import { PageLoading } from '../../components/PageLoading'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
-import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, byRank, useList, useStored } from '../../lib/hooks'
+import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, byRank, useList, useMe, useStored } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
+import { downloadChart } from './exportChart'
 import './chart.css'
 
 type Filter = 'all' | Status
@@ -44,6 +45,7 @@ export function Tile({ e, sub, picking, picked, onPick }: {
 
 export function ChartPage() {
   const { data: entries = [], isLoading } = useList()
+  const { data: me } = useMe()
   const [filter, setFilter] = useStored<Filter>('konomi-chart-filter', 'all', ['all', 'completed', 'watching', 'planned', 'dropped'])
   const [sort, setSort] = useStored<Sort>('konomi-chart-sort', 'season', ['season', 'score'])
   const [picking, setPicking] = useState(false)
@@ -155,6 +157,11 @@ export function ChartPage() {
           <button className={`btn${picking ? ' btn-primary' : ''}`} aria-pressed={picking} onClick={() => (picking ? stopPicking() : setPicking(true))}>
             {picking ? 'Done' : 'Select'}
           </button>
+          {!picking && me && entries.length > 0 && (
+            <button className="btn" onClick={() => downloadChart(entries, me)} title="Download your chart as one web page to keep or share">
+              <Icon name="download" size={16} /> Save as page
+            </button>
+          )}
         </div>
       </div>
 
