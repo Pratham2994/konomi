@@ -21,7 +21,7 @@
 .rate-done h2 { font-size: clamp(30px, 4vw, 48px); }
 .rate-done-actions { display: flex; gap: var(--s3); flex-wrap: wrap; justify-content: center; margin-top: var(--s3); }
 @media (max-width: 640px) {
-  .rate-tier { grid-template-columns: 1fr; }
+  .rate-tier { grid-template-columns: minmax(0, 1fr); }
   .rate-cover { width: 46%; margin: 0 auto; }
 }
 .rate-progress { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s5); max-width: 520px; font-size: 13px; }

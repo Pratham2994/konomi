@@ -29,7 +29,7 @@
 .l-duel { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: var(--s4) clamp(24px, 5vw, 96px); align-items: start; padding-top: var(--s7); }
 .l-duel-ask { font-size: clamp(28px, 3.4vw, 52px); line-height: 1.04; color: var(--season); grid-column: 1 / -1; max-width: 22ch; }
 .l-duel-out { align-self: center; }
-.l-duel-pair { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(14px, 2vw, 32px); }
+.l-duel-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(14px, 2vw, 32px); }
 .l-duel-side { display: grid; gap: 8px; padding: 0; border: 0; background: none; text-align: left; transition: opacity 0.3s, transform 0.3s var(--ease-out); }
 .l-duel-side:hover { transform: translateY(-4px); }
 .l-duel-side.is-out { opacity: 0.35; transform: scale(0.96); }
@@ -50,7 +50,7 @@
 .l-keep .btn { min-height: 44px; }
 
 @media (max-width: 900px) {
-  .l-duel { grid-template-columns: 1fr; }
+  .l-duel { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
   .l-keep { gap: var(--s3); padding-left: 16px; }

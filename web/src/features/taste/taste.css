@@ -51,7 +51,7 @@
   background: var(--season); border: 3px solid var(--ink);
 }
 @media (max-width: 640px) {
-  .dna-row { grid-template-columns: 1fr 1fr; gap: 4px var(--s3); }
+  .dna-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px var(--s3); }
   .dna-rail { grid-column: 1 / -1; grid-row: 2; }
   .dna-neg { text-align: left; }
   .dna-pos { text-align: right; }

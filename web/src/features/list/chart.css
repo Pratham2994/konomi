@@ -71,6 +71,6 @@
   .pick-count { grid-area: count; }
   .pick-bar > .btn-ghost { grid-area: all; }
   .pick-remove { grid-area: remove; }
-  .pick-moves { grid-area: moves; display: grid; grid-template-columns: 1fr 1fr; }
+  .pick-moves { grid-area: moves; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .pick-moves .btn { width: 100%; }
 }

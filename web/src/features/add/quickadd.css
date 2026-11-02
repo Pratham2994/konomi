@@ -1,4 +1,4 @@
-.qa { position: relative; width: 100%; }
+.qa { position: relative; width: 100%; min-width: 0; }
 .qa-field {
   display: flex; align-items: center; gap: var(--s3);
   height: 44px; padding: 0 var(--s3) 0 var(--s4);
@@ -6,8 +6,9 @@
   color: var(--paper-3); transition: border-color 0.2s, background 0.2s;
 }
 .qa-field:focus-within { border-color: var(--season); background: var(--ink-3); color: var(--paper); }
+/* width 0 + flex 1: fills the field without its natural width (set by the browser, wider on iPhones) ever counting. */
 .qa-field input {
-  flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; outline: none; font-size: 16px;
+  flex: 1; width: 0; min-width: 0; height: 100%; border: 0; background: transparent; outline: none; font-size: 16px;
   color: var(--paper);
 }
 .qa-field input::placeholder { color: var(--paper-3); }

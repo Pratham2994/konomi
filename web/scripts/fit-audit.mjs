@@ -2,8 +2,9 @@
 // laptop sizes, signed in with a full chart and with a brand-new empty one.
 // A phone browser widens and zooms out the whole page when something is too wide, so a plain "is there a
 // scrollbar" check misses it: this compares every element against the device's real width.
-// Usage: node scripts/fit-audit.mjs [--phones]   (dev servers + seeded demo user + Mailpit for the fresh account)
-import { chromium, devices } from '@playwright/test'
+// Usage: node scripts/fit-audit.mjs [--phones] [--webkit]   (dev servers + seeded demo user + Mailpit for the fresh account)
+// --webkit runs Safari's engine: iPhones size form fields differently from Chrome, so some overflow shows only there.
+import { chromium, devices, webkit } from '@playwright/test'
 
 const B = 'http://localhost:5173'
 const MAIL = 'http://localhost:8025/api/v1'
@@ -13,7 +14,7 @@ const LAPTOPS = [[1280, 720], [1280, 800], [1366, 768], [1440, 900], [1512, 982]
 const PAGES = ['/', '/chart', '/sweep', '/sweep?view=season&year=2019&season=SPRING', '/rate', '/taste', '/settings', '/u/demo', '/anime/30325']
 const FRESH_PAGES = ['/', '/chart', '/rate', '/taste', '/settings']
 
-const browser = await chromium.launch()
+const browser = await (process.argv.includes('--webkit') ? webkit : chromium).launch()
 
 async function signIn() {
   const c = await browser.newContext()
@@ -42,7 +43,7 @@ async function audit(label, opts, state, pages) {
   for (const p of pages) {
     await page.goto(B + p, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(1500)
-    for (let y = 0; y < 5000; y += 600) { await page.mouse.wheel(0, 600); await page.waitForTimeout(80) }
+    for (let y = 600; y <= 5000; y += 600) { await page.evaluate((y) => window.scrollTo(0, y), y); await page.waitForTimeout(80) }
     await page.waitForTimeout(500)
     const r = await page.evaluate((W) => {
       // Elements inside a container that scrolls or clips sideways are fine as long as the container fits.
