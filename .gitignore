@@ -17,3 +17,12 @@ data/
 
 # Plan workspace
 .superpowers/
+
+# AI tool files (kept locally, not on GitHub)
+CLAUDE.md
+docs/HANDOFF.md
+docs/handoff/
+docs/superpowers/
+.claude/
+.impeccable/
+web/.impeccable/

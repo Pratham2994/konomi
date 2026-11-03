@@ -10,10 +10,31 @@ An anime list that never asks you for a number.
   It recommends with reasons, guesses your score *before* you answer (then shows how close it was), maps your
   taste DNA, draws your taste as a 3D galaxy, and compares you with friends. See [docs/model-report.md](docs/model-report.md).
 
-## Status
+## Status — overnight build (2026-11-01)
 
-Live at https://konomi.prathampanchal.dev (Render free plan, Neon, Cloudflare, Resend). Every push to `master`
-deploys. Current state, setup on a new device, open items and how to work on it: [docs/HANDOFF.md](docs/HANDOFF.md).
+**Done and tested**
+- Accounts: email + password, 6-digit email code, reset, sessions. Sign-up credentials only become an account
+  when the code *and* the sign-up password are verified (no pre-verification takeover).
+- Quick add (whole catalogue searched in the browser), season walk, MAL/AniList import.
+- Rating: feeling → duels → score bands; rate session; the model's guess is revealed after you answer.
+- Taste model: EASE + Mult-VAE blend, content bridge for post-2020 titles, predicted scores, taste DNA, taste
+  match, galaxy, "how Konomi picks" network. Numbers in [docs/model-report.md](docs/model-report.md).
+- Profiles: private by default, public link, hidden sections removed server-side, hot takes, anime years, share
+  card / link preview, customise page.
+- Design: two rounds of independent design review applied; system recorded in [DESIGN.md](DESIGN.md).
+- Tests: API 41/41 (pytest), search ranking 17/17 (vitest), E2E 4/4 (main journey + season walk / statuses / favourites / password reset, phone + desktop).
+
+**Not done yet**
+- Not deployed. Neon was not touched (see morning steps).
+- Emails go to Mailpit locally; Resend is wired but needs your key.
+- Profile ideas to pick from: [docs/profile-ideas.md](docs/profile-ideas.md).
+
+
+**Your morning steps**
+1. Rotate the Neon password (it was pasted in chat): Neon → Roles → `konomi_owner` → Reset, then update `.env`.
+2. Create a Resend account, verify a sending domain, and add `KONOMI_RESEND_API_KEY` + `KONOMI_MAIL_FROM`.
+3. Deploy together: migrate + seed Neon (`KONOMI_DATABASE_URL=<neon url> alembic upgrade head && python seed.py --no-demo`),
+   host the API and the built web app, set `KONOMI_PUBLIC_URL` and `KONOMI_SECRET`.
 
 ## Run it locally
 
@@ -21,7 +42,6 @@ Needs Docker, Node 20+, [uv](https://docs.astral.sh/uv/).
 
 ```bash
 docker compose up -d                       # Postgres 18 + pgvector on :5433, Mailpit (fake inbox) on :8025
-mkdir -p data/build && tar -xzf deploy/konomi-artifacts.tar.gz -C data/build && cp deploy/catalog.parquet data/build/
 cd api && uv venv .venv --python 3.13 && uv pip install --python .venv -r requirements.txt
 .venv/Scripts/alembic upgrade head          # (macOS/Linux: .venv/bin/...)
 .venv/Scripts/python seed.py                # catalogue + taste artifacts + demo user
@@ -90,7 +110,6 @@ KONOMI_DATABASE_URL=postgresql+psycopg://konomi:konomi@localhost:5433/konomi_tes
 | `ml/` | training (`train.py`), evaluation, content bridge + taste space export (`export.py`) |
 | `api/` | FastAPI: auth (email + password + OTP), lists, rating maths, taste engine, profiles, share images, imports |
 | `web/` | React + Vite app |
-| `docs/superpowers/` | design spec and build plan |
 
 ## Credits
 
