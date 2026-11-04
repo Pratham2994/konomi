@@ -10,6 +10,8 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 
+import numpy as np
+
 # tier -> (low, high) on the 1.0 to 10.0 scale. Non-overlapping, top-heavy.
 BANDS: dict[int, tuple[float, float]] = {5: (9.0, 10.0), 4: (8.0, 8.9), 3: (6.5, 7.9), 2: (5.0, 6.4), 1: (1.0, 4.9)}
 
@@ -43,29 +45,40 @@ def strength(tiers: dict[int, int], duels: list[DuelRec], between: set[int] | fr
              guess: dict[int, float] | None = None, iters: int = 400) -> dict[int, float]:
     """anime_id -> the model's exact position, on the score scale but neither rounded nor capped at 1 and 10.
     MM iterations; each title also plays PRIOR_GAMES ties against a phantom fixed at its prior, which anchors the
-    scale and pulls titles with little evidence back to their feeling."""
+    scale and pulls titles with little evidence back to their feeling. All titles step at once in numpy (500 titles
+    and 2000 duels in a few ms) and stop early once nothing moves."""
     guess = guess or {}
     ids = list(tiers)
-    q = {i: math.exp(BETA * (prior(tiers[i], i in between, guess.get(i)) - 6)) for i in ids}
-    wins = {i: PRIOR_GAMES / 2 for i in ids}
-    games: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
+    if not ids:
+        return {}
+    idx = {a: k for k, a in enumerate(ids)}
+    q = np.exp(BETA * (np.array([prior(tiers[i], i in between, guess.get(i)) for i in ids]) - 6))
+    wins = np.full(len(ids), PRIOR_GAMES / 2)
+    games: dict[tuple[int, int], float] = defaultdict(float)
     for d in duels:
-        if d.a not in q or d.b not in q or d.a == d.b:
+        x, y = idx.get(d.a), idx.get(d.b)
+        if x is None or y is None or x == y:
             continue
-        games[d.a][d.b] += 1
-        games[d.b][d.a] += 1
+        games[(x, y) if x < y else (y, x)] += 1
         if d.outcome == "a":
-            wins[d.a] += 1
+            wins[x] += 1
         elif d.outcome == "b":
-            wins[d.b] += 1
+            wins[y] += 1
         else:
-            wins[d.a] += 0.5
-            wins[d.b] += 0.5
-    p = dict(q)
+            wins[x] += 0.5
+            wins[y] += 0.5
+    # Every pair in both directions, so one bincount gives each title's sum over its opponents.
+    pairs = np.array(list(games), dtype=np.int64).reshape(-1, 2)
+    i, j = np.concatenate([pairs[:, 0], pairs[:, 1]]), np.concatenate([pairs[:, 1], pairs[:, 0]])
+    n = np.array(list(games.values()) * 2)
+    p = q.copy()
     for _ in range(iters):
-        p = {i: wins[i] / (PRIOR_GAMES / (p[i] + q[i]) + sum(n / (p[i] + p[j]) for j, n in games[i].items()))
-             for i in ids}
-    return {i: 6 + math.log(p[i]) / BETA for i in ids}
+        new = wins / (PRIOR_GAMES / (p + q) + np.bincount(i, n / (p[i] + p[j]), len(ids)))
+        done = np.max(np.abs(new / p - 1)) < 1e-13
+        p = new
+        if done:
+            break
+    return {a: 6 + math.log(v) / BETA for a, v in zip(ids, p.tolist())}
 
 
 def to_score(v: float) -> float:

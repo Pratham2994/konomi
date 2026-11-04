@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, Duel, ListEntry
-from .score import DuelRec, fit, prior, strength, to_score
+from .score import DuelRec, prior, strength, to_score
 from .select import next_insertion_duel, next_session_question
 
 router = APIRouter(prefix="/api/rate", tags=["rate"])
@@ -252,7 +252,8 @@ def _session(db: Session, st: RatingState) -> dict:
     facets_missing = [a for a, r in sorted(((a, r) for a, r in st.rows.items()
                                             if r.tier is not None and r.tier >= 4 and not r.facets),
                                            key=lambda t: -(t[1].score or 0))][:5]
-    q = next_session_question(st.tiers, st.duels, untiered, facets_missing, fit(st.tiers, st.duels, st.between, st.guess))
+    q = next_session_question(st.tiers, st.duels, untiered, facets_missing,
+                              strength(st.tiers, st.duels, st.between, st.guess))
     remaining = len(untiered_rows)
     if q is None:
         return {"question": None, "unrated": remaining}
