@@ -1,47 +1,98 @@
 .landing { padding-bottom: 96px; }
 
-/* Poster headline across the full width; copy and actions sit beside it, not an image. */
-.landing .l-top { padding-top: clamp(28px, 5vh, 72px); padding-bottom: var(--s4); }
-.l-title { font-size: clamp(40px, 6.5vw, 132px); line-height: 0.95; letter-spacing: -0.025em; text-wrap: wrap; }
+/* The record shop wall: three seasons of covers, each led by its slab, with the headline hung in among them. */
+.landing .l-wall {
+  display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-auto-flow: row dense;
+  gap: clamp(8px, 0.85vw, 16px); padding-top: clamp(12px, 2vh, 24px); padding-bottom: 0;
+}
+
+.l-sign { container-type: inline-size; display: grid; align-content: center; }
+.l-sign-in { padding: clamp(18px, 3.5cqi, 44px) clamp(4px, 3cqi, 40px); }
+.l-sign-row .l-sign-in { padding: 22px 0 26px; }
+.l-title { font-size: clamp(32px, 8.6cqi, 100px); line-height: 0.98; letter-spacing: -0.025em; text-wrap: balance; }
+.l-sign-row .l-title { font-size: clamp(34px, 11cqi, 84px); }
 .l-word-mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .l-word { display: inline-block; }
 .l-accent { color: var(--season); }
-.l-side { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s4) var(--s6); margin-top: var(--s5); }
-.l-lead { font-size: clamp(16px, 1.3vw, 19px); color: var(--paper-2); max-width: 46ch; }
-.l-btn { min-height: 54px; padding: 0 26px; font-size: 17px; }
+/* "you." circled by the same pen that marks covers, after the words land. */
+.l-you { position: relative; display: inline-block; }
+.l-you .mark { inset: -16% -14% -10%; width: 128%; height: 126%; }
+.l-you .mark-draw path { animation-duration: 0.9s; animation-delay: 1.45s; }
+.l-side { display: grid; gap: clamp(16px, 2.6cqi, 28px); margin-top: clamp(16px, 3cqi, 36px); }
+.l-lead { font-size: clamp(15px, 1.15vw, 19px); line-height: 1.55; color: var(--paper-2); max-width: 60ch; }
+.l-act { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); }
+.l-btn { min-height: 52px; padding: 0 26px; font-size: 16px; }
+.l-hint { font-size: 14px; font-weight: 700; color: var(--paper); max-width: 34ch; line-height: 1.35; }
 
-.l-try { padding-top: 0; }
-.l-try-ask { font-size: clamp(26px, 3.2vw, 52px); line-height: 1; color: var(--season); }
-.l-try-ask span { display: inline-block; animation: nudge 1.6s 2.2s var(--ease-out) infinite; }
-@keyframes nudge { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(8px); } }
-@media (prefers-reduced-motion: reduce) { .l-try-ask span { animation: none; } }
-/* One strip per season: swipe on phones, a full row on wide screens, never orphan rows. */
-.l-grid {
-  display: grid; grid-auto-flow: column; grid-auto-columns: clamp(108px, 9.2vw, 168px); gap: clamp(10px, 1.2vw, 18px);
-  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 4px 4px 14px;
-  margin: 0 -4px; scrollbar-width: thin;
+/* Every cell deals onto the wall in reading order, tipped a little, then settles. */
+.l-slab, .l-tile { animation: l-deal 0.75s calc(0.55s + var(--i, 0) * 16ms) var(--ease-out) backwards; }
+@keyframes l-deal {
+  from { opacity: 0; transform: translateY(22px) rotate(calc(var(--tilt, 0deg) * 2)) scale(0.94); }
 }
-.l-tile { display: grid; gap: 8px; align-content: start; padding: 0; border: 0; background: none; text-align: left; scroll-snap-align: start; }
-.l-tile .cover-art { transition: transform 0.25s var(--ease-out), filter 0.25s; }
-.l-tile:hover .cover-art { transform: translateY(-3px); }
-.l-tile[aria-pressed='false'] .cover-art { filter: saturate(0.85) brightness(0.9); }
 
-.l-duel { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: var(--s4) clamp(24px, 5vw, 96px); align-items: start; padding-top: var(--s7); }
-.l-duel-ask { font-size: clamp(28px, 3.4vw, 52px); line-height: 1.04; color: var(--season); grid-column: 1 / -1; max-width: 22ch; }
-.l-duel-out { align-self: center; }
-.l-duel-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(14px, 2vw, 32px); }
+.l-slab { container-type: inline-size; aspect-ratio: 5 / 7; overflow: hidden; border-radius: 4px; background: var(--season); color: var(--ink); }
+.l-slab-in { display: flex; flex-direction: column; height: 100%; padding: 9cqi 9cqi 10cqi; }
+.l-slab-kanji { font-size: 58cqi; line-height: 1; margin: -4cqi 0 auto -3cqi; opacity: 0.9; }
+.l-slab-name { font-size: max(12px, 15cqi); line-height: 1.02; }
+.l-slab-label { margin-top: 5cqi; font-size: max(11px, 10.5cqi); font-weight: 700; line-height: 1.2; }
+
+.l-tile { position: relative; display: block; padding: 0; border: 0; background: none; text-align: left; border-radius: var(--r-cover); }
+.l-tile:disabled { cursor: default; opacity: 1; }
+.l-tile.is-big { grid-column: span 2; grid-row: span 2; }
+.l-tile.is-big .cover { aspect-ratio: auto; height: 100%; }
+.l-tile .mark { z-index: 2; }
+.l-tile .cover-art { transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out); }
+.l-tile:not(:disabled):hover .cover-art, .l-tile:focus-visible .cover-art {
+  transform: translateY(-4px) rotate(var(--tilt, 0deg));
+  box-shadow: 0 18px 36px -14px rgb(0 0 0 / 0.85), 0 3px 8px -2px rgb(0 0 0 / 0.5);
+}
+.l-tile[aria-pressed='true'] .cover-art { animation: l-pop 0.45s var(--ease-out); }
+@keyframes l-pop { 40% { transform: scale(0.95); } }
+.l-ghost { display: block; aspect-ratio: 5 / 7; border-radius: var(--r-cover); background: var(--ink-3); }
+.l-tile.is-big .l-ghost { aspect-ratio: auto; height: 100%; }
+
+/* Titles show on hover and focus; on touch screens only the big covers carry theirs. */
+.l-cap {
+  position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 26px 9px 8px;
+  border-radius: 0 0 var(--r-cover) var(--r-cover); background: linear-gradient(to top, rgb(13 12 18 / 0.94) 30%, transparent);
+  font-size: 12px; font-weight: 700; line-height: 1.25; color: var(--paper);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  opacity: 0; transform: translateY(6px); transition: opacity 0.25s var(--ease-out), transform 0.3s var(--ease-out); pointer-events: none;
+}
+.l-tile.is-big .l-cap { font-size: clamp(12px, 1vw, 15px); padding: 40px 12px 11px; }
+.l-tile:hover .l-cap, .l-tile:focus-visible .l-cap { opacity: 1; transform: none; }
+@media (hover: none) { .l-tile.is-big .l-cap { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .l-slab, .l-tile, .l-tile[aria-pressed='true'] .cover-art { animation: none; }
+}
+
+/* The duel: question, the two covers with a vs disc, then what the answer did. */
+.landing .l-duel { padding-top: clamp(48px, 6vw, 110px); padding-bottom: 0; }
+.l-duel-in {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, clamp(300px, 30vw, 600px)) minmax(0, 1fr);
+  gap: var(--s5) clamp(24px, 4vw, 80px); align-items: center; padding-top: clamp(24px, 3vw, 48px); border-top: 3px solid var(--season);
+}
+.l-duel-ask { font-size: clamp(28px, 3vw, 56px); line-height: 1.04; color: var(--season); justify-self: end; max-width: 13ch; text-align: right; }
+.l-duel-pair { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(14px, 2vw, 36px); }
 .l-duel-side { display: grid; gap: 8px; padding: 0; border: 0; background: none; text-align: left; transition: opacity 0.3s, transform 0.3s var(--ease-out); }
 .l-duel-side:hover { transform: translateY(-4px); }
 .l-duel-side.is-out { opacity: 0.35; transform: scale(0.96); }
-.l-duel-out { min-height: 120px; }
+.l-vs {
+  position: absolute; z-index: 3; left: 50%; top: 42%; translate: -50% -50%; display: grid; place-items: center;
+  width: clamp(40px, 3.4vw, 56px); aspect-ratio: 1; border-radius: 50%; background: var(--paper); color: var(--ink);
+  font-size: clamp(13px, 1vw, 17px); box-shadow: var(--shadow-lift); pointer-events: none;
+}
+.l-duel-out { min-height: 150px; display: grid; gap: var(--s5); align-content: center; max-width: 440px; }
 .l-note { font-size: 14px; color: var(--paper-2); max-width: 52ch; }
 
-.l-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s5); padding-top: var(--s8, 96px); }
-.l-end-title { font-size: clamp(30px, 4.4vw, 72px); line-height: 1; max-width: 14ch; }
-.l-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s3); padding-top: var(--s7); font-size: 13px; }
+.l-foot { display: grid; gap: var(--s6); padding-top: clamp(64px, 8vw, 120px); font-size: 13px; }
+.l-end { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); }
+.l-end-title { font-size: clamp(24px, 2.4vw, 40px); line-height: 1.05; }
+.l-credit { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s3); padding-top: var(--s4); border-top: 1px solid var(--line); }
 
 .l-keep {
-  position: fixed; z-index: 60; left: 50%; bottom: 20px; transform: translateX(-50%);
+  position: fixed; z-index: 60; left: 0; right: 0; bottom: 20px; margin: 0 auto;
   display: flex; align-items: center; gap: var(--s4); padding: 10px 10px 10px 22px; border-radius: var(--r-pill);
   background: var(--paper); color: var(--ink); box-shadow: 0 18px 50px -14px rgb(0 0 0 / 0.85);
   width: max-content; max-width: calc(100vw - 24px);
@@ -50,7 +101,8 @@
 .l-keep .btn { min-height: 44px; }
 
 @media (max-width: 900px) {
-  .l-duel { grid-template-columns: minmax(0, 1fr); }
+  .l-duel-in { grid-template-columns: minmax(0, 1fr); max-width: 560px; margin: 0 auto; }
+  .l-duel-ask { justify-self: start; text-align: left; max-width: 18ch; }
 }
 @media (max-width: 480px) {
   .l-keep { gap: var(--s3); padding-left: 16px; }
