@@ -3,8 +3,9 @@
   position: relative; min-height: max(520px, min(86dvh, 1000px)); overflow: hidden; padding-bottom: var(--s5);
   background: var(--ink);
 }
-.g-canvas { position: absolute; inset: 0; animation: g-in 1.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-@keyframes g-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+/* The stars swirl into place in the shader; the canvas itself only fades up. */
+.g-canvas { position: absolute; inset: 0; animation: g-in 0.8s ease-out both; }
+@keyframes g-in { from { opacity: 0; } to { opacity: 1; } }
 .g-loading { position: absolute; z-index: 2; left: 0; right: 0; top: 55%; text-align: center; font-size: 14px; animation: g-wait 1.6s ease-in-out infinite; }
 @keyframes g-wait { 50% { opacity: 0.4; } }
 @media (prefers-reduced-motion: reduce) { .g-canvas, .g-loading { animation: none; } }
@@ -13,7 +14,9 @@
   content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse min(1000px, 85%) 560px at 0 0, rgb(13 12 18 / 0.9) 45%, transparent);
 }
-.g-stage canvas { touch-action: none; }
+/* One finger swiping up or down scrolls the page past the galaxy (it fills a phone's screen); sideways turns it,
+   two fingers zoom. !important beats the "none" the orbit controls set inline. */
+.g-stage canvas { touch-action: pan-y !important; }
 .g-overlay { position: relative; z-index: 2; pointer-events: none; max-width: 720px; margin: 0; padding-top: var(--s6); }
 .g-title { font-size: clamp(40px, 7vw, 96px); line-height: 1; }
 .g-lead { margin-top: var(--s3); color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 3px var(--ink), 0 0 18px var(--ink); }
@@ -22,13 +25,31 @@
 .g-key-rec { color: var(--season); }
 .g-track { margin-top: var(--s3); font-size: 15px; }
 .g-track strong { color: var(--season); font-family: var(--display); font-weight: 400; font-size: 20px; }
-.g-hint { position: absolute; z-index: 2; right: var(--gutter); bottom: var(--s4); font-size: 12px; pointer-events: none; }
-.g-hover {
-  position: fixed; z-index: 60; display: flex; align-items: center; gap: 10px; pointer-events: none;
-  padding: 8px 12px 8px 8px; border-radius: 12px; background: var(--ink-2); border: 1px solid var(--line);
-  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.9); max-width: 300px;
+.g-hint { position: absolute; z-index: 2; right: var(--gutter); bottom: var(--s4); font-size: 12px; pointer-events: none; transition: color 0.3s; }
+.g-hint.is-nudge { color: var(--paper); }
+.g-hint-touch { display: none; }
+@media (hover: none) { .g-hint-mouse { display: none; } .g-hint-touch { display: inline; } }
+.g-more {
+  display: block; pointer-events: auto; background: none; border: 0; padding: 6px 0; font: inherit; font-size: 14px; font-weight: 700;
+  color: var(--season); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
 }
-.g-hover span { display: grid; font-size: 13px; line-height: 1.3; }
+.g-more:hover { text-decoration-thickness: 2px; }
+.g-more-open { margin-top: var(--s2); }
+/* Placed (and kept inside the stage) by StarCard. */
+.g-hover {
+  position: absolute; z-index: 3; left: 0; top: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+  gap: 10px; pointer-events: none; padding: 8px 12px 8px 8px; border-radius: 14px; background: var(--ink-2);
+  border: 1px solid var(--line); box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.9); width: max-content;
+  max-width: min(300px, calc(100% - 16px)); animation: g-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes g-pop { from { opacity: 0; scale: 0.96; } }
+.g-hover-text { display: grid; font-size: 13px; line-height: 1.3; }
+.g-hover-note { margin-top: 2px; color: var(--paper-2); font-weight: 700; font-size: 12px; }
+.g-hover-note b { font-family: var(--display); font-weight: 400; color: var(--paper); }
+.g-hover-note.is-rec { color: var(--season); }
+.g-hover.is-pinned { pointer-events: auto; padding: 10px; max-width: min(320px, calc(100% - 16px)); }
+.g-hover-acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.g-hover-acts .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
 
 .taste-body { padding-top: var(--s6); }
 .taste-need { display: grid; gap: var(--s3); justify-items: start; max-width: 640px; margin-bottom: var(--s6); }
@@ -105,6 +126,14 @@
 .g-tag > .g-label { transform: translate(-50%, -50%); }
 .g-label-ex { display: block; margin-top: 1px; font-size: 11px; font-weight: 500; color: var(--paper-2); max-width: 36ch; overflow: hidden; text-overflow: ellipsis; }
 .g-tag > .g-label { text-align: center; border-radius: 12px; }
+/* How many of your titles live in the neighbourhood. */
+.g-label-n { margin-left: 6px; font-family: var(--display); font-weight: 400; color: var(--paper); }
+/* Labels arrive after the stars, one by one (each carries its own delay). */
+.g-label, .g-name { animation: g-tag-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes g-tag-in { from { opacity: 0; scale: 0.92; } }
+/* With a title picked, the neighbourhoods step back so its names read first. */
+.g-tag-cluster { transition: opacity 0.4s; }
+.g-tags.is-focused .g-tag-cluster { opacity: 0.35; }
 .g-pick { margin-top: var(--s4); pointer-events: auto; max-width: 560px; }
 .g-pick-ask { font-size: 14px; color: var(--paper-2); margin-bottom: 6px; text-shadow: 0 1px 3px var(--ink); }
 .g-pick-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -112,7 +141,12 @@
 .g-pick-list .chip.is-on { background: var(--season); color: var(--ink); border-color: var(--season); }
 .g-near { margin-top: var(--s3); pointer-events: auto; max-width: 460px; padding: var(--s3) var(--s4); border-radius: var(--r-panel);
   background: rgb(13 12 18 / 0.85); border: 1px solid var(--line); font-size: 14px; }
+.g-near { animation: g-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.g-near li { animation: g-rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.15s + var(--i, 0) * 0.05s); }
+@keyframes g-rise { from { opacity: 0; translate: 0 6px; } }
+@media (prefers-reduced-motion: reduce) { .g-label, .g-name, .g-near, .g-near li, .g-hover { animation: none; } }
 .g-near ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 2px; }
+.g-near .g-more { margin-top: 6px; font-size: 13px; }
 .g-near a { font-weight: 700; text-decoration: none; }
 .g-near a:hover { color: var(--season); }
 .g-near-seen { color: var(--paper-3); font-size: 12px; }

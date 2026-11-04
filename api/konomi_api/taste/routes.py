@@ -122,16 +122,28 @@ def dna(user: CurrentUser, db: Db) -> dict:
 
 
 def _named_clusters(db, eng, points: list[list]) -> list[dict]:
-    """Each neighbourhood with a plain name and the two best-known titles in it."""
-    cluster_of = {p[0]: p[4] for p in points}
+    """Each neighbourhood with a plain name, the two best-known titles in it, and how many well-known titles it
+    holds and where they sit. The map labels the areas fans know (not the big drifts of unrated titles) and pins
+    each label where its known shows are."""
+    where = {p[0]: p for p in points}
     examples: dict[int, list[str]] = {}
+    known: dict[int, list[float]] = {}
     for aid, en, title in db.execute(select(Anime.id, Anime.title_en, Anime.title)
                                      .order_by(Anime.popularity.desc()).limit(6000)).all():
-        c = cluster_of.get(aid)
-        if c is not None and len(examples.setdefault(c, [])) < 2:
-            examples[c].append(en or title)
-    return [c | {"name": name_for(eng.version, c["id"], examples.get(c["id"], [])), "examples": examples.get(c["id"], [])}
-            for c in eng.clusters_meta]
+        p = where.get(aid)
+        if p is None:
+            continue
+        if len(examples.setdefault(p[4], [])) < 2:
+            examples[p[4]].append(en or title)
+        s = known.setdefault(p[4], [0.0, 0.0, 0.0, 0])
+        s[0], s[1], s[2], s[3] = s[0] + p[1], s[1] + p[2], s[2] + p[3], s[3] + 1
+    out = []
+    for c in eng.clusters_meta:
+        s = known.get(c["id"])
+        out.append(c | {"name": name_for(eng.version, c["id"], examples.get(c["id"], [])),
+                        "examples": examples.get(c["id"], []), "known": int(s[3]) if s else 0,
+                        "at": [round(v / s[3], 4) for v in s[:3]] if s else None})
+    return out
 
 
 @router.get("/galaxy")

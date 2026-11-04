@@ -155,6 +155,7 @@ def test_galaxy_clusters_have_plain_names_and_examples(client):
     meta = client.get("/api/taste/galaxy").json()["clusters"]
     assert meta and all(c["name"] and isinstance(c["examples"], list) for c in meta)
     assert any(len(c["examples"]) == 2 for c in meta)
+    assert all(c["known"] == 0 or len(c["at"]) == 3 for c in meta)
 
 
 def test_unnamed_model_falls_back_to_a_true_label():

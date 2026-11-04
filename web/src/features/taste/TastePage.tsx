@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { api } from '../../lib/api'
@@ -90,13 +90,45 @@ function ModelView({ net }: { net: { axes: Axis[]; inputs: NetNode[]; outputs: N
   )
 }
 
-function HoverCard({ id, at }: { id: number; at: { x: number; y: number } }) {
-  const { data } = useQuery({ queryKey: ['anime', String(id)], queryFn: () => api<AnimeBrief>(`/api/anime/${id}`), staleTime: Infinity })
+const animeQuery = (id: number) => ({ queryKey: ['anime', String(id)], queryFn: () => api<AnimeBrief>(`/api/anime/${id}`), staleTime: Infinity })
+
+/**
+ * A star's card, placed beside it and kept inside the stage: near an edge it flips to the star's other side.
+ * Under the pointer it only shows the title; a tapped star's card stays, with Open and its neighbours.
+ */
+function StarCard({ id, at, onChart, score, rec, pinned, onNeighbours }: {
+  id: number; at: { x: number; y: number }; onChart: boolean; score: number | null; rec: boolean
+  pinned?: boolean; onNeighbours?: () => void
+}) {
+  const { data } = useQuery(animeQuery(id))
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current, stage = el?.offsetParent as HTMLElement | null
+    if (!el || !stage) return
+    const W = stage.clientWidth, H = stage.clientHeight, w = el.offsetWidth, h = el.offsetHeight, m = 8
+    let x = at.x + 14, y = at.y + 14
+    if (x + w > W - m) x = at.x - 14 - w
+    if (y + h > H - m) y = at.y - 14 - h
+    el.style.left = `${Math.max(m, Math.min(x, W - w - m))}px`
+    el.style.top = `${Math.max(m, Math.min(y, H - h - m))}px`
+  })
   if (!data) return null
   return (
-    <div className="g-hover" style={{ left: at.x + 14, top: at.y + 14 }}>
+    <div ref={ref} className={`g-hover${pinned ? ' is-pinned' : ''}`} role={pinned ? 'dialog' : undefined}
+      aria-label={pinned ? data.title_en ?? data.title : undefined}>
       <Cover id={data.id} title={data.title} src={data.thumbnail} color={data.color} size="s" />
-      <span><strong>{data.title_en ?? data.title}</strong><span className="faint">{data.year}</span></span>
+      <span className="g-hover-text">
+        <strong>{data.title_en ?? data.title}</strong>
+        <span className="faint">{[data.year, data.type === 'TV' ? 'Series' : data.type === 'MOVIE' ? 'Movie' : null].filter(Boolean).join(' · ')}</span>
+        {onChart ? <span className="g-hover-note">On your chart{score != null && <> · <b>{score.toFixed(1)}</b></>}</span>
+          : rec ? <span className="g-hover-note is-rec">Konomi thinks you’ll love it</span> : null}
+      </span>
+      {pinned && (
+        <span className="g-hover-acts">
+          <Link to={`/anime/${id}`} className="btn btn-primary">Open</Link>
+          <button className="btn" onClick={onNeighbours}>See neighbours</button>
+        </span>
+      )}
     </div>
   )
 }
@@ -111,6 +143,27 @@ export default function TastePage() {
   const nav = useNavigate()
   const [filter, setFilter] = useStored('konomi-recs-filter', '', FILTERS.map((f) => f.key))
   const [hover, setHover] = useState<{ id: number; at: { x: number; y: number } } | null>(null)
+  // A tapped star's card (touch has no hover).
+  const [pinned, setPinned] = useState<{ id: number; at: { x: number; y: number } } | null>(null)
+  const stage = useRef<HTMLElement>(null)
+  const overlay = useRef<HTMLDivElement>(null)
+  const inStage = (p: { x: number; y: number }) => {
+    const r = stage.current?.getBoundingClientRect()
+    return r ? { x: p.x - r.left, y: p.y - r.top } : p
+  }
+  // Once you know how to read the map, the long intro can be put away (remembered), so phones show more sky.
+  const [lead, setLead] = useStored('konomi-galaxy-lead', 'open', ['open', 'closed'])
+  // A plain scroll over the galaxy scrolls the page; the hint lights up to say how to zoom.
+  const [nudge, setNudge] = useState(false)
+  const nudgeT = useRef(0)
+  const onNudge = () => { setNudge(true); clearTimeout(nudgeT.current); nudgeT.current = window.setTimeout(() => setNudge(false), 1800) }
+  useEffect(() => () => clearTimeout(nudgeT.current), [])
+  useEffect(() => {
+    if (!pinned) return
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setPinned(null) }
+    addEventListener('keydown', key)
+    return () => removeEventListener('keydown', key)
+  }, [pinned])
   const galaxy = useQuery(galaxyQuery)
   const me = useQuery({ queryKey: ['taste-me'], queryFn: () => api<{ mine: { id: number; score: number | null }[]; centroid: [number, number, number] | null; recs: number[] }>('/api/taste/me') })
   const dna = useQuery({ queryKey: ['dna'], queryFn: () => api<{ axes: Axis[] | null; need: number }>('/api/taste/dna') })
@@ -120,8 +173,12 @@ export default function TastePage() {
 
   const mine = useMemo(() => new Map((me.data?.mine ?? []).map((m) => [m.id, m.score])), [me.data])
   const { data: entries = [] } = useList()
-  // Pick one of your titles to see where it sits and which titles its fans also love.
-  const [focusId, setFocusId] = useState<number | null>(null)
+  // Pick a title (one of yours, or any tapped star) to see where it sits and which titles its fans also love.
+  // Remembered, so coming Back from a title page lands on the same view.
+  const [focusKey, setFocusKey] = useStored<string>('konomi-galaxy-focus', '')
+  const focusId = focusKey && Number.isFinite(Number(focusKey)) ? Number(focusKey) : null
+  const picked = useRef(false)
+  const pick = (id: number | null) => { picked.current = id != null; setFocusKey(id == null ? '' : String(id)); setPinned(null) }
   const near = useQuery({
     queryKey: ['similar', focusId], enabled: focusId != null, staleTime: Infinity,
     queryFn: () => api<{ items: AnimeBrief[] }>(`/api/taste/similar/${focusId}?k=6`),
@@ -129,11 +186,25 @@ export default function TastePage() {
   const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort(byRank).slice(0, 10), [entries])
   const focus = useMemo(() => (focusId != null && near.data ? { id: focusId, near: near.data.items.map((a) => a.id) } : null), [focusId, near.data])
   const focused = entries.find((e) => e.anime_id === focusId)
+  const focusBrief = useQuery({ ...animeQuery(focusId ?? 0), enabled: focusId != null && !focused })
+  const focusAnime = focused?.anime ?? (focusId != null ? focusBrief.data : undefined)
   // Your three best-rated titles get name tags on the map.
-  const named = useMemo(() => (focus && focused && near.data
-    ? [{ id: focus.id, label: focused.anime.title_en ?? focused.anime.title }, ...near.data.items.map((a) => ({ id: a.id, label: a.title_en ?? a.title }))]
+  const named = useMemo(() => (focus && focusAnime && near.data
+    ? [{ id: focus.id, label: focusAnime.title_en ?? focusAnime.title }, ...near.data.items.map((a) => ({ id: a.id, label: a.title_en ?? a.title }))]
     : entries.filter((e) => e.score != null).sort(byRank).slice(0, 3)
-      .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title }))), [entries, focus, focused, near.data])
+      .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title }))), [entries, focus, focusAnime, near.data])
+  // Phones stack the text over the sky: after a pick, glide down so the picked title (framed below the text) is
+  // in view, not left under the fold.
+  useEffect(() => {
+    if (!picked.current || !focus || innerWidth >= 900) return
+    picked.current = false
+    const s = stage.current?.getBoundingClientRect(), o = overlay.current?.getBoundingClientRect()
+    if (!s || !o) return
+    const sky = (o.bottom + s.bottom) / 2
+    if (sky > innerHeight * 0.7) {
+      scrollBy({ top: sky - (innerHeight + 56) / 2, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+    }
+  }, [focus])
   // The neighbourhoods you watch most in, by the cluster each of your titles sits in.
   const hoods = useMemo(() => {
     if (!galaxy.data || mine.size === 0) return []
@@ -145,28 +216,37 @@ export default function TastePage() {
   }, [galaxy.data, mine])
   const recSet = useMemo(() => new Set(me.data?.recs ?? []), [me.data])
   const need = dna.data?.need ?? 0
+  const card = pinned ?? hover
 
   return (
     <div className="taste" data-season="FALL">
-      <section className="g-stage">
-        {galaxy.data ? (
+      <section className="g-stage" ref={stage}>
+        {/* Wait for your stars too, so the intro lights them up instead of popping them in later. */}
+        {galaxy.data && !me.isLoading ? (
           <Suspense fallback={<p className="g-loading faint">Placing the stars…</p>}>
             <div className="g-canvas"><GalaxyCanvas points={galaxy.data.points} clusters={galaxy.data.clusters} mine={mine} recs={recSet} centroid={me.data?.centroid ?? null}
-              accent={ACCENT} named={named} focus={focus} onHover={(id, at) => setHover(id != null && at ? { id, at } : null)}
-              onPick={(id) => nav(`/anime/${id}`)} /></div>
+              accent={ACCENT} named={named} focus={focus} marked={pinned?.id ?? hover?.id ?? null}
+              onHover={(id, at) => setHover(id != null && at ? { id, at: inStage(at) } : null)}
+              onPick={(id, touch) => (touch ? setPinned({ id, at: inStage(touch) }) : nav(`/anime/${id}`))}
+              onMiss={() => setPinned(null)} onNudge={onNudge} /></div>
           </Suspense>
         ) : <p className="g-loading faint">{galaxy.isError ? 'The galaxy didn’t load. Refresh to try again.' : 'Placing the stars…'}</p>}
-        <div className="g-overlay page">
+        <div className="g-overlay page" ref={overlay}>
           <h1 className="display g-title">Your taste</h1>
-          <p className="g-lead">
-            Every star is an anime, {galaxy.data ? galaxy.data.points.length.toLocaleString() : '39,000+'} of them. Konomi placed
-            them using 56 million real ratings: two stars sit close when the same people love both. The map is the same for
-            everyone. {me.data && mine.size === 0
-              ? <>Rate a few anime and yours light up here in <span className="g-key g-key-mine">white</span>.</>
-              : <><span className="g-key g-key-mine">White</span> stars are the ones you’ve rated,
-                <span className="g-key g-key-rec"> pulsing</span> ones are what Konomi thinks you’ll love next.</>}
-            {' '}Each label names a neighbourhood of similar shows, with two it’s known for.
-          </p>
+          {lead === 'open' || mine.size === 0 ? (
+            <p className="g-lead">
+              Every star is an anime, {galaxy.data ? galaxy.data.points.length.toLocaleString() : '39,000+'} of them. Konomi placed
+              them using 56 million real ratings: two stars sit close when the same people love both. The map is the same for
+              everyone. {me.data && mine.size === 0
+                ? <>Rate a few anime and yours light up here in <span className="g-key g-key-mine">white</span>.</>
+                : <><span className="g-key g-key-mine">White</span> stars are the ones you’ve rated,
+                  <span className="g-key g-key-rec"> pulsing</span> ones are what Konomi thinks you’ll love next.</>}
+              {' '}Each label names a neighbourhood of similar shows, with two it’s known for{mine.size > 0 && ' and how many of yours are in it'}.
+            </p>
+          ) : null}
+          {mine.size > 0 && (lead === 'open'
+            ? <button className="g-more" onClick={() => setLead('closed')}>Got it, hide this</button>
+            : <button className="g-more g-more-open" onClick={() => setLead('open')}>How to read the map</button>)}
           {hoods.length > 0 && (
             <p className="g-hoods">
               You watch most in{' '}
@@ -179,21 +259,22 @@ export default function TastePage() {
               <div className="g-pick-list">
                 {mineTop.map((e) => (
                   <button key={e.anime_id} className={`chip${focusId === e.anime_id ? ' is-on' : ''}`} aria-pressed={focusId === e.anime_id}
-                    onClick={() => setFocusId(focusId === e.anime_id ? null : e.anime_id)}>
+                    onClick={() => pick(focusId === e.anime_id ? null : e.anime_id)}>
                     {e.anime.title_en ?? e.anime.title}
                   </button>
                 ))}
               </div>
             </div>
           )}
-          {focused && near.data && (
-            <div className="g-near">
-              <p>People who loved <strong>{focused.anime.title_en ?? focused.anime.title}</strong> also loved:</p>
+          {focusAnime && near.data && (
+            <div className="g-near" key={focusId}>
+              <p>People who loved <strong>{focusAnime.title_en ?? focusAnime.title}</strong> also loved:</p>
               <ol>
-                {near.data.items.map((a) => (
-                  <li key={a.id}><Link to={`/anime/${a.id}`}>{a.title_en ?? a.title}</Link>{mine.has(a.id) ? <span className="g-near-seen"> · on your chart</span> : null}</li>
+                {near.data.items.map((a, i) => (
+                  <li key={a.id} style={{ ['--i' as string]: i }}><Link to={`/anime/${a.id}`}>{a.title_en ?? a.title}</Link>{mine.has(a.id) ? <span className="g-near-seen"> · on your chart</span> : null}</li>
                 ))}
               </ol>
+              <button className="g-more" onClick={() => pick(null)}>Back to your map</button>
             </div>
           )}
           {track.data && track.data.n >= 3 && track.data.within1 != null && (
@@ -203,8 +284,12 @@ export default function TastePage() {
             </p>
           )}
         </div>
-        {hover && <HoverCard id={hover.id} at={hover.at} />}
-        <p className="g-hint faint">Drag to turn · scroll to zoom · click a star</p>
+        {card && <StarCard key={card.id} id={card.id} at={card.at} onChart={mine.has(card.id)} score={mine.get(card.id) ?? null}
+          rec={recSet.has(card.id)} pinned={!!pinned} onNeighbours={() => pick(card.id)} />}
+        <p className={`g-hint faint${nudge ? ' is-nudge' : ''}`}>
+          <span className="g-hint-mouse">Drag to turn · pinch or Ctrl + scroll to zoom · click a star</span>
+          <span className="g-hint-touch">Swipe sideways to turn · pinch to zoom · tap a star</span>
+        </p>
       </section>
 
       <div className="page taste-body">
