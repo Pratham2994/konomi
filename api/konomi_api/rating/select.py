@@ -60,6 +60,7 @@ def uncertainty(tiers: dict[int, int], duels: list[DuelRec], s: dict[int, float]
 # How far up the chart a title is paired, and how much a duel must be worth (in bits) to be asked: before the
 # facet taps (about 3 answers per title), and after them (about 10). Below the second, the chart is settled.
 WINDOW = 8
+TOP = 10  # every other question goes to your top TOP while it still tells something
 ASK_BITS = 0.15
 MORE_BITS = 0.06
 _L2 = math.pi / 8  # logistic ~ probit with this squared scale
@@ -74,11 +75,12 @@ def pair_gain(mu: np.ndarray, var: np.ndarray) -> np.ndarray:
     return np.maximum(0, h - np.sqrt(_C2 / (_L2 * var + _C2)) * np.exp(-_L2 * mu * mu / (2 * (_L2 * var + _C2))))
 
 
-def best_duel(tiers: dict[int, int], duels: list[DuelRec], s: dict[int, float]) -> tuple[float, int, int] | None:
+def best_duel(tiers: dict[int, int], duels: list[DuelRec], s: dict[int, float],
+              top: int | None = None) -> tuple[float, int, int] | None:
     """(bits, better, worse) for the most informative pair not compared yet, over the whole chart. Each title is
     paired with the next WINDOW titles above it, so far-apart pairs whose answer is certain are never asked,
     pairs across a band edge are (that is how a title earns its way across), and every part of the chart gets
-    questions in proportion to how unsure it is."""
+    questions in proportion to how unsure it is. With `top`, only pairs whose better title is in your top `top`."""
     ranked = sorted(tiers, key=lambda i: (s[i], -i))
     if len(ranked) < 2:
         return None
@@ -94,6 +96,8 @@ def best_duel(tiers: dict[int, int], duels: list[DuelRec], s: dict[int, float]) 
         # so neither end of the chart is favoured.
         gain += ((rid[k:] * 40503 + rid[:-k] * 9973) % 1009) * 1e-12
         gain[[x for x in range(len(gain)) if (ranked[x], ranked[x + k]) in asked]] = -1  # never the same pair twice
+        if top is not None:
+            gain[: max(0, len(ranked) - top - k)] = -1
         x = int(np.argmax(gain))
         if gain[x] >= 0 and (best is None or gain[x] > best[0]):
             best = (float(gain[x]), ranked[x + k], ranked[x])
@@ -103,11 +107,15 @@ def best_duel(tiers: dict[int, int], duels: list[DuelRec], s: dict[int, float]) 
 def next_session_question(tiers: dict[int, int], duels: list[DuelRec], untiered: list[int],
                           facets_missing: list[int], scores: dict[int, float] | None = None) -> dict | None:
     """1) completed titles without a feeling, 2) the duel that tells the most about your whole chart, while it is
-    worth asking, 3) facet taps for the best titles, 4) smaller duels, until your chart is settled.
+    worth asking, 3) facet taps for the best titles, 4) smaller duels, until your chart is settled. Every other
+    duel settles your top TOP first (where the exact order matters most), so the rest still gets half.
     `scores` are the fit's exact strengths; without them the fit runs here."""
     if untiered:
         return {"kind": "tier", "anime_id": untiered[0]}
-    best = best_duel(tiers, duels, scores if scores is not None else strength(tiers, duels))
+    s = scores if scores is not None else strength(tiers, duels)
+    if len(duels) % 2 == 0 and (best := best_duel(tiers, duels, s, TOP)) is not None and best[0] >= MORE_BITS:
+        return {"kind": "duel", "a": best[1], "b": best[2]}
+    best = best_duel(tiers, duels, s)
     if best is not None and best[0] >= ASK_BITS:
         return {"kind": "duel", "a": best[1], "b": best[2]}
     if facets_missing:
