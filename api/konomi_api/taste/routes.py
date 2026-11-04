@@ -12,6 +12,7 @@ from ..deps import CurrentUser, Db
 from ..models import Anime, ListEntry
 from .engine import MIN_POSITIVES, get_engine
 from .cluster_names import name_for
+from .rerank import reason_text, summary_text
 from .service import user_entries
 
 router = APIRouter(prefix="/api/taste", tags=["taste"])
@@ -73,9 +74,30 @@ def _recs(eng, db, entries, type, era, gems, k) -> dict:
     ids = [i["anime_id"] for i in items]
     b = _briefs(db, ids + [x for i in items for x in i["because"]])
     preds = eng.predict_many(entries, ids) if mode == "model" else {}
+    items = [i for i in items if i["anime_id"] in b]
+
+    def name(x: int) -> str:
+        return b[x]["title_en"] or b[x]["title"]
+
+    # The few titles most picks came from, earlier picks counting more: "Mostly because you loved A, B and C".
+    cited: dict[int, float] = {}
+    verb_of: dict[int, str] = {}
+    for n, i in enumerate(items):
+        for x, v in zip(i["because"], i["verbs"]):
+            if x in b:
+                cited[x] = cited.get(x, 0) + 1 / (1 + n / 8)
+                verb_of[x] = v
+    drivers = [x for x in sorted(cited, key=lambda x: -cited[x]) if cited[x] >= 1.5][:3]
     return {"mode": mode, "need": max(0, MIN_POSITIVES - eng.positives(entries)),
+            "summary": summary_text([name(x) for x in drivers], [verb_of[x] for x in drivers]),
+            "drivers": [b[x] for x in drivers],
             "items": [{"anime": b[i["anime_id"]], "predicted": preds.get(i["anime_id"]),
-                       "because": [b[x] for x in i["because"] if x in b]} for i in items if i["anime_id"] in b]}
+                       "because": [b[x] for x in i["because"] if x in b],
+                       "kind": i["kind"], "genres": i["genres"],
+                       "reason": reason_text(i["kind"], [name(x) for x in i["because"] if x in b],
+                                             [v for x, v in zip(i["because"], i["verbs"]) if x in b],
+                                             i["genres"], i["fan"], b[i["anime_id"]]["type"])}
+                      for i in items]}
 
 
 @router.get("/predict/{anime_id}")

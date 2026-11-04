@@ -23,10 +23,21 @@
 }
 .rec { display: grid; gap: 6px; align-content: start; text-decoration: none; min-width: 0; }
 .rec .cover-art { transition: transform 0.25s var(--ease-out); }
-.rec:hover .cover-art { transform: translateY(-3px); }
+.rec:hover .cover-art { transform: translateY(-3px); } /* the pinned covers lift with it */
 .rec-guess { font-size: 13px; color: var(--paper-2); }
 .rec-guess .display { color: var(--season); font-size: 17px; }
-.rec-why { font-size: 12px; color: var(--paper-3); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.rec-why { font-size: 12px; color: var(--paper-2); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+/* "Next season of ..." and "A film from ...": the title's own season ink, since you already know the show. */
+.rec-why[data-kind="sequel"], .rec-why[data-kind="side"] { color: var(--season); font-weight: 700; }
+/* The titles of yours behind a pick, pinned to the foot of its cover like small stickers. Inside the cover, so
+   they never push past a phone screen. */
+.rec-art { position: relative; display: block; container-type: inline-size; }
+.rec-pins { position: absolute; left: 8px; bottom: 8px; display: flex; align-items: flex-end; pointer-events: none; }
+.rec-pin { width: clamp(22px, 22cqi, 40px); }
+.rec-pin .cover { width: 100%; }
+.rec-pin .cover-art { border-radius: 4px; box-shadow: 0 0 0 2px var(--ink), 0 6px 14px -4px rgb(0 0 0 / 0.8); }
+.rec-pin:first-child { transform: rotate(-6deg); }
+.rec-pin + .rec-pin { margin-left: -6px; transform: rotate(5deg) translateY(-3px); }
 
 
 .home-grid { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); } /* never wider than the screen */

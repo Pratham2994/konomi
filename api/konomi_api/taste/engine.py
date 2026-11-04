@@ -21,7 +21,9 @@ from sqlalchemy import text
 
 from ..config import get_settings
 from ..db import engine as db_engine
+from . import rerank
 from .cluster_names import axis_names
+from .rerank import genre_bits, liking, popularity_prior
 
 # Feeling tier -> how strongly a title says "this is my taste".
 TIER_WEIGHT = {5: 1.0, 4: 0.8, 3: 0.4, 2: 0.0, 1: 0.0}
@@ -79,7 +81,8 @@ class TasteEngine:
         items = pl.read_parquet(art / "items.parquet")
         with db_engine.connect() as c:
             ids = dict(c.execute(text("select aod_key, id from anime")).all())
-            meta = c.execute(text("select id, type, popularity, year, score, related, title, season, status from anime")).all()
+            meta = c.execute(text("select id, type, popularity, year, score, related, title, season, status, genres "
+                                  "from anime")).all()
         keep = np.array([k in ids for k in items["aod_key"].to_list()])
         items = items.filter(pl.Series(keep))
         self.anime_ids = np.array([ids[k] for k in items["aod_key"].to_list()], dtype=np.int64)
@@ -104,6 +107,15 @@ class TasteEngine:
         self.type = np.array([m[int(a)].type for a in self.anime_ids])
         self.pop = np.array([m[int(a)].popularity for a in self.anime_ids], dtype=np.float64)
         self.year = np.array([m[int(a)].year or 0 for a in self.anime_ids])
+        self.genre_bits = np.array([genre_bits(m[int(a)].genres) for a in self.anime_ids], dtype=np.uint32)
+        self.pop_prior = popularity_prior(self.pop, self.year)
+        # Films, OVAs and specials that belong to a TV series: only worth suggesting once you saw that series.
+        self.side_of = {}
+        for r in meta:
+            if r.type != "TV" and r.related:
+                tv = [x for x in r.related if x in self.tv_year and self.series_key(x) == self.series_key(r.id)]
+                if tv:
+                    self.side_of[r.id] = tv
         z = np.load(art / "multvae.npz")
         self.W1, self.b1, self.Wmu, self.bmu = z["W1"], z["b1"], z["Wmu"], z["bmu"]
         self.n_cf = self.W1.shape[1]
@@ -198,14 +210,10 @@ class TasteEngine:
             r = self.row_of.get(a)
             if r is not None:
                 mask[r] = False
-        if self.positives(entries) < MIN_POSITIVES:
-            s = np.log1p(self.pop) + (self.year >= 2015) * 0.5
-            mode = "popular"
-        else:
+        if self.positives(entries) >= MIN_POSITIVES:
             x = self.input_vector(entries)
-            s = self.scores(self.user_z(x), x)
-            mode = "model"
-        s = np.where(mask, s, -np.inf)
+            return self._hybrid(entries, self.scores(self.user_z(x), x), mask, k, gems), "model"
+        s = np.where(mask, np.log1p(self.pop) + (self.year >= 2015) * 0.5, -np.inf)
         ranked = np.argsort(-s)[: k * 5]
         ranked = ranked[np.isfinite(s[ranked])]
         top, roots = [], set()
@@ -220,16 +228,112 @@ class TasteEngine:
             top.append(rr)
             if len(top) == k:
                 break
-        likes = [e for e in entries if entry_weight(e) >= 0.4 and e.anime_id in self.row_of]
-        like_rows = np.array([self.row_of[e.anime_id] for e in likes], dtype=np.int64)
+        return [{"anime_id": int(self.anime_ids[r]), "because": [], "kind": "popular", "genres": [], "verbs": [],
+                 "fan": True} for r in top], "popular"
+
+    POOL, POOL_MODEL, MAX_LIKES = 300, 150, 150
+
+    def _hybrid(self, entries: list[UserEntry], s: np.ndarray, mask: np.ndarray, k: int, gems: bool) -> list[dict]:
+        """Model score + genre affinity + popularity/quality + liked neighbours, one pick per series, MMR for
+        variety, and the reason behind each pick (see rerank.py)."""
+        listed = {e.anime_id for e in entries}
+        weight = {e.anime_id: entry_weight(e) for e in entries}
+        done = {e.anime_id for e in entries if e.status == "completed" and entry_weight(e) > 0}
+        value = {e.anime_id: v for e in entries if (v := liking(e.status, e.tier, e.score)) is not None}
+        cand = np.where(mask)[0]
+        if not len(cand):
+            return []
+        # Genre affinity from every title with a feeling, score or watch status (planned ones say nothing).
+        felt = [(self.row_of[a], v) for a, v in value.items() if a in self.row_of]
+        aff, n_g = rerank.genre_affinity(self.genre_bits[np.array([r for r, _ in felt], dtype=np.int64)],
+                                         np.array([v for _, v in felt], dtype=np.float32))
+        g = rerank.genre_score(self.genre_bits, aff)
+        gz = rerank.zscore(g, g[cand])
+        pz = np.clip(self.pop_prior, *rerank.POP_CLIP)
+        qz = np.clip(rerank.zscore(self.quality, self.quality[cand]), -2.0, 2.0)
+        w_pop, w_q = (0.0, rerank.W_QUALITY + 0.1) if gems else (rerank.W_POP, rerank.W_QUALITY)
+        prior = rerank.W_GENRE * gz + w_pop * pz + w_q * qz
+        crude = s[cand] + prior[cand]
+        # Candidates: the best by the blend so far, plus the model's own best (so its strongest calls always compete).
+        pool = np.unique(np.concatenate([cand[rerank.top_n(crude, self.POOL)],
+                                         cand[rerank.top_n(s[cand], self.POOL_MODEL)]]))
+        pool = pool[np.argsort(-(s[pool] + prior[pool]))]
+
+        # One pick per series. A later season is a pick only when you finished (and did not dislike) the one before
+        # it; a film or OVA of a series only when you finished that series.
+        rows, model, cont, roots = [], [], [], set()
+        for r in pool:
+            aid = int(self.anime_ids[r])
+            if aid in self.side_of:
+                seen = [a for a in self.side_of[aid] if a in done]
+                if not seen:
+                    continue
+                before = max(seen, key=lambda a: weight[a])
+                rr, (root, _, first) = r, self._root(before, set())
+            else:
+                root, earlier, first = self._root(aid, listed)
+                rr = self.row_of.get(root, r)
+                if not mask[rr]:
+                    continue  # the season to start with is filtered out (era, hidden gems): no later season instead
+                before = max(earlier, key=lambda a: self.tv_year[a]) if earlier else None
+                if before is not None and before not in done:
+                    continue  # still watching, dropped or disliked the season before: its sequel is no pick yet
+            if root in roots or first in roots:
+                continue
+            roots.update((root, first))
+            rows.append(rr)
+            model.append(max(s[r], s[rr]))
+            cont.append(before)
+        if not rows:
+            return []
+        rows = np.array(rows, dtype=np.int64)
+        base = np.array(model, dtype=np.float32) + prior[rows]
+
+        # Liked neighbours: how close each candidate sits to the titles you loved (item-kNN in the taste space).
+        likes = sorted([e for e in entries if entry_weight(e) >= 0.4 and e.anime_id in self.row_of],
+                       key=lambda e: -value.get(e.anime_id, 0))[: self.MAX_LIKES]
+        like_ids = [e.anime_id for e in likes]
+        like_w = np.clip(np.array([value.get(a, 0.1) for a in like_ids], dtype=np.float32), 0.2, 1.3)
+        unit_rows = self.unit(rows)
+        sims = unit_rows @ self.unit(np.array([self.row_of[a] for a in like_ids], dtype=np.int64)).T
+        nz = rerank.zscore(rerank.near_liked(sims, like_w))
+        final = base + rerank.W_NEAR * nz
+
+        top = np.argsort(-final)[: max(3 * k, 60)]
+        is_cont = np.array([cont[i] is not None for i in top])
+        pick = rerank.mmr(final[top], unit_rows[top], self.genre_bits[rows[top]], k,
+                          capped=is_cont, cap=max(2, k // 3))
+
+        named = (aff >= rerank.AFFINITY_NAMED) & (n_g >= 2)
+        # Too far from everything you liked (bottom quarter of the candidates) to say "because you loved X".
+        best = sims.max(1)
+        weak = best < np.quantile(best, 0.25)
         out = []
-        for r in top:
-            because: list[int] = []
-            if mode == "model" and len(like_rows):
-                sims = self.unit(like_rows) @ self.unit(r)
-                because = [likes[j].anime_id for j in np.argsort(-sims)[:2]]
-            out.append({"anime_id": int(self.anime_ids[r]), "because": because})
-        return out, mode
+        for j in pick:
+            i = int(top[j])
+            r, aid = int(rows[i]), int(self.anime_ids[rows[i]])
+            own = self.series_key(aid)
+            # Your titles behind this pick, closest first; never another season of the pick itself.
+            w = sims[i] * like_w
+            order = [t for t in np.argsort(-w) if self.series_key(like_ids[t]) != own]
+            near = [] if weak[i] else order[:1] + [t for t in order[1:2] if w[t] >= 0.8 * w[order[0]]]
+            bits = int(self.genre_bits[r])
+            gen = sorted([b for b in range(rerank.N_GENRES) if bits >> b & 1 and named[b]], key=lambda b: -aff[b])[:2]
+            if cont[i] is not None:
+                kind, because = ("sequel" if self.type[r] == "TV" else "side"), [cont[i]]
+            elif gen and (rerank.W_GENRE * gz[r] > rerank.W_NEAR * nz[i] or not near):
+                kind = "genre"
+                mask_g = sum(1 << b for b in gen)
+                because = [like_ids[t] for t in order if int(self.genre_bits[self.row_of[like_ids[t]]]) & mask_g][:2]
+            elif near:
+                kind, because = "similar", [like_ids[t] for t in near]
+            else:
+                kind, because = "taste", []
+            out.append({"anime_id": aid, "because": because, "kind": kind,
+                        "genres": [rerank.GENRES[b][1] for b in gen],
+                        "verbs": [rerank.verb(value.get(a, 0.1)) for a in because],
+                        "fan": bool(self.pop_prior[r] >= rerank.FAN_FAVOURITE)})
+        return out
 
     def series_key(self, anime_id: int) -> str:
         """First word of the romaji title, e.g. 'shingeki' for every Attack on Titan season. Related links in the
@@ -252,8 +356,12 @@ class TasteEngine:
     def franchise_root(self, anime_id: int, listed: set[int]) -> int:
         """The first unwatched TV season in a title's franchise (seasons linked as related TV entries, up to
         three hops). Recommending season 4 to someone who never saw season 1 is useless."""
+        return self._root(anime_id, listed)[0]
+
+    def _root(self, anime_id: int, listed: set[int]) -> tuple[int, list[int], int]:
+        """franchise_root, plus the series' seasons on your list that come before it, plus the series' first season."""
         if anime_id not in self.tv_year:
-            return anime_id
+            return anime_id, [], anime_id
         key = self.series_key(anime_id)
         seen, frontier = {anime_id}, [anime_id]
         for _ in range(3):
@@ -268,7 +376,9 @@ class TasteEngine:
                         nxt.append(r)
             frontier = nxt
         unseen = [a for a in seen if a not in listed and self.tv_year[a] <= self.tv_year[anime_id]]
-        return min(unseen, key=lambda a: (self.tv_year[a], a)) if unseen else anime_id
+        root = min(unseen, key=lambda a: (self.tv_year[a], a)) if unseen else anime_id
+        earlier = [a for a in seen if a in listed and self.tv_year[a] < self.tv_year[root]]
+        return root, earlier, min(seen, key=lambda a: (self.tv_year[a], a))
 
     def predict(self, entries: list[UserEntry], anime_id: int) -> float | None:
         r = self.row_of.get(anime_id)

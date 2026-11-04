@@ -17,14 +17,27 @@ import './home.css'
 export interface Rec {
   anime: AnimeBrief
   predicted: number | null
+  /** Your titles behind this pick. */
   because: AnimeBrief[]
+  /** Why it was picked, in one plain sentence (older servers send only `because`). */
+  reason?: string
+  kind?: 'similar' | 'genre' | 'sequel' | 'side' | 'taste' | 'popular'
+  genres?: string[]
+}
+
+export interface Recs {
+  items: Rec[]
+  mode: 'model' | 'popular'
+  need: number
+  /** "Mostly because you loved A, B and C": the titles most picks came from. */
+  summary?: string | null
 }
 
 export function useRecs(params = '') {
   const onList = useListIndex()
   const q = useQuery({
     queryKey: ['recs', params],
-    queryFn: () => api<{ items: Rec[]; mode: 'model' | 'popular'; need: number }>(`/api/taste/recs${params}`),
+    queryFn: () => api<Recs>(`/api/taste/recs${params}`),
     retry: false,
     staleTime: 60_000,
   })
@@ -35,14 +48,23 @@ export function useRecs(params = '') {
 
 export function RecCard({ r }: { r: Rec }) {
   const a = r.anime
+  const why = r.reason ?? (r.because.length > 0 ? `Because you liked ${r.because.map((b) => b.title_en ?? b.title).join(' and ')}` : null)
   return (
     <VtLink animeId={a.id} className="rec" data-season={a.season ?? undefined}>
-      <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} vt />
+      <span className="rec-art">
+        <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} vt />
+        {/* The titles of yours behind the pick, pinned to its cover. */}
+        {r.because.length > 0 && (
+          <span className="rec-pins" aria-hidden="true">
+            {r.because.slice(0, 2).map((b) => (
+              <span key={b.id} className="rec-pin"><Cover id={b.id} title={b.title} src={b.thumbnail ?? b.picture} color={b.color} size="xs" /></span>
+            ))}
+          </span>
+        )}
+      </span>
       <span className="tile-title">{a.title_en ?? a.title}</span>
       {r.predicted != null && <span className="rec-guess"><span className="display">{r.predicted.toFixed(1)}</span> for you</span>}
-      {r.because.length > 0 && (
-        <span className="rec-why">because you liked {r.because.map((b) => b.title_en ?? b.title).join(' and ')}</span>
-      )}
+      {why && <span className="rec-why" data-kind={r.kind}>{why}</span>}
     </VtLink>
   )
 }
@@ -167,7 +189,7 @@ export function HomePage() {
 
       {recs && recs.items.length > 0 && (
         <SeasonBand neutral season={null} year={null} label="For you"
-          count={recs.mode === 'model' ? 'picked by your taste model' : 'popular picks for now. Rate a few favourites to make them yours'}
+          count={recs.mode === 'model' ? (recs.summary ?? 'picked by your taste model') : 'popular picks for now. Rate a few favourites to make them yours'}
           aside={<Link to="/taste" className="btn">See your taste</Link>}>
           <div className="recs">{recs.items.slice(0, 12).map((r) => <RecCard key={r.anime.id} r={r} />)}</div>
         </SeasonBand>
