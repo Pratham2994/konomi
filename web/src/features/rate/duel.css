@@ -3,9 +3,7 @@
 .duel-side {
   position: relative; display: grid; gap: var(--s2); align-content: start;
   padding: 0; border: 0; background: none; text-align: left;
-  transition: transform 0.25s var(--ease-out);
 }
-.duel-side:hover:not(:disabled) { transform: translateY(-3px); }
 .duel-side:hover:not(:disabled) .cover-art { outline: 3px solid var(--season); outline-offset: 3px; }
 .duel-title { font-weight: 700; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .duel-key {
@@ -23,9 +21,6 @@
 .duel-big .duel-pair { gap: clamp(16px, 4vw, 56px); }
 .duel-big .duel-title { font-size: clamp(15px, 1.4vw, 19px); }
 .duel-big .duel-vs { width: 60px; height: 60px; font-size: 18px; }
-.duel-side { transition: opacity 0.18s, transform 0.18s var(--ease-out); }
-.duel-side.is-picked { transform: scale(1.03); }
 .duel-side.is-picked .cover-art { outline: 3px solid var(--season); outline-offset: 3px; }
-.duel-side.is-passed { opacity: 0.4; transform: scale(0.97); }
 .duel-tie.is-picked { color: var(--paper); background: var(--ink-3); }
 .duel-which { font-size: 12px; color: var(--paper-3); font-weight: 700; }

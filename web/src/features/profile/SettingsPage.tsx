@@ -9,6 +9,7 @@ import { api, ApiError } from '../../lib/api'
 import { profileChanged } from '../../lib/sync'
 import { STATUS_LABEL, useList } from '../../lib/hooks'
 import type { Status } from '../../lib/types'
+import { StartOver } from '../rate/StartOver'
 import { ImportPanel } from './ImportPanel'
 import { ACCENT_INK, type Look } from './ProfilePage'
 import '../auth/auth.css'
@@ -494,6 +495,10 @@ export function SettingsPage() {
 
           <Group id="import" title="Bring your list over" lead="From MyAnimeList (Profile → Export → Anime list) or a public AniList profile. Nothing already on your chart is changed.">
             <ImportPanel />
+          </Group>
+
+          <Group id="reset" title="Reset your taste" lead="Clears every feeling, score and comparison so you rate from the start. Every title stays on your chart.">
+            <StartOver label="Reset my taste" twice />
           </Group>
         </div>
 

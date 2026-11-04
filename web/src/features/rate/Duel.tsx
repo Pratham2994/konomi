@@ -37,18 +37,21 @@ export function Duel({ a, b, onPick, busy, big }: {
   return (
     <div className={`duel${big ? ' duel-big' : ''}`}>
       <div className="duel-pair">
-        {[a, b].map((x, i) => (
-          <motion.button key={`${x.id}-${i}`} type="button"
-            className={`duel-side${picked === (i === 0 ? 'a' : 'b') ? ' is-picked' : picked ? ' is-passed' : ''}`} disabled={busy}
-            onClick={() => pick(i === 0 ? 'a' : 'b')} whileTap={{ scale: 0.96 }}
-            initial={{ opacity: 0, x: i === 0 ? -24 : 24 }} animate={{ opacity: 1, x: 0 }}
+        {[a, b].map((x, i) => {
+          const mine = picked === (i === 0 ? 'a' : 'b')
+          // Motion owns opacity and transform here (its inline styles beat any CSS class), so the pick states live here too.
+          return <motion.button key={`${x.id}-${i}`} type="button"
+            className={`duel-side${mine ? ' is-picked' : picked ? ' is-passed' : ''}`} disabled={busy}
+            onClick={() => pick(i === 0 ? 'a' : 'b')} whileTap={{ scale: 0.96 }} whileHover={busy || picked ? undefined : { y: -3 }}
+            initial={{ opacity: 0, x: i === 0 ? -24 : 24 }}
+            animate={{ opacity: picked && !mine ? 0.4 : 1, x: 0, scale: mine ? 1.03 : picked ? 0.97 : 1 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}>
             <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color} eager />
             <span className="duel-title">{x.title_en ?? x.title}</span>
             <span className="duel-which">{entryLine(x)}</span>
             <span className="duel-key" aria-hidden="true">{i === 0 ? '←' : '→'}</span>
           </motion.button>
-        ))}
+        })}
         <span className="duel-vs display" aria-hidden="true">or</span>
       </div>
       <button type="button" className={`btn btn-ghost duel-tie${picked === 'tie' ? ' is-picked' : ''}`} disabled={busy} onClick={() => pick('tie')}>

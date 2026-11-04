@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { preloadCovers } from '../../components/coverCache'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
@@ -33,6 +34,16 @@ const FACETS = [
 ]
 
 const ROUND = 10
+
+const art = (x: AnimeBrief) => x.picture ?? x.thumbnail
+
+/** Waits for the question's covers (and starts the next few feeling titles), so a new question never shows blank art. */
+function ready(s: Session) {
+  const q = s.question
+  if (!q) return Promise.resolve()
+  preloadCovers((s.queue ?? []).slice(0, 3).map(art), 0)
+  return preloadCovers(q.kind === 'duel' ? [art(q.a), art(q.b)] : [art(q.anime)])
+}
 
 /** What a round changed: titles whose score moved, and titles that got their first score. */
 function RoundSummary({ before, onMore, more }: { before: Map<number, number | null>; onMore: () => void; more: boolean }) {
@@ -81,7 +92,7 @@ export function RatePage() {
   const [picked, setPicked] = useState<{ key: string; vals: Record<string, string> }>({ key: '', vals: {} })
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['rate-next'],
-    queryFn: () => api<Session>('/api/rate/session/next'),
+    queryFn: async () => { const s = await api<Session>('/api/rate/session/next'); await ready(s); return s },
   })
   const toast = useToast()
   // Feeling answers save in the background, one after another, while the next title is already on screen.
@@ -104,7 +115,7 @@ export function RatePage() {
       setAnswered((n) => n + 1)
       setInRound((n) => n + 1)
       if (shown) setPast((p) => [...p, { shown, undo: undo(r ?? {}), cleared }])
-      if (r?.session) qc.setQueryData(['rate-next'], r.session)
+      if (r?.session) { await ready(r.session); qc.setQueryData(['rate-next'], r.session) }
       else await refetch()
       scoresChanged(qc, ['rate-next', 'list'])
     } finally {
@@ -159,6 +170,7 @@ export function RatePage() {
     setAnswered((n) => n + 1)
     setInRound((n) => n + 1)
     setPast((p) => [...p, { shown: cur, undo: undo(), cleared: animeId }])
+    preloadCovers(cur.queue!.slice(1, 4).map(art), 0)
     qc.setQueryData<Session>(['rate-next'], { question: { kind: 'tier', anime: next }, unrated: Math.max(0, cur.unrated - 1), queue: cur.queue!.slice(1) })
     patchList(animeId, t, between)
     const last = cur.queue!.length === 1

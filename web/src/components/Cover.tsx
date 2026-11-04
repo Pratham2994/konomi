@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Status } from '../lib/types'
+import { loaded } from './coverCache'
 import { Mark } from './Mark'
 import './cover.css'
 
@@ -18,9 +19,6 @@ interface Props {
   /** How the obi writes the score; defaults to one decimal (8.7). */
   fmt?: (score: number) => string
 }
-
-/** Images that have loaded once. They show at once next time, so the cover-to-title morph never catches a fade. */
-const loaded = new Set<string>()
 
 /** A cover tile: art, optional hand mark, optional obi strip carrying the Konomi score. */
 export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, vt, fmt }: Props) {
