@@ -14,6 +14,8 @@ export interface AnimeBrief {
   color: string | null
   popularity: number
   duration_s?: number | null
+  /** Rating questions only: one line on what happens in it, so seasons can be told apart. */
+  blurb?: string | null
 }
 
 export interface AnimeDetail extends AnimeBrief {

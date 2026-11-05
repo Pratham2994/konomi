@@ -49,6 +49,7 @@ export function Duel({ a, b, onPick, busy, big }: {
             <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color} eager />
             <span className="duel-title">{x.title_en ?? x.title}</span>
             <span className="duel-which">{entryLine(x)}</span>
+            {x.blurb && <span className="duel-blurb" title={x.blurb}>{x.blurb}</span>}
             <span className="duel-key" aria-hidden="true">{i === 0 ? '←' : '→'}</span>
           </motion.button>
         })}

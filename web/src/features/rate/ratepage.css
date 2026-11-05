@@ -45,6 +45,11 @@
 .rate-moved-n strong { color: var(--season); font-weight: 400; font-size: 17px; }
 .rate-how { margin-top: var(--s3); }
 .rate-which { margin: calc(var(--s4) * -1) 0 var(--s4); color: var(--paper-2); font-size: 14px; font-weight: 700; }
+/* What happens in it, so this season reads apart from the others: quiet, two lines at most. */
+.rate-blurb {
+  margin: calc(var(--s3) * -1) 0 var(--s4); max-width: 46ch; color: var(--paper-3); font-size: 14px; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 a.rate-name { text-decoration: none; }
 a.rate-name:hover { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
 a.rate-cover { display: block; border-radius: var(--r-cover); }

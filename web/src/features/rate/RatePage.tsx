@@ -251,6 +251,7 @@ export function RatePage() {
                 <div className="rate-tier-side">
                   <h2 className="display rate-ask">How was <Link to={`/anime/${q.anime.id}`} className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</Link>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
                   <p className="rate-which">{entryLine(q.anime)}</p>
+                  {q.anime.blurb && <p className="rate-blurb" title={q.anime.blurb}>{q.anime.blurb}</p>}
                   <Feelings busy={busy} onPick={(t, between) => tier(q.anime.id, t, between)} keys />
                   {(data?.queue?.length ?? 0) > 0 && (
                     <div className="rate-next" aria-label="Up next">

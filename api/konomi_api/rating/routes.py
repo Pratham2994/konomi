@@ -9,6 +9,7 @@ from sqlalchemy import delete, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from ..catalog.blurb import blurbs
 from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, Duel, ListEntry
@@ -99,7 +100,12 @@ def recompute(db: Session, user_id: uuid.UUID, st: RatingState | None = None, co
 
 
 def _briefs(db: Session, ids: list[int]) -> dict[int, dict]:
-    return {a.id: brief(a) for a in db.scalars(select(Anime).where(Anime.id.in_(ids)))} if ids else {}
+    """Cards for rating questions, each with one line on what happens in it, so seasons can be told apart."""
+    if not ids:
+        return {}
+    rows = list(db.scalars(select(Anime).where(Anime.id.in_(ids))))
+    lines = blurbs(db, rows)
+    return {a.id: brief(a) | {"blurb": lines[a.id]} for a in rows}
 
 
 def _duel_out(db: Session, placing: int, other: int | None) -> dict | None:
