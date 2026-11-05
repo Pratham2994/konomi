@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { EmptyWall } from '../../components/EmptyWall'
 import { Icon } from '../../components/Icon'
 import { Headline, Slab, TabBar, TabHead } from '../../components/Wall'
 import { deal } from '../../components/wallLayout'
@@ -156,10 +157,9 @@ export function ProfilePage() {
     const missing = error instanceof ApiError && error.status === 404
     return (
       <div className="page prof-private">
-        <Icon name="lock" size={40} />
-        <h1 className="display">{missing ? 'This chart is private' : 'Couldn’t load this profile'}</h1>
-        <p className="muted">{missing ? 'Either it doesn’t exist, or its owner hasn’t made it public yet.' : 'Try again in a moment.'}</p>
-        <Link to="/" className="btn">Go to Konomi</Link>
+        <EmptyWall words={missing ? ['This', 'chart', 'is', 'private.'] : ['Couldn’t', 'load', 'this', 'profile.']} accent={3}
+          text={missing ? 'Either it doesn’t exist, or its owner hasn’t made it public yet. These are what most people have on theirs.' : 'Try again in a moment.'}
+          actions={<Link to="/" className="btn">Go to Konomi</Link>} />
       </div>
     )
   }

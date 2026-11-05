@@ -74,8 +74,7 @@
 .match-scores { font-weight: 400; color: var(--paper-2); font-size: 13px; white-space: nowrap; }
 @media (max-width: 900px) { .match { grid-template-columns: minmax(0, 1fr); } }
 
-.prof-private { display: grid; gap: var(--s3); justify-items: center; text-align: center; padding-top: 16vh; }
-.prof-private h1 { font-size: clamp(28px, 4vw, 44px); }
+.page.prof-private { padding-top: clamp(12px, 2vh, 24px); }
 
 /* Header styles the owner picks in Customise. */
 .prof-banner img { object-position: center center; }
