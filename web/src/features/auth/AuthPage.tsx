@@ -1,10 +1,15 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
+import { Headline, Slab } from '../../components/Wall'
+import { deal } from '../../components/wallLayout'
 import { api, ApiError } from '../../lib/api'
+import { currentSeason, SEASON_ORDER } from '../../lib/hooks'
 import { authChanged } from '../../lib/sync'
-import type { Me } from '../../lib/types'
+import type { AnimeBrief, Me, Season } from '../../lib/types'
+import { PENDING_KEY } from '../home/Landing'
 import './auth.css'
 
 type Mode = 'login' | 'signup' | 'verify' | 'reset'
@@ -60,6 +65,48 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
   )
 }
 
+function lastSeason(): { year: number; season: Season } {
+  const now = currentSeason()
+  const i = SEASON_ORDER.indexOf(now.season)
+  return i > 0 ? { year: now.year, season: SEASON_ORDER[i - 1] } : { year: now.year - 1, season: 'FALL' }
+}
+
+function useSeasonCovers(year: number, season: Season) {
+  return useQuery({
+    queryKey: ['sweep', year, season],
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${year}&season=${season}`),
+    staleTime: Infinity,
+  }).data?.items
+}
+
+function readPending(): AnimeBrief[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]')
+    return Array.isArray(v) ? v : []
+  } catch { return [] }
+}
+
+const PER_SIDE = 5 * 6 - 1
+
+/**
+ * The form hangs between two walls of covers: this season on the left (led by its slab), last season on the
+ * right. Titles marked on the landing page before signing up come first, circled, since they are about to be yours.
+ */
+function AuthWall({ side, items, pending, slab }: { side: 'left' | 'right'; items: AnimeBrief[] | undefined; pending: AnimeBrief[]; slab: { year: number; season: Season; label: string } }) {
+  const marked = new Set(pending.map((a) => a.id))
+  const list = [...pending, ...(items ?? []).filter((a) => !marked.has(a.id))].slice(0, PER_SIDE)
+  return (
+    <div className={`auth-wall auth-${side}`} aria-hidden="true">
+      <Slab season={slab.season} year={slab.year} sub={slab.label} />
+      {items ? list.map((a, k) => (
+        <span key={a.id} className="auth-cell" style={deal(k + 1)}>
+          <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={marked.has(a.id) ? 'completed' : undefined} />
+        </span>
+      )) : Array.from({ length: PER_SIDE }, (_, k) => <span key={k} className="auth-cell ghost-art" />)}
+    </div>
+  )
+}
+
 export function AuthPage({ mode }: { mode: Mode }) {
   const [params] = useSearchParams()
   const [email, setEmail] = useState(params.get('email') ?? '')
@@ -73,6 +120,11 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const [cooldown, setCooldown] = useState(mode === 'verify' ? 60 : 0)
   const nav = useNavigate()
   const qc = useQueryClient()
+  const now = currentSeason()
+  const prev = lastSeason()
+  const nowCovers = useSeasonCovers(now.year, now.season)
+  const prevCovers = useSeasonCovers(prev.year, prev.season)
+  const [pending] = useState(readPending)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -130,19 +182,22 @@ export function AuthPage({ mode }: { mode: Mode }) {
     })
   }
 
-  const title = { login: 'Welcome back', signup: 'Start your chart', verify: 'Check your email', reset: 'Reset your password' }[mode]
+  const words = { login: ['Welcome', 'back.'], signup: ['Start', 'your', 'chart.'], verify: ['Check', 'your', 'email.'], reset: ['Reset', 'your', 'password.'] }[mode]
+  const marks = pending.length > 0 && (mode === 'signup' || mode === 'verify')
+    ? ` The ${pending.length} title${pending.length === 1 ? '' : 's'} you marked go${pending.length === 1 ? 'es' : ''} on it as soon as you’re in.` : ''
   const lead = {
     login: 'Log in to your Konomi.',
-    signup: 'One list for every anime you’ve watched. Scored by comparison, never by a slider.',
+    signup: `One list for every anime you’ve watched. Scored by comparison, never by a slider.${marks}`,
     verify: `We sent a 6-digit code to ${email || 'your email'}. It expires in 10 minutes.`,
     reset: sent ? `Enter the code we sent to ${email} and choose a new password.` : 'We’ll email you a 6-digit code.',
   }[mode]
 
   return (
-    <div className="auth page">
+    <div className="auth page" data-season={now.season}>
+      <AuthWall side="left" items={nowCovers} pending={pending} slab={{ ...now, label: 'airing now' }} />
       <form className="auth-card" onSubmit={submit} noValidate>
-        <h1 className="display auth-title">{title}</h1>
-        <p className="auth-lead">{lead}</p>
+        <Headline key={mode} words={words} accent={words.length - 1} circle={mode === 'signup' ? 2 : undefined} className="auth-title" />
+        <p className="auth-lead">{lead}{mode === 'verify' && marks}</p>
 
         {(mode !== 'verify') && (!sent || mode !== 'reset') && (
           <label className="auth-field">
@@ -201,6 +256,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
           {mode === 'reset' && <>Remembered it? <Link to="/login">Log in</Link></>}
         </p>
       </form>
+      <AuthWall side="right" items={prevCovers} pending={[]} slab={{ ...prev, label: 'last season' }} />
     </div>
   )
 }
