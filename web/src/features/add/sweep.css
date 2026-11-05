@@ -6,10 +6,6 @@
 .sweep-nav .btn { min-height: 40px; padding: 0 14px; }
 @media (max-width: 520px) { .hide-s { display: none; } }
 
-.sweep-grid {
-  display: grid; gap: clamp(16px, 1.8vw, 28px) clamp(12px, 1.4vw, 22px);
-  grid-template-columns: repeat(auto-fill, minmax(clamp(104px, 11vw, 176px), 1fr));
-}
 .sw { position: relative; display: grid; gap: 6px; align-content: start; }
 .sw-main { display: grid; gap: 8px; padding: 0; border: 0; background: none; text-align: left; }
 .sw-main .cover-art { transition: transform 0.25s var(--ease-out), filter 0.25s; }

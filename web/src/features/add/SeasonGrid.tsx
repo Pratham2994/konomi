@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode, type Ref } from 'react'
 import { Cover } from '../../components/Cover'
+import { deal } from '../../components/wallLayout'
 import { STATUS_LABEL, useListIndex, useRemove, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
 import type { AnimeBrief, Status } from '../../lib/types'
 import './sweep.css'
 
 /** A season's chart you mark by tapping: tap = watched; Dropped / Want underneath; S, D, W, X keys on hover. */
-export function SeasonGrid({ items, compact }: { items: AnimeBrief[]; compact?: boolean }) {
+export function SeasonGrid({ items, compact, lead, gridRef }: {
+  items: AnimeBrief[]; compact?: boolean
+  /** A first cell before the covers: the season's slab. */
+  lead?: ReactNode
+  gridRef?: Ref<HTMLDivElement>
+}) {
   const [focus, setFocus] = useState<number | null>(null)
   const onList = useListIndex()
   const setStatus = useSetStatus()
@@ -40,11 +46,12 @@ export function SeasonGrid({ items, compact }: { items: AnimeBrief[]; compact?: 
   })
 
   return (
-    <div className={`sweep-grid${compact ? ' sweep-grid-compact' : ''}`}>
+    <div className={`wall dealt sweep-grid${compact ? ' sweep-grid-compact' : ''}`} ref={gridRef}>
+      {lead}
       {items.map((a, i) => {
         const st = onList.get(a.id)?.status
         return (
-          <div key={a.id} className={`sw${st ? ' is-marked' : ''}`} onMouseEnter={() => setFocus(a.id)}>
+          <div key={a.id} className={`sw${st ? ' is-marked' : ''}`} onMouseEnter={() => setFocus(a.id)} style={deal(i + (lead ? 1 : 0))}>
             <button type="button" className="sw-main" onClick={() => mark(a, 'completed')} onFocus={() => setFocus(a.id)}
               aria-pressed={st === 'completed'} aria-label={`${a.title_en ?? a.title}${st ? `, ${STATUS_LABEL[st]}` : ''}`}>
               <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={st} animateMark eager={i < 8} />
