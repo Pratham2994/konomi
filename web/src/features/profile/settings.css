@@ -1,6 +1,7 @@
-.settings { max-width: 1480px; }
-.set-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); flex-wrap: wrap; }
-.set-title { font-size: clamp(34px, 5vw, 64px); line-height: 1; }
+.settings { max-width: 1800px; }
+.set-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s3); flex-wrap: wrap; }
+.set-title { font-size: clamp(40px, 6vw, 96px); }
+.set-lead { margin-top: var(--s2); }
 .set-sec { margin-top: var(--s6); display: grid; gap: var(--s3); }
 .set-sec h2 { font-size: 20px; }
 .set-grid { grid-template-columns: 1fr 1.4fr; gap: var(--s4); align-items: start; }
@@ -39,7 +40,9 @@
 .accent-winter .accent-dot { background: var(--winter); }
 
 .set-favs { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
-.set-fav { position: relative; padding: 0; border: 0; background: none; }
+/* Your favourites as covers, in order: tap one to take it off. */
+.set-fav { position: relative; width: clamp(72px, 7vw, 120px); padding: 0; border: 0; background: none; }
+.set-hill-cover { display: block; width: clamp(72px, 7vw, 120px); flex: none; }
 .set-fav-n { position: absolute; z-index: 3; top: -8px; left: -6px; font-size: 18px; text-shadow: 0 2px 8px #000; }
 .set-fav:hover .cover-art { outline: 2px solid var(--bad); outline-offset: 2px; }
 
@@ -66,6 +69,7 @@
 .set-nav a:hover { color: var(--paper); background: var(--ink-3); }
 .set-layout { display: grid; gap: var(--s6); align-items: start; }
 @media (min-width: 1200px) { .set-layout { grid-template-columns: minmax(0, 1fr) 400px; } }
+@media (min-width: 1800px) { .set-layout { grid-template-columns: minmax(0, 1fr) 460px; } }
 .set-main { min-width: 0; }
 .set-group { padding-top: var(--s6); scroll-margin-top: calc(var(--topbar) + 64px); }
 .set-group + .set-group, .set-picker + .set-group { border-top: 1px solid var(--line); margin-top: var(--s6); }

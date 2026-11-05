@@ -5,6 +5,7 @@ import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
+import { Headline } from '../../components/Wall'
 import { api, ApiError } from '../../lib/api'
 import { profileChanged } from '../../lib/sync'
 import { STATUS_LABEL, useList } from '../../lib/hooks'
@@ -219,7 +220,10 @@ export function SettingsPage() {
   return (
     <div className="page settings">
       <header className="set-head">
-        <h1 className="display set-title">Customise</h1>
+        <div>
+          <Headline words={['Make', 'it', 'yours.']} accent={2} className="set-title" />
+          <p className="muted set-lead">How your profile looks to visitors. Every change saves as you go.</p>
+        </div>
         <Link to={`/u/${s.username}`} className="btn"><Icon name="eye" size={18} /> View profile</Link>
       </header>
       <nav className="set-nav" aria-label="Customise sections">
@@ -372,7 +376,7 @@ export function SettingsPage() {
               {s.favourites.map((id, i) => byId.get(id) && (
                 <button key={id} className="set-fav" onClick={() => toggleFav(id)} aria-label={`Remove ${byId.get(id)!.anime.title}`}>
                   <span className="display set-fav-n">{i + 1}</span>
-                  <Cover id={id} title={byId.get(id)!.anime.title} src={byId.get(id)!.anime.thumbnail} color={byId.get(id)!.anime.color} size="s" />
+                  <Cover id={id} title={byId.get(id)!.anime.title} src={byId.get(id)!.anime.picture ?? byId.get(id)!.anime.thumbnail} color={byId.get(id)!.anime.color} />
                 </button>
               ))}
               <button className="btn" onClick={() => setPickFor(pickFor === 'favourites' ? null : 'favourites')}>
@@ -396,7 +400,7 @@ export function SettingsPage() {
 
           <Group id="hill" title="The hill I’ll die on" lead="Pin one opinion to your profile: a title and one line about why.">
             <div className="set-inline">
-              {hillAnime && <Cover id={hillAnime.anime_id} title={hillAnime.anime.title} src={hillAnime.anime.thumbnail} color={hillAnime.anime.color} size="s" />}
+              {hillAnime && <span className="set-hill-cover"><Cover id={hillAnime.anime_id} title={hillAnime.anime.title} src={hillAnime.anime.picture ?? hillAnime.anime.thumbnail} color={hillAnime.anime.color} /></span>}
               <div className="set-hill">
                 <strong>{hillAnime ? hillAnime.anime.title_en ?? hillAnime.anime.title : 'Nothing pinned yet'}</strong>
                 <div className="set-inline">
