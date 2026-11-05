@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { preloadCovers } from '../../components/coverCache'
 import { api } from '../../lib/api'
 import { byRank, useList, useStored } from '../../lib/hooks'
 import type { AnimeBrief } from '../../lib/types'
@@ -14,6 +15,16 @@ interface Axis { id: number; neg: string[]; pos: string[]; value: number }
 interface NetNode { anime: AnimeBrief | null; edges: number[] }
 
 const ACCENT = '#ff7340'
+
+/** A title's neighbours on the map. Their small covers start loading as soon as the list arrives. */
+const similarQuery = (id: number) => ({
+  queryKey: ['similar', id], staleTime: Infinity,
+  queryFn: async () => {
+    const r = await api<{ items: AnimeBrief[] }>(`/api/taste/similar/${id}?k=6`)
+    preloadCovers(r.items.map((a) => a.thumbnail), 0)
+    return r
+  },
+})
 const GalaxyCanvas = lazy(() => loadGalaxy().then((m) => ({ default: m.GalaxyCanvas })))
 
 function Dna({ axes }: { axes: Axis[] }) {
@@ -158,7 +169,7 @@ export default function TastePage() {
     return r ? { x: p.x - r.left, y: p.y - r.top } : p
   }
   // Once you know how to read the map, the long intro can be put away (remembered), so phones show more sky.
-  const [lead, setLead] = useStored('konomi-galaxy-lead', 'open', ['open', 'closed'])
+  const [lead, setLead] = useStored('konomi-galaxy-lead', 'closed', ['open', 'closed'])
   // A plain scroll over the galaxy scrolls the page; the hint lights up to say how to zoom.
   const [nudge, setNudge] = useState(false)
   const nudgeT = useRef(0)
@@ -188,11 +199,18 @@ export default function TastePage() {
   const focusId = focusKey && Number.isFinite(Number(focusKey)) ? Number(focusKey) : null
   const picked = useRef(false)
   const pick = (id: number | null) => { picked.current = id != null; setFocusKey(id == null ? '' : String(id)); setPinned(null) }
-  const near = useQuery({
-    queryKey: ['similar', focusId], enabled: focusId != null, staleTime: Infinity,
-    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/taste/similar/${focusId}?k=6`),
-  })
+  const near = useQuery({ ...similarQuery(focusId ?? 0), enabled: focusId != null })
+  // Neighbours load ahead (your picks once the page has settled, any other title on hover or press), so a pick
+  // swaps straight to its list instead of waiting on it.
+  const qc = useQueryClient()
+  const ahead = (id: number) => { qc.prefetchQuery(similarQuery(id)) }
   const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort(byRank).slice(0, 10), [entries])
+  useEffect(() => {
+    // After the page's first wave of calls, one at a time, so the map's own data never waits behind these.
+    const ts = mineTop.map((e, i) => window.setTimeout(() => qc.prefetchQuery(similarQuery(e.anime_id)), 2500 + i * 200))
+    return () => ts.forEach(clearTimeout)
+  }, [mineTop, qc])
+  useEffect(() => { if (pinned) qc.prefetchQuery(similarQuery(pinned.id)) }, [pinned, qc])
   const focused = entries.find((e) => e.anime_id === focusId)
   const focusBrief = useQuery({ ...animeQuery(focusId ?? 0), enabled: focusId != null && !focused })
   const focusAnime = focused?.anime ?? (focusId != null ? focusBrief.data : undefined)
@@ -281,14 +299,15 @@ export default function TastePage() {
         {/* The picks live in a dock along the foot of the stage, so the sky beside the text stays clear for the
             stars and the framed title. */}
         <div className="g-dock page" ref={dock}>
-          {focusAnime && near.data && (
-            <div className="g-near" key={focusId}>
+          {/* The same view as the map: the last pick's list stays until the next one is ready, then swaps once. */}
+          {focus && (
+            <div className="g-near" key={focus.id}>
               <p className="g-near-head">
-                <span>People who loved <strong>{focusAnime.title_en ?? focusAnime.title}</strong> also loved</span>
+                <span>People who loved <strong>{focus.label || 'this'}</strong> also loved</span>
                 <button className="g-more" onClick={() => pick(null)}>Back to your map</button>
               </p>
               <ol className="g-strip">
-                {near.data.items.map((a, i) => (
+                {focus.items.map((a, i) => (
                   <li key={a.id} style={{ ['--i' as string]: i }}>
                     <Link to={`/anime/${a.id}`} className="g-near-item">
                       <Cover id={a.id} title={a.title} src={a.thumbnail} color={a.color} size="xs" />
@@ -306,6 +325,7 @@ export default function TastePage() {
                 <div className="g-strip">
                   {mineTop.map((e) => (
                     <button key={e.anime_id} className={`chip${focusId === e.anime_id ? ' is-on' : ''}`} aria-pressed={focusId === e.anime_id}
+                      onPointerEnter={() => ahead(e.anime_id)} onPointerDown={() => ahead(e.anime_id)} onFocus={() => ahead(e.anime_id)}
                       onClick={() => pick(focusId === e.anime_id ? null : e.anime_id)}>
                       {e.anime.title_en ?? e.anime.title}
                     </button>
