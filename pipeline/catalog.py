@@ -43,9 +43,10 @@ def clean_synopsis(text: str | None) -> str | None:
 
 
 def pick_synopsis(kaggle: str | None, anilist: str | None) -> str | None:
-    """Kaggle text is often mojibake-damaged ('�'); prefer AniList when that happens."""
+    """Kaggle text is often mojibake-damaged ('�') or has lost its first letters ('hen Subaru...'); prefer AniList
+    when that happens."""
     k, a = clean_synopsis(kaggle), clean_synopsis(anilist)
-    if k and "�" in k and a:
+    if k and ("�" in k or k[0].islower()) and a:
         return a
     return (k.replace("�", "—") if k else None) or a
 

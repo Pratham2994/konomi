@@ -73,14 +73,6 @@ def detail(a: Anime) -> dict:
     }
 
 
-@router.get("/catalog/cut-synopses")
-def cut_synopses(db: Db) -> list:
-    """Temporary, for one repair: synopses whose first letters were lost in the source data (they start in lower
-    case). Public catalogue fields only."""
-    rows = db.execute(text("select id, anilist_id, mal_id, left(synopsis, 80) from anime where synopsis ~ '^[a-z]'"))
-    return [list(r) for r in rows]
-
-
 @router.get("/anime/{anime_id}")
 def get_anime(anime_id: int, db: Db) -> dict:
     a = db.get(Anime, anime_id)
