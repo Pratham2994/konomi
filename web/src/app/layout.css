@@ -21,10 +21,26 @@
 }
 .topnav a:not(.btn):hover { color: var(--paper); background: var(--ink-3); }
 .topnav a.active { color: var(--paper); }
+/* The page you're on is underlined by the same pen that marks covers: one loose stroke in the season ink. */
 .topnav a.active::after {
-  content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px; height: 2px;
-  background: var(--season); border-radius: 2px;
+  content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 7px; background: var(--season);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M2 5.5C20 2.5 45 2 62 3.4S88 6 98 3' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M2 5.5C20 2.5 45 2 62 3.4S88 6 98 3' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  animation: nav-pen 0.5s var(--ease-out) both;
 }
+@keyframes nav-pen { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* Site foot: the mark, the places to go, the credits. */
+.site-foot { padding: 0 var(--gutter); }
+.site-foot-in {
+  max-width: 2200px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5);
+  padding: var(--s5) 0 var(--s6); border-top: 1px solid var(--line); font-size: 13px;
+}
+.site-foot-mark { font-size: 26px; color: var(--season); text-decoration: none; line-height: 1; }
+.site-foot-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.site-foot-links a { color: var(--paper-2); font-weight: 700; text-decoration: none; }
+.site-foot-links a:hover { color: var(--paper); text-decoration: underline; }
+.site-foot-credit { margin-left: auto; }
 .badge {
   display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px;
   border-radius: var(--r-pill); background: var(--season); color: var(--ink); font-size: 11px; font-weight: 700;
@@ -51,6 +67,9 @@
 .bottombar { display: none; }
 
 @media (max-width: 899px) {
+  .shell:has(.bottombar) .site-foot-in { padding-bottom: calc(var(--bottombar) + var(--s5) + env(safe-area-inset-bottom)); }
+  .site-foot-credit { margin-left: 0; width: 100%; }
+  :where(.main) .page { padding-bottom: var(--s7); }
   .topbar { gap: var(--s3); }
   .topbar-add, .topnav a:not(.btn):not([href='/login']) { display: none; }
   .topnav .has-badge { display: none; }

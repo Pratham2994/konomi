@@ -149,6 +149,32 @@ export function Layout() {
         <Outlet />
       </main>
 
+      {/* The landing page has its own foot; every other page ends on this one. */}
+      {(me || pathname !== '/') && (
+        <footer className="site-foot">
+          <div className="site-foot-in">
+            <Link to="/" className="site-foot-mark display" aria-label="Konomi home">好み</Link>
+            {me ? (
+              <nav className="site-foot-links" aria-label="More">
+                <Link to="/chart">Your chart</Link>
+                <Link to="/sweep">Add anime</Link>
+                <Link to="/rate">Rate titles</Link>
+                <Link to="/taste">Taste</Link>
+                <Link to={`/u/${me.username}`}>Your profile</Link>
+                <Link to="/settings">Customise</Link>
+              </nav>
+            ) : (
+              <nav className="site-foot-links" aria-label="More">
+                <Link to="/">What is Konomi</Link>
+                <Link to="/login">Log in</Link>
+                <Link to="/signup">Start your chart</Link>
+              </nav>
+            )}
+            <p className="site-foot-credit faint">Catalogue: anime-offline-database (ODbL), AniList. Ratings: MyAnimeList via Kaggle.</p>
+          </div>
+        </footer>
+      )}
+
       {me && (
         <nav className="bottombar" aria-label="Main">
           <NavLink to="/" end><Icon name="taste" size={22} /><span>Home</span></NavLink>
