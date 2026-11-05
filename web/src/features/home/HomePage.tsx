@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { VtLink } from '../../components/VtLink'
 import { Ghosts, Headline, Slab } from '../../components/Wall'
-import { deal, useGridCols, useWallLayout, wallCells, type WallLayout } from '../../components/wallLayout'
+import { deal, fullRows, useGridCols, useWallLayout, wallCells, type WallLayout } from '../../components/wallLayout'
 import { api } from '../../lib/api'
 import { useToast } from '../../components/Toast'
 import { currentSeason, useList, useListIndex, useMe, useRemove, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
@@ -33,13 +33,14 @@ export interface Recs {
   summary?: string | null
 }
 
-export function useRecs(params = '') {
+export function useRecs(params = '', enabled = true) {
   const onList = useListIndex()
   const q = useQuery({
     queryKey: ['recs', params],
     queryFn: () => api<Recs>(`/api/taste/recs${params}`),
     retry: false,
     staleTime: 60_000,
+    enabled,
   })
   // Something you just added leaves the list at once, before the server's next recommendations arrive.
   const data = q.data && { ...q.data, items: q.data.items.filter((r) => !onList.has(r.anime.id)) }
@@ -143,8 +144,16 @@ export function HomePage() {
   const toast = useToast()
   const wall = useFrozenWall(entries, listReady, popular?.items ?? (popularFailed ? [] : undefined))
   const [heroRef, layout] = useWallLayout(HERO)
-  const [airRef, airCols] = useGridCols<HTMLDivElement>()
   const [recRef, recCols] = useGridCols<HTMLDivElement>()
+  // The top bar's search hides while this page's own big one is on screen: one search box at a time.
+  const [heroSearch, setHeroSearch] = useState<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!heroSearch) return
+    const root = document.documentElement
+    const io = new IntersectionObserver(([e]) => { root.dataset.heroSearch = e.isIntersecting ? 'on' : 'off' }, { rootMargin: '-64px 0px 0px 0px' })
+    io.observe(heroSearch)
+    return () => { io.disconnect(); delete root.dataset.heroSearch }
+  }, [heroSearch])
 
   // Titles tapped on the landing page before signing up land on the new chart.
   useEffect(() => {
@@ -194,7 +203,7 @@ export function HomePage() {
                   <Link to="/sweep">walk back through past seasons</Link>, or <Link to="/settings#import">import from MyAnimeList or AniList</Link>.
                 </p>
               )}
-              <QuickAdd variant="hero" autoFocus={empty} />
+              <div ref={setHeroSearch}><QuickAdd variant="hero" autoFocus={empty} /></div>
               {unrated > 0 ? (
                 <Link to="/rate" className="home-next">
                   <span className="display home-next-n">{unrated}</span>
@@ -256,7 +265,7 @@ export function HomePage() {
       <section className="page home-sec" aria-label="Airing now">
         {season ? (
           season.items.length > 0 && (
-            <SeasonGrid items={season.items.slice(0, Math.max(airCols * 2 - 1, 5))} compact gridRef={airRef}
+            <SeasonGrid items={season.items} rows={2} compact
               lead={<Slab season={now.season} year={now.year}
                 sub={`airing now. ${season.items.filter((a) => onList.has(a.id)).length} on your chart`}>
                 <Link to={`/sweep?view=season&year=${now.year}&season=${now.season}`}>Whole season</Link>
@@ -272,7 +281,7 @@ export function HomePage() {
               sub={recs.mode === 'model' ? (recs.summary ?? 'Picked by your taste') : 'Popular picks for now. Rate a few favourites to make them yours'}>
               <Link to="/taste">See your taste</Link>
             </Slab>
-            {recs.items.slice(0, Math.max(recCols * 2 - 1, 5)).map((r, k) => (
+            {recs.items.slice(0, fullRows(recs.items.length, recCols, 1, 2)).map((r, k) => (
               <div key={r.anime.id} className="home-rec" style={deal(k + 1)}><RecCard r={r} /></div>
             ))}
           </div>

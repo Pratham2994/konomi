@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Ghosts, Headline, Slab } from '../../components/Wall'
+import { Ghosts, Headline, Slab, WallEnd, WallFill } from '../../components/Wall'
 import { api } from '../../lib/api'
 import { currentSeason, SEASON_LABEL, SEASON_ORDER, useListIndex } from '../../lib/hooks'
 import type { AnimeBrief, Season } from '../../lib/types'
@@ -66,6 +66,12 @@ export function SweepPage() {
   })
   const items = data?.items ?? []
   const prev = step(year, season, -1)
+  // The season before fills out this one's last row: it is where Back takes you next.
+  const { data: before } = useQuery({
+    queryKey: ['sweep', prev.year, prev.season],
+    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${prev.year}&season=${prev.season}`),
+    staleTime: Infinity, enabled: view === 'season' && !!data,
+  })
   const next = step(year, season, 1)
   const isFuture = year > now.year || (year === now.year && SEASON_ORDER.indexOf(season) >= SEASON_ORDER.indexOf(now.season))
 
@@ -134,7 +140,9 @@ export function SweepPage() {
           {popular.isError && <p className="muted sweep-note">Couldn’t load the list. Try again in a moment.</p>}
           {hideWatched && pop.length > 0 && visible(pop).length === 0 && <p className="muted sweep-note">You’ve watched all of these. Show more below.</p>}
           {popular.isLoading ? <div className="wall"><Ghosts n={24} titled /></div> : (
-            <SeasonGrid items={visible(pop)} lead={
+            // While more can load, the wall stops on a whole row and the rest comes with Show 60 more.
+            <SeasonGrid items={visible(pop)} rows={shown < MOST && pop.length >= shown ? 99 : undefined}
+              end={(span) => <WallEnd span={span} to={marked ? '/rate' : '/sweep?view=season'} label={marked ? 'Rate what you marked' : 'Walk back by season'} />} lead={
               <Slab season={null} kanji="人気" name={kind === 'all' ? 'Most popular' : `Popular ${KINDS.find((k) => k.id === kind)!.label.toLowerCase()}`}
                 sub={`${seenPop} of ${pop.length} watched`} />} />
           )}
@@ -152,7 +160,8 @@ export function SweepPage() {
       {hideWatched && items.length > 0 && visible(items).length === 0 && <p className="muted sweep-note">You’ve watched everything here. Try an earlier season.</p>}
       {/* The season's own slab leads its covers, with the steps to the seasons either side. */}
       {isLoading ? <div className="wall"><Ghosts n={24} titled /></div> : (
-        <SeasonGrid key={`${year}-${season}`} items={visible(items)} lead={
+        <SeasonGrid key={`${year}-${season}`} items={visible(items)}
+          end={(span) => <WallFill span={span} onClick={() => go(prev)} label={`Back to ${SEASON_LABEL[prev.season]} ${prev.year}`} covers={before?.items} />} lead={
           <Slab season={season} year={year} sub={`${seenHere} of ${items.length} watched`}>
             <button className="btn sweep-step" onClick={() => go(prev)} aria-label={`Earlier: ${SEASON_LABEL[prev.season]} ${prev.year}`}>
               <Icon name="arrowLeft" size={16} />

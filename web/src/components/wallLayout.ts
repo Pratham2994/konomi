@@ -39,6 +39,15 @@ export function useGridCols<T extends HTMLElement>(fallback = 4) {
   return [ref, cols] as const
 }
 
+/**
+ * How many of `n` covers to show so a wall (with `lead` cells before them, e.g. a slab) ends on a whole row, at
+ * most `maxRows` rows. A wall too short for one whole row shows everything.
+ */
+export function fullRows(n: number, cols: number, lead = 0, maxRows = Infinity) {
+  const rows = Math.min(maxRows, Math.floor((n + lead) / cols))
+  return rows < 1 ? n : Math.min(n, rows * cols - lead)
+}
+
 /** How many single cells fill a hung wall to whole rows, given how many there are to show. */
 export function wallCells(l: WallLayout, have: number) {
   const sign = l.sign[1] * l.sign[2]

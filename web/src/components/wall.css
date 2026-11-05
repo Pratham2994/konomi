@@ -68,6 +68,22 @@ a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 .tab-short { display: none; }
 @container (max-width: 146px) { .tab-n { display: none; } .tab-full { display: none; } .tab-short { display: inline; } }
 
+/* The cell that ends a short last row of a whole list. Cover height: k covers wide (with their gaps), 5:7 tall. */
+.wall-end-item { list-style: none; min-width: 0; }
+.wall-end {
+  align-self: start; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; width: 100%;
+  aspect-ratio: calc(var(--k, 1) * 5 + (var(--k, 1) - 1) * 0.6) / 7; min-height: 0; padding: clamp(10px, 1vw, 18px);
+  border: 1px solid var(--line); border-radius: 4px; background: var(--ink-2); color: var(--paper-2);
+  text-decoration: none; text-align: left; font: inherit; transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.wall-end:hover { border-color: var(--season); color: var(--paper); background: var(--ink-3); }
+.wall-end svg { flex: none; color: var(--season); }
+.wall-end-label { font-size: clamp(14px, 1.3vw, 22px); line-height: 1.1; }
+.wall-end { flex-wrap: wrap; align-content: flex-end; }
+/* Covers that fill out a row come from somewhere else (another season, picks): a touch quieter until hovered. */
+.wall-fill .cover-art { filter: saturate(0.8) brightness(0.85); transition: filter 0.25s, transform 0.25s var(--ease-out); }
+.wall-fill:hover .cover-art { filter: none; }
+
 /* Placeholders hold the covers' places while they load. */
 .ghost { display: grid; gap: 8px; align-content: start; }
 .ghost-art { display: block; aspect-ratio: 5 / 7; border-radius: var(--r-cover); background: var(--ink-3); }
@@ -80,8 +96,10 @@ a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 .hl-mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .hl-word { display: inline-block; }
 .hl-accent { color: var(--season); }
-.hl-circled { position: relative; display: inline-block; }
-.hl-circled .mark { inset: -16% -12% -10%; width: 124%; height: 126%; }
+/* The pen ring hugs its own word: a fixed overhang in em, and a little extra room before it, so it never covers
+   the word in front or swallows the space between them. */
+.hl-circled { position: relative; display: inline-block; margin-left: 0.08em; margin-right: 0.1em; }
+.hl-circled .mark { inset: -0.2em -0.2em -0.12em -0.12em; width: calc(100% + 0.32em); height: calc(100% + 0.32em); }
 .hl-circled .mark-draw path { animation-duration: 0.9s; animation-delay: var(--hl-delay, 1s); }
 
 /* A wall with a block hung in it (Home, sign-in): fixed columns from the wall's width, cover-only cells. */

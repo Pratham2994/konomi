@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { preloadCovers } from '../../components/coverCache'
 import { EmptyWall } from '../../components/EmptyWall'
-import { Headline } from '../../components/Wall'
+import { Headline, WallEnd, WallGrid } from '../../components/Wall'
 import { deal } from '../../components/wallLayout'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
@@ -65,7 +65,8 @@ function RoundSummary({ before, onMore, more }: { before: Map<number, number | n
       </p>
       {/* What moved, as covers with their new score on the obi and where they came from under them. */}
       {moved.length > 0 && (
-        <ul className="wall dealt rate-moved">
+        <WallGrid as="ul" className="dealt rate-moved" cells={Math.min(moved.length, 12)}
+          end={(span) => <WallEnd item span={span} to="/chart" label="See your chart" />}>
           {moved.slice(0, 12).map(({ e, was }, k) => (
             <li key={e.anime_id} className="tile" data-season={e.anime.season ?? undefined} style={deal(k)}>
               <Cover id={e.anime_id} title={e.anime.title} src={e.anime.picture ?? e.anime.thumbnail} color={e.anime.color} score={e.score} />
@@ -73,7 +74,7 @@ function RoundSummary({ before, onMore, more }: { before: Map<number, number | n
               <span className="rate-moved-n">{was == null ? 'New score' : <>was {was.toFixed(1)}, now <strong className="display">{e.score!.toFixed(1)}</strong></>}</span>
             </li>
           ))}
-        </ul>
+        </WallGrid>
       )}
       <div className="rate-done-actions">
         {more ? <button className="btn btn-primary" onClick={onMore}>Another round</button>

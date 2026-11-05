@@ -4,13 +4,14 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { EmptyWall } from '../../components/EmptyWall'
 import { Icon } from '../../components/Icon'
-import { Headline, Slab, TabBar, TabHead } from '../../components/Wall'
+import { Headline, Slab, TabBar, TabHead, WallFill, WallGrid } from '../../components/Wall'
 import { deal } from '../../components/wallLayout'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
 import { api, ApiError } from '../../lib/api'
 import { byRank, SEASON_LABEL, SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
 import type { AnimeBrief, Season, Status } from '../../lib/types'
+import { useRecs } from '../home/HomePage'
 import './profile.css'
 
 export interface Look {
@@ -123,6 +124,7 @@ export function ProfilePage() {
   const { data: p, error, isLoading } = useQuery({
     queryKey: ['profile', username], queryFn: () => api<Profile>(`/api/u/${username}`), retry: false,
   })
+  const picks = (useRecs('', !!p?.is_owner).data?.items ?? []).map((r) => r.anime)
 
   // Lists with nothing in them are left out, unless one is all there is.
   const allowed = p?.look.chart_lists ?? []
@@ -187,11 +189,16 @@ export function ProfilePage() {
   }
 
   const order = p.sections.map((s) => s.id)
+  // A short last row on any wall ends on the obvious next step for whoever is looking.
+  const next = p.is_owner ? { to: '/settings', label: 'Customise' } : me ? { to: '/chart', label: 'Your chart' } : { to: '/signup', label: 'Start your own chart' }
+  const end = (item?: boolean) => (span: number) => <WallFill item={item} span={span} to={next.to} label={next.label} covers={p.is_owner ? picks : []} />
+  const wide = matchMedia('(min-width: 700px)').matches
+  const bigFavs = look.fav_layout === 'hero' ? Math.min(1, p.favourites.length) : look.fav_layout === 'podium' ? Math.min(wide ? 3 : 1, p.favourites.length) : 0
   const blocks: Record<string, ReactNode> = {
     favourites: show('favourites') && p.favourites.length > 0 ? (
       <section key="fav" className="prof-sec">
         <h2 className="sr-only">{look.fav_title || 'All-time favourites'}</h2>
-        <ol className={`wall dealt favs favs-${look.fav_layout}`}>
+        <WallGrid as="ol" className={`dealt favs favs-${look.fav_layout}`} cells={1 + p.favourites.length + 3 * bigFavs} end={end(true)}>
           <li className="favs-slab" aria-hidden="true"><Slab season={null} kanji="推し" name={look.fav_title || 'All-time favourites'}
             sub={`${p.favourites.length} title${p.favourites.length === 1 ? '' : 's'}, in ${p.is_owner ? 'my' : 'their'} order`} /></li>
           {p.favourites.map((f, i) => (
@@ -203,7 +210,7 @@ export function ProfilePage() {
               </Link>
             </li>
           ))}
-        </ol>
+        </WallGrid>
       </section>
     ) : null,
     hill: show('hill') && p.hill ? (
@@ -227,7 +234,7 @@ export function ProfilePage() {
     watching: show('watching') && p.watching.length > 0 ? (
       <section key="watching" className="prof-sec">
         <h2 className="sr-only">Watching now</h2>
-        <div className="wall dealt">
+        <WallGrid className="dealt" cells={1 + p.watching.length} end={end()}>
           <Slab season={null} kanji="今" name="Watching now" sub={`${p.watching.length} on the go`} />
           {p.watching.map((a, k) => (
             <Link key={a.id} to={`/anime/${a.id}`} className="tile" data-season={a.season ?? undefined} style={deal(k + 1)}>
@@ -236,14 +243,14 @@ export function ProfilePage() {
               {a.progress != null && <span className="tile-sub faint">Episode {a.progress}{a.episodes ? ` of ${a.episodes}` : ''}</span>}
             </Link>
           ))}
-        </div>
+        </WallGrid>
       </section>
     ) : null,
     hot_takes: show('hot_takes') && scoresOn && p.hot_takes.length > 0 ? (
       <section key="hot" className="prof-sec">
         <h2 className="sr-only">Hot takes</h2>
         {/* Each take is its cover, with the two scores that disagree under it. */}
-        <ol className="wall dealt hot">
+        <WallGrid as="ol" className="dealt hot" cells={1 + p.hot_takes.length} end={end(true)}>
           <li aria-hidden="true"><Slab season={null} kanji="熱" name="Hot takes" sub={`Where ${p.user.display_name} disagrees with everyone else the most`} /></li>
           {p.hot_takes.map((h, i) => (
             <li key={h.anime.id} data-season={h.anime.season ?? undefined} style={deal(i + 1)}>
@@ -258,7 +265,7 @@ export function ProfilePage() {
               <p className="hot-dir">{h.you > h.everyone ? 'Underrated, apparently' : 'Not buying the hype'}</p>
             </li>
           ))}
-        </ol>
+        </WallGrid>
       </section>
     ) : null,
     years: show('years') && p.years.length > 0 ? (
@@ -285,7 +292,7 @@ export function ProfilePage() {
     drops: show('drops') && p.drops.length > 0 ? (
       <section key="drops" className="prof-sec">
         <h2 className="sr-only">The drop wall</h2>
-        <div className="wall dealt drops">
+        <WallGrid className="dealt drops" cells={1 + p.drops.length} end={end()}>
           <Slab season={null} kanji="切" name="The drop wall" sub="Started, then stopped. No regrets." />
           {p.drops.map((a, k) => (
             <Link key={a.id} to={`/anime/${a.id}`} className="tile" style={deal(k + 1)}>
@@ -294,7 +301,7 @@ export function ProfilePage() {
               {a.progress != null && a.progress > 0 && <span className="tile-sub faint">Quit at episode {a.progress}</span>}
             </Link>
           ))}
-        </div>
+        </WallGrid>
       </section>
     ) : null,
     chart: show('chart') && lists.length > 0 ? (
@@ -311,7 +318,7 @@ export function ProfilePage() {
         </div>
         {grouped.length === 0 && <p className="muted prof-sub">Nothing here yet.</p>}
         {/* One wall, grouped by season (or score): each group's first cover carries its tab, the rest its rule. */}
-        <div className="wall dealt prof-wall">{grouped.map((g, gi) => {
+        <WallGrid className="dealt prof-wall" cells={grouped.reduce((n, g) => n + g.items.length, 0)} end={end()}>{grouped.map((g, gi) => {
           const at = grouped.slice(0, gi).reduce((n, x) => n + x.items.length, 0)
           return (
             <Fragment key={g.key}>
@@ -328,7 +335,7 @@ export function ProfilePage() {
               ))}
             </Fragment>
           )
-        })}</div>
+        })}</WallGrid>
       </section>
     ) : null,
   }

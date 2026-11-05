@@ -1,17 +1,24 @@
-import { useEffect, useState, type ReactNode, type Ref } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Cover } from '../../components/Cover'
-import { deal } from '../../components/wallLayout'
+import { deal, fullRows, useGridCols } from '../../components/wallLayout'
 import { STATUS_LABEL, useListIndex, useRemove, useRemoveWithUndo, useSetStatus } from '../../lib/hooks'
 import type { AnimeBrief, Status } from '../../lib/types'
 import './sweep.css'
 
 /** A season's chart you mark by tapping: tap = watched; Dropped / Want underneath; S, D, W, X keys on hover. */
-export function SeasonGrid({ items, compact, lead, gridRef }: {
+export function SeasonGrid({ items: all, compact, lead, rows, end }: {
   items: AnimeBrief[]; compact?: boolean
   /** A first cell before the covers: the season's slab. */
   lead?: ReactNode
-  gridRef?: Ref<HTMLDivElement>
+  /** Show only as many covers as fill this many whole rows (the rest is a tap away elsewhere). */
+  rows?: number
+  /** Fills a short last row when every cover is shown. */
+  end?: (span: number) => ReactNode
 }) {
+  const [gridRef, cols] = useGridCols<HTMLDivElement>()
+  const leadN = lead ? 1 : 0
+  const items = rows ? all.slice(0, fullRows(all.length, cols, leadN, rows)) : all
+  const rest = (cols - ((items.length + leadN) % cols)) % cols
   const [focus, setFocus] = useState<number | null>(null)
   const onList = useListIndex()
   const setStatus = useSetStatus()
@@ -64,6 +71,7 @@ export function SeasonGrid({ items, compact, lead, gridRef }: {
           </div>
         )
       })}
+      {!rows && rest > 0 && end?.(rest)}
     </div>
   )
 }
