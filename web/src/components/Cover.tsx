@@ -14,6 +14,8 @@ interface Props {
   animateMark?: boolean
   size?: 'xs' | 's' | 'm' | 'l'
   eager?: boolean
+  /** First-screen art: load at once and ahead of other images. */
+  priority?: boolean
   /** Give the art a view-transition name so it morphs into the title page. */
   vt?: boolean
   /** How the obi writes the score; defaults to one decimal (8.7). */
@@ -21,7 +23,7 @@ interface Props {
 }
 
 /** A cover tile: art, optional hand mark, optional obi strip carrying the Konomi score. */
-export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, vt, fmt }: Props) {
+export function Cover({ id, title, src, color, status, score, animateMark, size = 'm', eager, priority, vt, fmt }: Props) {
   const [failed, setFailed] = useState(false)
   const [shown, setShown] = useState(() => !!src && loaded.has(src))
   return (
@@ -29,7 +31,8 @@ export function Cover({ id, title, src, color, status, score, animateMark, size 
       <div className="cover-art" style={vt ? { viewTransitionName: `cover-${id}` } : undefined}>
         {src && !failed ? (
           // Fades in over the tinted placeholder when it arrives; an image already in the cache shows at once.
-          <img src={src} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)}
+          <img src={src} alt="" loading={eager || priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined}
+            decoding="async" onError={() => setFailed(true)}
             referrerPolicy="no-referrer" className={shown ? 'is-in' : undefined} onLoad={() => { loaded.add(src); setShown(true) }}
             ref={(el) => { if (el?.complete && el.naturalWidth > 0 && !shown) { loaded.add(src); setShown(true) } }} />
         ) : (

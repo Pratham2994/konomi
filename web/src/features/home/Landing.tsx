@@ -3,33 +3,46 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { Icon } from '../../components/Icon'
 import { Mark } from '../../components/Mark'
 import { ScoreRail } from '../../components/ScoreRail'
 import { api } from '../../lib/api'
-import { currentSeason, SEASON_KANJI, SEASON_LABEL, SEASON_ORDER } from '../../lib/hooks'
+import { currentSeason, SEASON_KANJI, SEASON_LABEL } from '../../lib/hooks'
 import type { AnimeBrief, Season } from '../../lib/types'
+import { SNAPSHOT, type Showcase } from './showcase'
 import './landing.css'
 
 /** Titles a visitor taps before signing up; HomePage adds them to the new chart after sign-up. */
 export const PENDING_KEY = 'konomi-pending-marks'
 
-const PER_SEASON = 16
+// A visitor who is not signed in will see the wall: start its first covers now, alongside the /api/me check,
+// instead of after it. Same URLs and referrer policy as Cover, so the wall takes them from the cache.
+try {
+  if (localStorage.getItem('konomi-signed-in') !== '1') {
+    for (const a of SNAPSHOT.classics.slice(0, 16)) {
+      const src = a.picture ?? a.thumbnail
+      if (!src) continue
+      const img = new Image()
+      img.referrerPolicy = 'no-referrer'
+      img.fetchPriority = 'high'
+      img.src = src
+    }
+  }
+} catch { /* storage blocked: the wall loads them itself */ }
 
-function back(year: number, season: Season, n: number): { year: number; season: Season } {
-  let i = SEASON_ORDER.indexOf(season) - n
-  let y = year
-  while (i < 0) { i += 4; y -= 1 }
-  return { year: y, season: SEASON_ORDER[i] }
-}
-
-function useSeason(year: number, season: Season) {
-  // Its own cache key: Home and Sweep share ['sweep', year, season] for the full season, and this asks for fewer.
-  const q = useQuery({
-    queryKey: ['sweep', year, season, PER_SEASON],
-    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${year}&season=${season}&limit=${PER_SEASON}`),
-    staleTime: Infinity,
-  })
-  return q.data?.items ?? (q.isPending ? null : [])
+/** The wall's covers: all-time favourites and the season airing now. The bundled copy shows at once (and stays
+ *  if the API is slow or down); the live answer, cached by the browser for an hour, replaces it in the background. */
+function useShowcase(): Showcase {
+  const now = currentSeason()
+  const snap = SNAPSHOT.year === now.year && SNAPSHOT.season === now.season ? SNAPSHOT : { ...SNAPSHOT, ...now, now: [] }
+  return useQuery({
+    queryKey: ['showcase'],
+    queryFn: async () => {
+      const r = await api<Partial<Showcase>>('/api/showcase')
+      return Array.isArray(r.classics) && Array.isArray(r.now) && r.classics.length ? r as Showcase : snap
+    },
+    initialData: snap, initialDataUpdatedAt: 0, staleTime: 3_600_000, retry: 1,
+  }).data
 }
 
 /** Wall columns by its width, and where the headline sits in them: first column, columns, rows. */
@@ -57,8 +70,8 @@ function useLayout() {
 }
 
 type Slot =
-  | { kind: 'slab'; season: Season; year: number; label: string }
-  | { kind: 'cover'; season: Season; x: AnimeBrief | null; big: boolean }
+  | { kind: 'slab'; season: Season | null; kanji: string; name: [string, string]; label: string }
+  | { kind: 'cover'; x: AnimeBrief; big: boolean; first: boolean }
 
 const WORDS = ['Every', 'anime', 'you’ve', 'watched,', 'ranked', 'by', 'you.']
 
@@ -71,9 +84,7 @@ function readPending(): AnimeBrief[] {
 
 export function Landing() {
   const still = useReducedMotion()
-  const now = currentSeason()
-  const s1 = now, s2 = back(now.year, now.season, 1), s3 = back(now.year, now.season, 4)
-  const a = useSeason(s1.year, s1.season), b = useSeason(s2.year, s2.season), c = useSeason(s3.year, s3.season)
+  const show = useShowcase()
   // Marks made on an earlier visit are still waiting for sign-up, so they come back.
   const [marked, setMarked] = useState<AnimeBrief[]>(readPending)
   const [pick, setPick] = useState<'a' | 'b' | null>(null)
@@ -89,34 +100,37 @@ export function Landing() {
 
   const pair = useMemo(() => {
     if (marked.length >= 2) return [marked[marked.length - 2], marked[marked.length - 1]]
-    const pool = [...(c ?? []), ...(b ?? [])]
-    return pool.length >= 2 ? [pool[0], pool[1]] : null
-  }, [marked, b, c])
+    return show.classics.length >= 2 ? [show.classics[0], show.classics[1]] : null
+  }, [marked, show])
 
-  // The wall: a season slab, then its covers (the first one big), for three seasons. Just enough covers that
-  // the last row is full. Seasons still loading count as full, so their placeholders hold the same places.
-  const seasons: [typeof s1, AnimeBrief[] | null, string][] = [
-    [s1, a, 'airing now'], [s2, b, 'last season'], [s3, c, 'a year ago'],
+  // The wall: each group's slab, then its covers (the first one big, four cells), then the sign-up tile in the
+  // last cell. Just enough covers that every row is full; about a third of them are airing now.
+  const groups: [Omit<Extract<Slot, { kind: 'slab' }>, 'kind'>, AnimeBrief[]][] = [
+    [{ season: null, kanji: '名', name: ['All', 'time'], label: 'most watched ever' }, show.classics],
+    [{ season: show.season, kanji: SEASON_KANJI[show.season], name: [SEASON_LABEL[show.season], String(show.year)], label: 'airing now' }, show.now],
   ]
-  const have = seasons.map(([, xs]) => (xs ? xs.length : PER_SEASON))
-  // Covers per season, dealt in turn; a big cover takes four cells.
+  const [haveC, haveN] = groups.map(([, xs]) => xs.length)
   const share = (n: number) => {
-    const t = [0, 0, 0]
-    for (let i = 0; n > 0 && t.some((v, j) => v < have[j]); i = (i + 1) % 3) if (t[i] < have[i]) { t[i]++; n-- }
-    return t
+    const c = Math.min(haveC, n - Math.min(haveN, Math.round(n * 0.3)))
+    return [c, Math.min(haveN, n - c)]
   }
-  const cells = (t: number[]) => layout.sign[1] * layout.sign[2] + 3 + t.reduce((s, v) => s + v + (v ? 3 : 0), 0)
-  let take = share(layout.cols * layout.rows)
-  for (let n = take.reduce((s, v) => s + v, 0); n > 0 && (cells(take) > layout.cols * layout.rows || cells(take) % layout.cols); n--) take = share(n - 1)
+  const room = layout.cols * layout.rows
+  const cells = (t: number[]) => layout.sign[1] * layout.sign[2] + 1 + t.reduce((s, v) => s + (v ? v + 4 : 0), 0)
+  let n = Math.min(room, haveC + haveN)
+  while (n > 0 && (cells(share(n)) > room || cells(share(n)) % layout.cols)) n--
+  const take = share(n)
+  const lastRow = Math.ceil(cells(take) / layout.cols)
   const slots: Slot[] = []
-  seasons.forEach(([s, xs, label], i) => {
-    slots.push({ kind: 'slab', season: s.season, year: s.year, label })
-    for (let k = 0; k < take[i]; k++) slots.push({ kind: 'cover', season: s.season, x: xs?.[k] ?? null, big: k === 0 })
+  let dealt = 0
+  groups.forEach(([slab, xs], i) => {
+    if (!take[i]) return
+    slots.push({ kind: 'slab', ...slab })
+    for (let k = 0; k < take[i]; k++) slots.push({ kind: 'cover', x: xs[k], big: k === 0, first: dealt++ < layout.cols * 2 })
   })
 
   const [signCol, signSpan, signRows] = layout.sign
   return (
-    <div className="landing" data-season={now.season}>
+    <div className={`landing${marked.length ? ' has-keep' : ''}`} data-season={show.season}>
       <section className="l-wall page" aria-label="Tap the anime you’ve seen" ref={wallRef}
         style={{ ['--cols' as string]: layout.cols }}>
         <div className={`l-sign${signRows === 1 ? ' l-sign-row' : ''}`}
@@ -156,30 +170,34 @@ export function Landing() {
         {slots.map((s, i) => {
           const style = { ['--i' as string]: i, ['--tilt' as string]: `${i % 2 ? 1.6 : -1.6}deg` } as CSSProperties
           if (s.kind === 'slab') return (
-            <div key={i} className="l-slab" data-season={s.season} style={style}>
+            <div key={i} className={`l-slab${s.season ? '' : ' l-slab-paper'}`} data-season={s.season ?? undefined} style={style}>
               <div className="l-slab-in">
-                <span className="l-slab-kanji display" aria-hidden="true">{SEASON_KANJI[s.season]}</span>
-                <span className="l-slab-name display">{SEASON_LABEL[s.season]}<br />{s.year}</span>
+                <span className="l-slab-kanji display" aria-hidden="true">{s.kanji}</span>
+                <span className="l-slab-name display">{s.name[0]}<br />{s.name[1]}</span>
                 <span className="l-slab-label">{s.label}</span>
               </div>
             </div>
           )
           const x = s.x
           return (
-            // Keyed by place, so a placeholder turns into its cover without dealing in again.
-            <button key={i} type="button" className={`l-tile${s.big ? ' is-big' : ''}`} data-season={s.season} style={style}
-              disabled={!x} aria-pressed={x ? isOn(x.id) : undefined} aria-label={x ? x.title_en ?? x.title : 'Loading'}
-              title={x ? x.title_en ?? x.title : undefined} onClick={() => x && toggle(x)}>
-              {x ? (
-                <>
-                  <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color}
-                    status={isOn(x.id) ? 'completed' : undefined} animateMark />
-                  <span className="l-cap" aria-hidden="true">{x.title_en ?? x.title}</span>
-                </>
-              ) : <span className="l-ghost" />}
+            // Keyed by place, so a new answer from the API swaps art in place without dealing in again.
+            <button key={i} type="button" className={`l-tile${s.big ? ' is-big' : ''}`} style={style}
+              aria-pressed={isOn(x.id)} aria-label={x.title_en ?? x.title} title={x.title_en ?? x.title} onClick={() => toggle(x)}>
+              <Cover id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color}
+                status={isOn(x.id) ? 'completed' : undefined} animateMark priority={s.first} />
+              <span className="l-cap" aria-hidden="true">{x.title_en ?? x.title}</span>
             </button>
           )
         })}
+
+        {/* The wall's last cell is where your own chart starts. */}
+        <Link to="/signup" className="l-slab l-cta" style={{ gridRow: lastRow, gridColumn: layout.cols, ['--i' as string]: slots.length }}>
+          <span className="l-slab-in">
+            <span className="l-cta-plus" aria-hidden="true"><Icon name="plus" size={40} stroke={2.6} /></span>
+            <span className="l-slab-name display">Start<br />your chart</span>
+            <span className="l-slab-label">{marked.length ? `with your ${marked.length} marked` : 'it starts with one tap'}</span>
+          </span>
+        </Link>
       </section>
 
       {pair && (
@@ -203,8 +221,11 @@ export function Landing() {
               {/* The rail waits empty, so the answer has somewhere to land. */}
               <ScoreRail score={pick ? 9.2 : null} predicted={pick ? 8.9 : null} />
               {pick ? (
-                <p className="l-note">That answer moved one title above the other. A few of these and every score on your
-                  chart is honest. The dashed line is Konomi’s guess, shown only after you answer. (Example numbers.)</p>
+                <>
+                  <p className="l-note">That answer moved one title above the other. A few of these and every score on your
+                    chart is honest. The dashed line is Konomi’s guess, shown only after you answer. (Example numbers.)</p>
+                  <Link to="/signup" className="btn btn-primary l-duel-go">Rate your own like this</Link>
+                </>
               ) : <p className="l-note">Pick one. No numbers, just which one you liked more.</p>}
             </div>
           </div>
@@ -212,14 +233,8 @@ export function Landing() {
       )}
 
       <footer className="l-foot page">
-        <div className="l-end">
-          <p className="display l-end-title">Your chart starts with one tap.</p>
-          <Link to="/signup" className="btn btn-primary">Start your chart</Link>
-        </div>
-        <div className="l-credit">
-          <span className="display">好み Konomi</span>
-          <span className="faint">Catalogue: anime-offline-database (ODbL), AniList. Ratings: MyAnimeList via Kaggle.</span>
-        </div>
+        <span className="display">好み Konomi</span>
+        <span>Catalogue: anime-offline-database (ODbL), AniList. Ratings: MyAnimeList via Kaggle.</span>
       </footer>
 
       <AnimatePresence>

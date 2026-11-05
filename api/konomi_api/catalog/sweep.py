@@ -1,6 +1,8 @@
+import re
+from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 from sqlalchemy import func, select
 
 from ..deps import Db
@@ -42,9 +44,51 @@ def popular(db: Db, limit: int = Query(60, ge=1, le=500), offset: int = Query(0,
     return {"items": [brief(a) for a in rows]}
 
 
+SEASONS: tuple[Season, ...] = ("WINTER", "SPRING", "SUMMER", "FALL")
+_showcase: dict[tuple[int, str], dict] = {}
+
+
+def _words(a: Anime) -> str:
+    return " ".join(re.sub(r"[^0-9a-z]+", " ", (a.title_en or a.title).lower()).split())
+
+
+def _one_per_franchise(rows: list[Anime], n: int) -> list[Anime]:
+    """Skip sequels and films of a title already taken: same name start ("Attack on Titan Season 2" after "Attack on
+    Titan"), same first three words ("The Apothecary Diaries: ..." after "The Apothecary Diaries Season 3"), or related."""
+    out: list[Anime] = []
+    seen: list[str] = []
+    for a in rows:
+        w = _words(a)
+        taken = {o.id for o in out}
+        three = w.split()[:3]
+        if any(w == s or w.startswith(s + " ") or s.startswith(w + " ") or (len(three) == 3 and s.split()[:3] == three)
+               for s in seen) or taken & set(a.related or []):
+            continue
+        out.append(a)
+        seen.append(w)
+        if len(out) == n:
+            break
+    return out
+
+
 @router.get("/showcase")
-def showcase(db: Db) -> dict:
-    """Popular covers for the landing page."""
-    rows = db.scalars(select(Anime).where(Anime.type == "TV", Anime.color.is_not(None))
-                      .order_by(Anime.popularity.desc()).limit(36)).all()
-    return {"items": [brief(a) for a in rows]}
+def showcase(db: Db, response: Response) -> dict:
+    """Covers for the signed-out landing wall: the all-time most popular titles (one per franchise) and the
+    season airing now. The same for everyone, so it is built once per season and cached by browsers and CDNs."""
+    today = datetime.now(timezone.utc)
+    year, season = today.year, SEASONS[(today.month - 1) // 3]
+    if (year, season) not in _showcase:
+        kinds = ["TV", "MOVIE", "ONA", "OVA"]
+        top = db.scalars(select(Anime).where(Anime.popularity > 0, Anime.status != "UPCOMING", Anime.type.in_(kinds))
+                         .order_by(Anime.popularity.desc(), Anime.id).limit(200)).all()
+        now = db.scalars(select(Anime).where(Anime.year == year, Anime.season == season, Anime.popularity > 0,
+                                             Anime.type.in_(kinds))
+                         .order_by(Anime.popularity.desc(), Anime.id).limit(40)).all()
+        _showcase.clear()
+        _showcase[(year, season)] = {
+            "year": year, "season": season,
+            "classics": [brief(a) for a in _one_per_franchise(list(top), 40)],
+            "now": [brief(a) for a in _one_per_franchise(list(now), 16)],
+        }
+    response.headers["Cache-Control"] = "public, max-age=3600, s-maxage=21600"
+    return _showcase[(year, season)]
