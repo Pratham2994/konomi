@@ -71,18 +71,29 @@ a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 /* The cell that ends a short last row of a whole list. Cover height: k covers wide (with their gaps), 5:7 tall. */
 .wall-end-item { list-style: none; min-width: 0; }
 .wall-end {
-  align-self: start; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; width: 100%;
-  aspect-ratio: calc(var(--k, 1) * 5 + (var(--k, 1) - 1) * 0.6) / 7; min-height: 0; padding: clamp(10px, 1vw, 18px);
-  border: 1px solid var(--line); border-radius: 4px; background: var(--ink-2); color: var(--paper-2);
-  text-decoration: none; text-align: left; font: inherit; transition: border-color 0.2s, color 0.2s, background 0.2s;
+  container-type: inline-size; align-self: start; display: flex; flex-direction: column; justify-content: space-between;
+  align-items: flex-start; gap: 8px; width: 100%; min-width: 0; min-height: 0;
+  aspect-ratio: calc(var(--k, 1) * 5 + (var(--k, 1) - 1) * 0.6) / 7; padding: clamp(10px, 1vw, 16px);
+  border: 1px dashed color-mix(in oklab, var(--season) 55%, var(--line)); border-radius: var(--r-cover, 4px);
+  background: color-mix(in oklab, var(--season) 7%, var(--ink-2)); color: var(--paper);
+  text-decoration: none; text-align: left; font: inherit; cursor: pointer;
+  transition: transform 0.3s var(--ease-out), border-color 0.2s, background 0.2s;
 }
-.wall-end:hover { border-color: var(--season); color: var(--paper); background: var(--ink-3); }
-.wall-end svg { flex: none; color: var(--season); }
-.wall-end-label { font-size: clamp(14px, 1.3vw, 22px); line-height: 1.1; }
-.wall-end { flex-wrap: wrap; align-content: flex-end; }
-/* Covers that fill out a row come from somewhere else (another season, picks): a touch quieter until hovered. */
-.wall-fill .cover-art { filter: saturate(0.8) brightness(0.85); transition: filter 0.25s, transform 0.25s var(--ease-out); }
-.wall-fill:hover .cover-art { filter: none; }
+.wall-end:hover, .wall-end:focus-visible {
+  transform: translateY(-3px); border-style: solid; border-color: var(--season);
+  background: color-mix(in oklab, var(--season) 14%, var(--ink-2));
+}
+.wall-end-disc {
+  display: grid; place-items: center; flex: none; width: clamp(30px, 30cqi, 52px); aspect-ratio: 1; border-radius: 50%;
+  background: var(--season); color: var(--ink); transition: transform 0.3s var(--ease-out);
+}
+.wall-end:hover .wall-end-disc { transform: translateX(3px); }
+/* Sized by the card's own width, so a one-cover card never cuts its words. */
+.wall-end-label { font-size: clamp(13px, 13cqi, 24px); line-height: 1.05; overflow-wrap: anywhere; hyphens: auto; }
+.wall-end.is-wide { flex-direction: row; align-items: center; justify-content: center; gap: clamp(12px, 1.4vw, 20px); }
+.wall-end.is-wide .wall-end-label { font-size: clamp(18px, 2vw, 30px); }
+.wall-end.is-wide .wall-end-disc { width: clamp(40px, 3.6vw, 56px); }
+@media (prefers-reduced-motion: reduce) { .wall-end, .wall-end-disc { transition: none; } }
 
 /* Placeholders hold the covers' places while they load. */
 .ghost { display: grid; gap: 8px; align-content: start; }

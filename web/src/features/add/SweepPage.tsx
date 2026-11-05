@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Ghosts, Headline, Slab, WallEnd, WallFill } from '../../components/Wall'
+import { Ghosts, Headline, Slab, WallEnd } from '../../components/Wall'
 import { api } from '../../lib/api'
 import { currentSeason, SEASON_LABEL, SEASON_ORDER, useListIndex } from '../../lib/hooks'
 import type { AnimeBrief, Season } from '../../lib/types'
@@ -66,12 +66,6 @@ export function SweepPage() {
   })
   const items = data?.items ?? []
   const prev = step(year, season, -1)
-  // The season before fills out this one's last row: it is where Back takes you next.
-  const { data: before } = useQuery({
-    queryKey: ['sweep', prev.year, prev.season],
-    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${prev.year}&season=${prev.season}`),
-    staleTime: Infinity, enabled: view === 'season' && !!data,
-  })
   const next = step(year, season, 1)
   const isFuture = year > now.year || (year === now.year && SEASON_ORDER.indexOf(season) >= SEASON_ORDER.indexOf(now.season))
 
@@ -161,7 +155,7 @@ export function SweepPage() {
       {/* The season's own slab leads its covers, with the steps to the seasons either side. */}
       {isLoading ? <div className="wall"><Ghosts n={24} titled /></div> : (
         <SeasonGrid key={`${year}-${season}`} items={visible(items)}
-          end={(span) => <WallFill span={span} onClick={() => go(prev)} label={`Back to ${SEASON_LABEL[prev.season]} ${prev.year}`} covers={before?.items} />} lead={
+          end={(span) => <WallEnd span={span} onClick={() => go(prev)} label={`Back to ${SEASON_LABEL[prev.season]} ${prev.year}`} />} lead={
           <Slab season={season} year={year} sub={`${seenHere} of ${items.length} watched`}>
             <button className="btn sweep-step" onClick={() => go(prev)} aria-label={`Earlier: ${SEASON_LABEL[prev.season]} ${prev.year}`}>
               <Icon name="arrowLeft" size={16} />

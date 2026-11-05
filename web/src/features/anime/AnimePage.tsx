@@ -4,11 +4,11 @@ import { BackButton } from '../../components/BackButton'
 import { Cover } from '../../components/Cover'
 import { EmptyWall } from '../../components/EmptyWall'
 import { ScoreRail } from '../../components/ScoreRail'
-import { Slab, WallFill, WallGrid } from '../../components/Wall'
+import { Slab, WallEnd, WallGrid } from '../../components/Wall'
 import { deal } from '../../components/wallLayout'
 import { api } from '../../lib/api'
 import { SEASON_KANJI, SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSignedIn, useSetStatus } from '../../lib/hooks'
-import type { AnimeBrief, AnimeDetail, Status } from '../../lib/types'
+import type { AnimeDetail, Status } from '../../lib/types'
 import { HowScoring } from '../rate/HowScoring'
 import { useRater } from '../rate/RaterContext'
 import './anime.css'
@@ -56,12 +56,6 @@ export function AnimePage() {
     queryFn: () => api<{ predicted: number | null }>(`/api/taste/predict/${id}`),
     enabled: signedIn,
     retry: false,
-  })
-  // Covers from the same season fill out the related wall's last row.
-  const { data: sameSeason } = useQuery({
-    queryKey: ['sweep', a?.year, a?.season],
-    queryFn: () => api<{ items: AnimeBrief[] }>(`/api/sweep?year=${a!.year}&season=${a!.season}`),
-    enabled: !!a?.season && !!a?.year && (a?.related.length ?? 0) > 0, staleTime: Infinity,
   })
   const onList = useListIndex()
   const setStatus = useSetStatus()
@@ -182,9 +176,8 @@ export function AnimePage() {
       {a.related.length > 0 && (
         <section className="page anime-related" aria-label="Seasons and related">
           <WallGrid className="dealt" cells={1 + a.related.length} end={(span) => a.season && a.year
-            ? <WallFill span={span} to={`/sweep?view=season&year=${a.year}&season=${a.season}`} label={`More from ${SEASON_LABEL[a.season]} ${a.year}`}
-              covers={(sameSeason?.items ?? []).filter((x) => x.id !== a.id && !a.related.some((r) => r.id === x.id))} />
-            : <WallFill span={span} to="/sweep" label="Most popular anime" />}>
+            ? <WallEnd span={span} to={`/sweep?view=season&year=${a.year}&season=${a.season}`} label={`More from ${SEASON_LABEL[a.season]} ${a.year}`} />
+            : <WallEnd span={span} to="/sweep" label="Most popular anime" />}>
             <Slab season={null} kanji="続" name="Same story" sub={`${a.related.length} season${a.related.length === 1 ? '' : 's'}, films and side stories`} />
             {a.related.map((r, k) => (
               <Link key={r.id} to={`/anime/${r.id}`} className="tile" style={deal(k + 1)} data-season={r.season ?? undefined}>

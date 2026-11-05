@@ -4,14 +4,13 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { EmptyWall } from '../../components/EmptyWall'
 import { Icon } from '../../components/Icon'
-import { Headline, Slab, TabBar, TabHead, WallFill, WallGrid } from '../../components/Wall'
+import { Headline, Slab, TabBar, TabHead, WallEnd, WallGrid } from '../../components/Wall'
 import { deal } from '../../components/wallLayout'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
 import { api, ApiError } from '../../lib/api'
 import { byRank, SEASON_LABEL, SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
 import type { AnimeBrief, Season, Status } from '../../lib/types'
-import { useRecs } from '../home/HomePage'
 import './profile.css'
 
 export interface Look {
@@ -124,7 +123,6 @@ export function ProfilePage() {
   const { data: p, error, isLoading } = useQuery({
     queryKey: ['profile', username], queryFn: () => api<Profile>(`/api/u/${username}`), retry: false,
   })
-  const picks = (useRecs('', !!p?.is_owner).data?.items ?? []).map((r) => r.anime)
 
   // Lists with nothing in them are left out, unless one is all there is.
   const allowed = p?.look.chart_lists ?? []
@@ -191,7 +189,7 @@ export function ProfilePage() {
   const order = p.sections.map((s) => s.id)
   // A short last row on any wall ends on the obvious next step for whoever is looking.
   const next = p.is_owner ? { to: '/settings', label: 'Customise' } : me ? { to: '/chart', label: 'Your chart' } : { to: '/signup', label: 'Start your own chart' }
-  const end = (item?: boolean) => (span: number) => <WallFill item={item} span={span} to={next.to} label={next.label} covers={p.is_owner ? picks : []} />
+  const end = (item?: boolean) => (span: number) => <WallEnd item={item} span={span} to={next.to} label={next.label} />
   const wide = matchMedia('(min-width: 700px)').matches
   const bigFavs = look.fav_layout === 'hero' ? Math.min(1, p.favourites.length) : look.fav_layout === 'podium' ? Math.min(wide ? 3 : 1, p.favourites.length) : 0
   const blocks: Record<string, ReactNode> = {

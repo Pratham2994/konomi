@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { EmptyWall } from '../../components/EmptyWall'
 import { VtLink } from '../../components/VtLink'
-import { Headline, TabBar, TabHead, WallFill, WallGrid } from '../../components/Wall'
+import { Headline, TabBar, TabHead, WallEnd, WallGrid } from '../../components/Wall'
 import { deal } from '../../components/wallLayout'
 import { PageLoading } from '../../components/PageLoading'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { restoreOf, SEASON_LABEL, SEASON_ORDER, STATUS_LABEL, useBulk, byRank, useList, useMe, useStored } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
-import { useRecs } from '../home/HomePage'
 import { downloadChart } from './exportChart'
 import './chart.css'
 
@@ -60,8 +59,6 @@ export function ChartPage() {
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const bulk = useBulk()
   const toast = useToast()
-  // A short last row is filled with picks for you, after a link to add more.
-  const picks = (useRecs().data?.items ?? []).map((r) => r.anime)
 
   const stopPicking = () => { setPicking(false); setPicked(new Set()) }
   const toggle = (id: number) => setPicked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
@@ -178,7 +175,7 @@ export function ChartPage() {
 
       {/* One wall in season order. Each season's first cover carries its divider tab; the rest carry its rule. */}
       {sort === 'season' ? <WallGrid className="dealt chart-wall" cells={shown.length}
-        end={(span) => <WallFill span={span} to="/sweep" label="Add anime. Picks for you:" covers={picks} />}>{groups.map((g, gi) => {
+        end={(span) => <WallEnd span={span} to="/sweep" label="Add anime" />}>{groups.map((g, gi) => {
         const at = groups.slice(0, gi).reduce((n, x) => n + x.items.length, 0)
         return (
           <Fragment key={`${g.year}-${g.season}`}>
@@ -193,7 +190,7 @@ export function ChartPage() {
       })}</WallGrid> : (
         // The big lead covers take four cells each: one on phones, three from 700 px.
         <WallGrid as="ol" className="ranked dealt" cells={byScore.length + 3 * Math.min(byScore.length, matchMedia('(min-width: 700px)').matches ? 3 : 1)}
-          end={(span) => <WallFill item span={span} to="/sweep" label="Add anime. Picks for you:" covers={picks} />}>
+          end={(span) => <WallEnd item span={span} to="/sweep" label="Add anime" />}>
           {byScore.map((e, i) => (
             <li key={e.anime_id} data-season={e.anime.season ?? undefined} style={deal(i)}>
               <span className="ranked-n display">{i + 1}</span>

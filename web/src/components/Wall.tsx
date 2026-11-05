@@ -3,10 +3,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
 import { SEASON_KANJI, SEASON_LABEL } from '../lib/hooks'
-import type { AnimeBrief, Season } from '../lib/types'
-import { Cover } from './Cover'
+import type { Season } from '../lib/types'
 import { Mark } from './Mark'
-import { VtLink } from './VtLink'
 import { deal, useGridCols } from './wallLayout'
 import './wall.css'
 
@@ -76,8 +74,9 @@ export function TabBar({ end, plain }: { end?: boolean; plain?: boolean }) {
 }
 
 /**
- * A wall of a whole list (a chart, a title's seasons): nothing can be left out, so when the last row is short, a
- * link to the obvious next place fills the rest of it, and the wall still ends on a whole row.
+ * A wall of a whole list (a chart, a title's seasons): nothing can be left out, so when the last row is short, one
+ * card with the obvious next step fills the rest of it, and the wall still ends on a whole row. Only real entries
+ * go in the wall itself.
  * `cells` counts the cells the children take (a big cover takes four).
  */
 export function WallGrid({ cells, end, className = '', as = 'div', children }: {
@@ -101,35 +100,14 @@ export function WallEnd({ span, to, onClick, label, item }: {
   item?: boolean
 }) {
   const style = { gridColumn: `span ${span}`, ['--k' as string]: span } as CSSProperties
-  const body = <><span className="wall-end-label display">{label}</span><Icon name="arrowRight" size={22} /></>
+  // Three covers wide or more: the disc and the words sit side by side in the middle, not lost in a corner.
+  const cls = `wall-end${span >= 3 ? ' is-wide' : ''}`
+  const body = <><span className="wall-end-disc" aria-hidden="true"><Icon name="arrowRight" size={20} stroke={2.4} /></span>
+    <span className="wall-end-label display">{label}</span></>
   const cell = to
-    ? <Link to={to} className="wall-end" style={item ? undefined : style}>{body}</Link>
-    : <button type="button" className="wall-end" onClick={onClick} style={item ? undefined : style}>{body}</button>
+    ? <Link to={to} className={cls} style={item ? undefined : style}>{body}</Link>
+    : <button type="button" className={cls} onClick={onClick} style={item ? undefined : style}>{body}</button>
   return item ? <li className="wall-end-item" style={style}>{cell}</li> : cell
-}
-
-/**
- * Fills a short last row with what comes next: a small end cell with the link, then covers from there (another
- * season, picks for you), so the room left is more wall, not an empty panel.
- */
-export function WallFill({ span, to, onClick, label, covers = [], item }: {
-  span: number; to?: string; onClick?: () => void; label: string; covers?: AnimeBrief[]; item?: boolean
-}) {
-  const shown = covers.slice(0, span - 1)
-  return (
-    <>
-      <WallEnd item={item} span={span - shown.length} to={to} onClick={onClick} label={label} />
-      {shown.map((a) => {
-        const tile = (
-          <VtLink key={a.id} animeId={a.id} className="tile wall-fill" data-season={a.season ?? undefined}>
-            <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} vt />
-            <span className="tile-title">{a.title_en ?? a.title}</span>
-          </VtLink>
-        )
-        return item ? <li key={a.id} className="wall-end-item">{tile}</li> : tile
-      })}
-    </>
-  )
 }
 
 /** Covers still on their way: grey cells in the same places, so nothing jumps when the art arrives. */
