@@ -57,7 +57,10 @@ export function TabHead({ season, year, label, count, end }: {
   return (
     <span className={`tab tab-head${season || label ? '' : ' tab-plain'}${label ? ' tab-label' : ''}${end ? ' is-end' : ''}`} aria-hidden="true">
       {!label && season && <span className="tab-kanji display">{SEASON_KANJI[season]}</span>}
-      <span className="tab-name display">{label ?? (season ? `${SEASON_LABEL[season]} ${year}` : year ?? 'Date unknown')}</span>
+      <span className="tab-name display">
+        {label ?? (season && year ? <><span className="tab-full">{SEASON_LABEL[season]} {year}</span><span className="tab-short">{SEASON_LABEL[season]} ’{String(year).slice(2)}</span></>
+          : year ?? 'Date unknown')}
+      </span>
       {count != null && count > 1 && <span className="tab-n">{count}</span>}
     </span>
   )

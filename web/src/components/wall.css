@@ -46,7 +46,9 @@ a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 .tab-n { margin-left: auto; padding-left: 4px; font-size: 12px; font-weight: 700; color: color-mix(in oklab, var(--ink) 70%, var(--season)); }
 .tab-plain { --season: var(--paper-2); }
 .tab-label { --season: var(--paper); }
-@container (max-width: 118px) { .tab-kanji { display: none; } }
+@container (max-width: 160px) { .tab-kanji { display: none; } }
+.tab-short { display: none; }
+@container (max-width: 146px) { .tab-n { display: none; } .tab-full { display: none; } .tab-short { display: inline; } }
 
 /* Placeholders hold the covers' places while they load. */
 .ghost { display: grid; gap: 8px; align-content: start; }
@@ -89,3 +91,11 @@ a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 /* A score on the obi already sits at the foot: the caption rides above it. */
 .hung-cell:has(.obi) .wcap { bottom: 18%; border-radius: 0; padding-bottom: 6px; }
 @media (prefers-reduced-motion: reduce) { .hung-cell[aria-pressed='true'] .cover-art { animation: none; } }
+
+/* Empty pages: the message hangs in a wall of popular covers. */
+.empty-sign-in { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(12px, 2.4cqi, 22px); padding: clamp(14px, 3cqi, 32px) clamp(4px, 3cqi, 32px); }
+.empty-sign.is-row .empty-sign-in { padding: 8px 0 18px; }
+.empty-title { font-size: clamp(30px, 7.4cqi, 76px); }
+.empty-text { color: var(--paper-2); max-width: 56ch; font-size: clamp(15px, 1.1vw, 18px); }
+.empty-text a { color: var(--season); font-weight: 700; }
+.empty-acts { display: flex; flex-wrap: wrap; gap: var(--s3); }

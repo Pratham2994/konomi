@@ -1,7 +1,8 @@
-.chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
-.chart-title { font-size: clamp(36px, 6vw, 72px); line-height: 1; }
-.chart-stats { color: var(--paper-2); }
-.chart-stats strong { color: var(--paper); font-weight: 700; }
+.chart-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s3) var(--s5); flex-wrap: wrap; }
+.chart-title { font-size: clamp(44px, 6.4vw, 104px); }
+.chart-stats { color: var(--paper-2); font-size: 15px; max-width: 64ch; padding-bottom: 0.4em; }
+.chart-stats strong.display { color: var(--season); font-weight: 400; font-size: clamp(20px, 1.8vw, 28px); font-variant-numeric: proportional-nums; }
+.chart-wall { margin-top: var(--s6); }
 .chart-controls { display: flex; gap: var(--s3); flex-wrap: wrap; justify-content: space-between; margin-top: var(--s5); }
 .chart-controls > .seg, .prof-chart-head > .seg, .anime-actions > .seg { min-width: 0; }
 
@@ -17,19 +18,19 @@
 .seg button.is-on { background: var(--paper); color: var(--ink); }
 .seg-n { font-weight: 400; opacity: 0.7; margin-left: 2px; }
 
-.ranked {
-  list-style: none; margin: var(--s6) 0 0; padding: 0; display: grid; gap: clamp(18px, 2vw, 30px) clamp(12px, 1.4vw, 22px);
-  grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 11vw, 168px), 1fr));
-}
+.ranked { list-style: none; margin: var(--s6) 0 0; padding: 0; }
 .ranked li { position: relative; padding-left: 0; }
+/* The top of the chart reads like a magazine's lead: number one (top three on wider screens) at twice the size. */
+.ranked li:first-child { grid-column: span 2; grid-row: span 2; }
+@media (min-width: 700px) { .ranked li:nth-child(-n+3) { grid-column: span 2; grid-row: span 2; } }
+.ranked li:nth-child(-n+3) .tile-title { font-size: clamp(14px, 1.1vw, 17px); }
 .ranked-n {
   position: absolute; z-index: 2; top: -12px; left: -6px; font-size: clamp(22px, 2.4vw, 34px); line-height: 1;
   color: var(--paper); text-shadow: 0 2px 10px rgb(0 0 0 / 0.9);
 }
-.ranked li:nth-child(-n+3) .ranked-n { color: var(--season); font-size: clamp(30px, 3.4vw, 48px); }
+.ranked li:nth-child(-n+3) .ranked-n { color: var(--season); font-size: clamp(40px, 4.6vw, 76px); top: -18px; left: -10px; }
 
-.chart-empty { display: grid; gap: var(--s4); justify-items: start; max-width: 620px; padding-top: 12vh; }
-.chart-empty h1 { font-size: clamp(32px, 5vw, 56px); }
+.page.chart-empty { padding-top: clamp(12px, 2vh, 24px); }
 
 @media (max-width: 640px) {
   .seg { flex-wrap: wrap; border-radius: 18px; overflow: visible; }
@@ -41,11 +42,13 @@
 .tile-pick .cover-art { transition: transform 0.15s var(--ease-out), filter 0.15s; }
 .tile-pick:not(.is-picked) .cover-art { filter: brightness(0.75); }
 .tile-pick.is-picked .cover-art { transform: scale(0.94); outline: 3px solid var(--season); outline-offset: 3px; }
+.tile-pick:has(.tab) .tile-tick { top: 44px; }
 .tile-tick {
   position: absolute; top: 8px; right: 8px; z-index: 4; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   border: 2px solid var(--paper); background: rgb(13 12 18 / 0.55); color: transparent; transition: background 0.15s, color 0.15s;
 }
-.tile-pick.is-picked .tile-tick { background: var(--season); border-color: var(--season); color: var(--ink); }
+.tile-pick.is-picked .tile-pick:has(.tab) .tile-tick { top: 44px; }
+.tile-tick { background: var(--season); border-color: var(--season); color: var(--ink); }
 .tile-pick:focus-visible { outline: 2px solid var(--season); outline-offset: 4px; border-radius: var(--r-cover); }
 .pick-bar {
   position: fixed; z-index: 65; left: 50%; transform: translateX(-50%); bottom: calc(var(--bottombar) + 12px + env(safe-area-inset-bottom));

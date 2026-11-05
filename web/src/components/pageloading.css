@@ -3,3 +3,7 @@
 @keyframes pl-breathe { 50% { opacity: 0.35; transform: scale(0.94); } }
 @keyframes pl-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .page-loading-mark { animation: none; } }
+
+/* Where the page headline will be, then the wall's places. */
+.page-loading-wall { min-height: 70vh; }
+.pl-head { display: block; width: min(420px, 70%); height: clamp(36px, 5vw, 64px); margin-bottom: var(--s6); border-radius: 8px; background: var(--ink-3); animation: pl-in 0.3s ease-out both; }

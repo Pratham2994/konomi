@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
+import { EmptyWall } from '../../components/EmptyWall'
 import { VtLink } from '../../components/VtLink'
-import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
+import { Headline, TabBar, TabHead } from '../../components/Wall'
+import { deal } from '../../components/wallLayout'
 import { PageLoading } from '../../components/PageLoading'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
-import { restoreOf, SEASON_ORDER, STATUS_LABEL, useBulk, byRank, useList, useMe, useStored } from '../../lib/hooks'
+import { restoreOf, SEASON_LABEL, SEASON_ORDER, STATUS_LABEL, useBulk, byRank, useList, useMe, useStored } from '../../lib/hooks'
 import type { Entry, Season, Status } from '../../lib/types'
 import { downloadChart } from './exportChart'
 import './chart.css'
@@ -17,16 +19,20 @@ type Sort = 'season' | 'score'
 /** On a chart, "watched" is the norm and its score strip already says so: pen marks are kept for the exceptions. */
 const markFor = (s: Status) => (s === 'completed' ? undefined : s)
 
-export function Tile({ e, sub, picking, picked, onPick }: {
+export function Tile({ e, sub, picking, picked, onPick, tab, style }: {
   e: Entry; sub?: string
   /** Select mode: the tile toggles a tick instead of opening the title. */
   picking?: boolean; picked?: boolean; onPick?: () => void
+  /** The season's divider tab (first title) or rule (the rest), above the cover. */
+  tab?: ReactNode
+  style?: CSSProperties
 }) {
   const a = e.anime
   if (picking) {
     return (
       <button type="button" className={`tile tile-pick${picked ? ' is-picked' : ''}`} aria-pressed={!!picked} onClick={onPick}
-        data-season={a.season ?? undefined}>
+        data-season={a.season ?? undefined} style={style}>
+        {tab}
         <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={markFor(e.status)} score={e.score} />
         <span className="tile-tick" aria-hidden="true"><Icon name="check" size={18} stroke={3} /></span>
         <span className="tile-title">{a.title_en ?? a.title}</span>
@@ -35,7 +41,8 @@ export function Tile({ e, sub, picking, picked, onPick }: {
     )
   }
   return (
-    <VtLink animeId={a.id} className="tile" data-season={a.season ?? undefined}>
+    <VtLink animeId={a.id} className="tile" data-season={a.season ?? undefined} style={style}>
+      {tab}
       <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={markFor(e.status)} score={e.score} vt />
       <span className="tile-title">{a.title_en ?? a.title}</span>
       {sub && <span className="tile-sub">{sub}</span>}
@@ -116,14 +123,14 @@ export function ChartPage() {
   const hours = useMemo(() => Math.round(entries.filter((e) => e.status === 'completed')
     .reduce((s, e) => s + (e.anime.episodes ?? 1) * (e.anime.duration_s ?? 1440), 0) / 3600), [entries])
 
-  if (isLoading) return <PageLoading />
+  if (isLoading) return <PageLoading variant="wall" label="Loading your chart" />
 
   if (entries.length === 0) {
     return (
       <div className="page chart-empty">
-        <h1 className="display">Your chart is empty</h1>
-        <p className="muted">Type any anime in the search bar and press Enter. Or tap through the most popular anime and mark what you’ve seen.</p>
-        <Link to="/sweep" className="btn btn-primary">Add anime</Link>
+        <EmptyWall tap words={['Your', 'chart', 'is', 'empty.']} accent={3}
+          text="Tap the covers you’ve seen and they land here. Or type any anime in the search bar and press Enter."
+          actions={<><Link to="/sweep" className="btn btn-primary">Add anime</Link><Link to="/settings#import" className="btn">Import a list</Link></>} />
       </div>
     )
   }
@@ -133,10 +140,11 @@ export function ChartPage() {
   return (
     <div className="page chart">
       <header className="chart-head">
-        <h1 className="display chart-title">Your chart</h1>
+        <Headline words={['Your', 'chart']} accent={1} className="chart-title" />
         <p className="chart-stats">
-          <strong>{counts.completed ?? 0}</strong> watched · about <strong>{hours.toLocaleString()}</strong> hours
-          {counts.watching ? <> · <strong>{counts.watching}</strong> watching</> : null}
+          <strong className="display">{counts.completed ?? 0}</strong> watched, about <strong className="display">{hours.toLocaleString()}</strong> hours
+          {counts.watching ? <>, <strong className="display">{counts.watching}</strong> watching now</> : null}
+          {groups.length > 1 ? <>, across <strong className="display">{groups.length}</strong> seasons</> : null}
         </p>
       </header>
       <div className="chart-controls">
@@ -165,14 +173,23 @@ export function ChartPage() {
         </div>
       </div>
 
-      {sort === 'season' ? <Bands>{groups.map((g) => (
-        <SeasonBand key={`${g.year}-${g.season}`} season={g.season} year={g.year} count={`${g.items.length}`} wide={g.items.length > 8} n={g.items.length}>
-          <CoverGrid>{g.items.map((e) => <Tile key={e.anime_id} e={e} picking={picking} picked={picked.has(e.anime_id)} onPick={() => toggle(e.anime_id)} />)}</CoverGrid>
-        </SeasonBand>
-      ))}</Bands> : (
-        <ol className="ranked">
+      {/* One wall in season order. Each season's first cover carries its divider tab; the rest carry its rule. */}
+      {sort === 'season' ? <div className="wall dealt chart-wall">{groups.map((g, gi) => {
+        const at = groups.slice(0, gi).reduce((n, x) => n + x.items.length, 0)
+        return (
+          <Fragment key={`${g.year}-${g.season}`}>
+            <h2 className="sr-only">{g.season && g.year ? `${SEASON_LABEL[g.season]} ${g.year}` : g.year ?? 'Date unknown'}, {g.items.length} title{g.items.length === 1 ? '' : 's'}</h2>
+            {g.items.map((e, j) => (
+              <Tile key={e.anime_id} e={e} picking={picking} picked={picked.has(e.anime_id)} onPick={() => toggle(e.anime_id)} style={deal(at + j)}
+                tab={j === 0 ? <TabHead season={g.season} year={g.year} count={g.items.length} end={g.items.length === 1} />
+                  : <TabBar end={j === g.items.length - 1} plain={!g.season} />} />
+            ))}
+          </Fragment>
+        )
+      })}</div> : (
+        <ol className="wall ranked dealt">
           {byScore.map((e, i) => (
-            <li key={e.anime_id} data-season={e.anime.season ?? undefined}>
+            <li key={e.anime_id} data-season={e.anime.season ?? undefined} style={deal(i)}>
               <span className="ranked-n display">{i + 1}</span>
               <Tile e={e} sub={[e.anime.year, e.score == null && e.status === 'completed' ? 'not rated yet' : null].filter(Boolean).join(' · ')}
                 picking={picking} picked={picked.has(e.anime_id)} onPick={() => toggle(e.anime_id)} />
