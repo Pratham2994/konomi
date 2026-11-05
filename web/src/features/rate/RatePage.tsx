@@ -85,6 +85,19 @@ function RoundSummary({ before, onMore, more }: { before: Map<number, number | n
   )
 }
 
+/** What happens in it, so this season reads apart from the others: a few lines, and the whole synopsis behind More. */
+function About({ a }: { a: AnimeBrief }) {
+  const [open, setOpen] = useState(false)
+  if (!a.blurb) return null
+  const more = !!a.synopsis && a.synopsis.length > a.blurb.length + 20
+  return (
+    <div className="rate-about">
+      <p className="rate-blurb">{open ? a.synopsis : a.blurb}</p>
+      {more && <button type="button" className="rate-more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Less' : 'More'}</button>}
+    </div>
+  )
+}
+
 /** The most useful questions, ten at a time, for when you have two minutes. */
 export function RatePage() {
   const qc = useQueryClient()
@@ -251,7 +264,7 @@ export function RatePage() {
                 <div className="rate-tier-side">
                   <h2 className="display rate-ask">How was <Link to={`/anime/${q.anime.id}`} className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</Link>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
                   <p className="rate-which">{entryLine(q.anime)}</p>
-                  {q.anime.blurb && <p className="rate-blurb" title={q.anime.blurb}>{q.anime.blurb}</p>}
+                  <About a={q.anime} />
                   <Feelings busy={busy} onPick={(t, between) => tier(q.anime.id, t, between)} keys />
                   {(data?.queue?.length ?? 0) > 0 && (
                     <div className="rate-next" aria-label="Up next">

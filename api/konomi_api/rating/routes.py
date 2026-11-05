@@ -9,7 +9,7 @@ from sqlalchemy import delete, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from ..catalog.blurb import blurbs
+from ..catalog.blurb import blurbs, clean
 from ..catalog.routes import brief
 from ..deps import CurrentUser, Db
 from ..models import Anime, Duel, ListEntry
@@ -105,7 +105,7 @@ def _briefs(db: Session, ids: list[int]) -> dict[int, dict]:
         return {}
     rows = list(db.scalars(select(Anime).where(Anime.id.in_(ids))))
     lines = blurbs(db, rows)
-    return {a.id: brief(a) | {"blurb": lines[a.id]} for a in rows}
+    return {a.id: brief(a) | {"blurb": lines[a.id], "synopsis": clean(a.synopsis) if a.synopsis else None} for a in rows}
 
 
 def _duel_out(db: Session, placing: int, other: int | None) -> dict | None:
