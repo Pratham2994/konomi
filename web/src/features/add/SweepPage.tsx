@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { SeasonBand } from '../../components/SeasonBand'
+import { Ghosts, Headline, Slab } from '../../components/Wall'
 import { api } from '../../lib/api'
 import { currentSeason, SEASON_LABEL, SEASON_ORDER, useListIndex } from '../../lib/hooks'
 import type { AnimeBrief, Season } from '../../lib/types'
@@ -94,7 +94,7 @@ export function SweepPage() {
     <div className="page sweep" data-season={season}>
       <header className="sweep-head">
         <div>
-          <h1 className="display sweep-title">Add anime</h1>
+          <Headline words={['Tap', 'what', 'you’ve', 'seen.']} accent={3} className="sweep-title" />
           <p className="muted sweep-lead">
             {view === 'popular'
               ? 'Tap every one you’ve seen. Most people have watched a few dozen of these.'
@@ -131,12 +131,13 @@ export function SweepPage() {
               </button>
             ))}
           </div>
-          <SeasonBand season={null} year={null} neutral label={kind === 'all' ? 'Most popular of all time' : `Most popular ${KINDS.find((k) => k.id === kind)!.label.toLowerCase()}`}
-            count={popular.isLoading ? '' : `${seenPop} of ${pop.length} watched`}>
-            {popular.isError && <p className="muted">Couldn’t load the list. Try again in a moment.</p>}
-            <SeasonGrid items={visible(pop)} />
-            {hideWatched && pop.length > 0 && visible(pop).length === 0 && <p className="muted">You’ve watched all of these. Show more below.</p>}
-          </SeasonBand>
+          {popular.isError && <p className="muted sweep-note">Couldn’t load the list. Try again in a moment.</p>}
+          {hideWatched && pop.length > 0 && visible(pop).length === 0 && <p className="muted sweep-note">You’ve watched all of these. Show more below.</p>}
+          {popular.isLoading ? <div className="wall"><Ghosts n={24} titled /></div> : (
+            <SeasonGrid items={visible(pop)} lead={
+              <Slab season={null} kanji="人気" name={kind === 'all' ? 'Most popular' : `Popular ${KINDS.find((k) => k.id === kind)!.label.toLowerCase()}`}
+                sub={`${seenPop} of ${pop.length} watched`} />} />
+          )}
           <footer className="sweep-foot">
             {shown < MOST && pop.length >= shown && !popular.isError && (
               <button className="btn btn-primary sweep-next" disabled={popular.isFetching} onClick={() => setShown((n) => Math.min(n + 60, MOST))}>
@@ -147,20 +148,20 @@ export function SweepPage() {
           </footer>
         </>
       ) : (<>
-      <SeasonBand season={season} year={year}
-        count={isLoading ? '' : `${seenHere} of ${items.length} watched`}
-        aside={<span className="sweep-nav">
-          <button className="btn" onClick={() => go(prev)} aria-label={`${SEASON_LABEL[prev.season]} ${prev.year}`}>
-            <Icon name="arrowLeft" size={18} /> <span className="hide-s">Earlier</span>
-          </button>
-          <button className="btn" onClick={() => go(next)} disabled={isFuture} aria-label={`${SEASON_LABEL[next.season]} ${next.year}`}>
-            <span className="hide-s">Later</span> <Icon name="arrowRight" size={18} />
-          </button>
-        </span>}>
-        {!isLoading && items.length === 0 && <p className="muted">Nothing charted for this season.</p>}
-        <SeasonGrid items={visible(items)} />
-        {hideWatched && items.length > 0 && visible(items).length === 0 && <p className="muted">You’ve watched everything here. Try an earlier season.</p>}
-      </SeasonBand>
+      {!isLoading && items.length === 0 && <p className="muted sweep-note">Nothing charted for this season.</p>}
+      {hideWatched && items.length > 0 && visible(items).length === 0 && <p className="muted sweep-note">You’ve watched everything here. Try an earlier season.</p>}
+      {/* The season's own slab leads its covers, with the steps to the seasons either side. */}
+      {isLoading ? <div className="wall"><Ghosts n={24} titled /></div> : (
+        <SeasonGrid key={`${year}-${season}`} items={visible(items)} lead={
+          <Slab season={season} year={year} sub={`${seenHere} of ${items.length} watched`}>
+            <button className="btn sweep-step" onClick={() => go(prev)} aria-label={`Earlier: ${SEASON_LABEL[prev.season]} ${prev.year}`}>
+              <Icon name="arrowLeft" size={16} />
+            </button>
+            <button className="btn sweep-step" onClick={() => go(next)} disabled={isFuture} aria-label={`Later: ${SEASON_LABEL[next.season]} ${next.year}`}>
+              <Icon name="arrowRight" size={16} />
+            </button>
+          </Slab>} />
+      )}
 
       <footer className="sweep-foot">
         <button className="btn btn-primary sweep-next" onClick={() => go(prev)}>
