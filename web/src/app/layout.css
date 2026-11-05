@@ -12,7 +12,9 @@
 .brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; flex: none; }
 .brand-kanji { font-size: 24px; color: var(--season); line-height: 1; }
 .brand-word { font-weight: 700; letter-spacing: 0.02em; }
-.topbar-add { flex: 1; max-width: 620px; }
+.topbar-add { flex: 1; max-width: 620px; transition: opacity 0.25s var(--ease-out), visibility 0.25s; }
+/* Home has its own big search: the top bar's one waits until that scrolls away. */
+html[data-hero-search='on'] .topbar-add { opacity: 0; visibility: hidden; }
 .topnav { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
 .topnav a:not(.btn) {
   position: relative; padding: 8px 14px; border-radius: var(--r-pill);
