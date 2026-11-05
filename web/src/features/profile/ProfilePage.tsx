@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { Icon } from '../../components/Icon'
-import { Bands, CoverGrid, SeasonBand } from '../../components/SeasonBand'
+import { Headline, Slab, TabBar, TabHead } from '../../components/Wall'
+import { deal } from '../../components/wallLayout'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
 import { api, ApiError } from '../../lib/api'
-import { byRank, SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
+import { byRank, SEASON_LABEL, SEASON_ORDER, STATUS_LABEL, TIERS, useMe } from '../../lib/hooks'
 import type { AnimeBrief, Season, Status } from '../../lib/types'
 import './profile.css'
 
@@ -150,7 +151,7 @@ export function ProfilePage() {
       .map((g) => ({ ...g, items: g.items.sort(byRank) }))
   }, [p, tab, group])
 
-  if (isLoading) return <PageLoading />
+  if (isLoading) return <PageLoading variant="wall" label="Loading this profile" />
   if (error || !p) {
     const missing = error instanceof ApiError && error.status === 404
     return (
@@ -189,10 +190,12 @@ export function ProfilePage() {
   const blocks: Record<string, ReactNode> = {
     favourites: show('favourites') && p.favourites.length > 0 ? (
       <section key="fav" className="prof-sec">
-        <h2 className="display prof-h">{look.fav_title || 'All-time favourites'}</h2>
-        <ol className={`favs favs-${look.fav_layout}`}>
+        <h2 className="sr-only">{look.fav_title || 'All-time favourites'}</h2>
+        <ol className={`wall dealt favs favs-${look.fav_layout}`}>
+          <li className="favs-slab" aria-hidden="true"><Slab season={null} kanji="推し" name={look.fav_title || 'All-time favourites'}
+            sub={`${p.favourites.length} title${p.favourites.length === 1 ? '' : 's'}, in ${p.is_owner ? 'my' : 'their'} order`} /></li>
           {p.favourites.map((f, i) => (
-            <li key={f.id} data-season={f.season ?? undefined}>
+            <li key={f.id} data-season={f.season ?? undefined} style={deal(i + 1)}>
               <span className="favs-n display">{i + 1}</span>
               <Link to={`/anime/${f.id}`} className="tile">
                 <Cover id={f.id} title={f.title} src={f.picture ?? f.thumbnail} color={f.color} score={sc(f.score)} fmt={fmt} />
@@ -223,10 +226,11 @@ export function ProfilePage() {
     ) : null,
     watching: show('watching') && p.watching.length > 0 ? (
       <section key="watching" className="prof-sec">
-        <h2 className="display prof-h">Watching now</h2>
-        <div className="prof-strip">
-          {p.watching.map((a) => (
-            <Link key={a.id} to={`/anime/${a.id}`} className="tile" data-season={a.season ?? undefined}>
+        <h2 className="sr-only">Watching now</h2>
+        <div className="wall dealt">
+          <Slab season={null} kanji="今" name="Watching now" sub={`${p.watching.length} on the go`} />
+          {p.watching.map((a, k) => (
+            <Link key={a.id} to={`/anime/${a.id}`} className="tile" data-season={a.season ?? undefined} style={deal(k + 1)}>
               <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status="watching" />
               <span className="tile-title">{a.title_en ?? a.title}</span>
               {a.progress != null && <span className="tile-sub faint">Episode {a.progress}{a.episodes ? ` of ${a.episodes}` : ''}</span>}
@@ -237,16 +241,21 @@ export function ProfilePage() {
     ) : null,
     hot_takes: show('hot_takes') && scoresOn && p.hot_takes.length > 0 ? (
       <section key="hot" className="prof-sec">
-        <h2 className="display prof-h">Hot takes</h2>
-        <p className="muted prof-sub">Where {p.user.display_name} disagrees with everyone else the most.</p>
-        <ol className="hot">
+        <h2 className="sr-only">Hot takes</h2>
+        {/* Each take is its cover, with the two scores that disagree under it. */}
+        <ol className="wall dealt hot">
+          <li aria-hidden="true"><Slab season={null} kanji="熱" name="Hot takes" sub={`Where ${p.user.display_name} disagrees with everyone else the most`} /></li>
           {p.hot_takes.map((h, i) => (
-            <li key={h.anime.id} data-season={h.anime.season ?? undefined}>
-              <span className="hot-n display">{i + 1}</span>
-              <Link to={`/anime/${h.anime.id}`} className="hot-title">{h.anime.title_en ?? h.anime.title}</Link>
-              <span className="hot-you display">{fmtText(h.you)}</span>
-              <span className="hot-vs faint">everyone {fmtText(h.everyone)}</span>
-              <span className="hot-dir">{h.you > h.everyone ? 'Underrated, apparently' : 'Not buying the hype'}</span>
+            <li key={h.anime.id} data-season={h.anime.season ?? undefined} style={deal(i + 1)}>
+              <Link to={`/anime/${h.anime.id}`} className="tile hot-tile">
+                <Cover id={h.anime.id} title={h.anime.title} src={h.anime.picture ?? h.anime.thumbnail} color={h.anime.color} />
+                <span className="tile-title">{h.anime.title_en ?? h.anime.title}</span>
+              </Link>
+              <p className="hot-scores">
+                <span className="hot-you display">{fmtText(h.you)}</span>
+                <span className="hot-vs faint">everyone {fmtText(h.everyone)}</span>
+              </p>
+              <p className="hot-dir">{h.you > h.everyone ? 'Underrated, apparently' : 'Not buying the hype'}</p>
             </li>
           ))}
         </ol>
@@ -275,11 +284,11 @@ export function ProfilePage() {
     ) : null,
     drops: show('drops') && p.drops.length > 0 ? (
       <section key="drops" className="prof-sec">
-        <h2 className="display prof-h">The drop wall</h2>
-        <p className="muted prof-sub">Started, then stopped. No regrets.</p>
-        <div className="prof-strip drops">
-          {p.drops.map((a) => (
-            <Link key={a.id} to={`/anime/${a.id}`} className="tile">
+        <h2 className="sr-only">The drop wall</h2>
+        <div className="wall dealt drops">
+          <Slab season={null} kanji="切" name="The drop wall" sub="Started, then stopped. No regrets." />
+          {p.drops.map((a, k) => (
+            <Link key={a.id} to={`/anime/${a.id}`} className="tile" style={deal(k + 1)}>
               <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status="dropped" />
               <span className="tile-title">{a.title_en ?? a.title}</span>
               {a.progress != null && a.progress > 0 && <span className="tile-sub faint">Quit at episode {a.progress}</span>}
@@ -301,20 +310,25 @@ export function ProfilePage() {
           )}
         </div>
         {grouped.length === 0 && <p className="muted prof-sub">Nothing here yet.</p>}
-        <Bands>{grouped.map((g) => (
-          <SeasonBand key={g.key} season={g.season} year={g.year} label={g.label} neutral={group !== 'season'}
-            count={`${g.items.length}`} wide={group === 'flat' || g.items.length > 8} n={g.items.length}>
-            <CoverGrid dense>
-              {g.items.map((e) => (
-                <Link key={e.anime.id} to={`/anime/${e.anime.id}`} className="tile" data-season={e.anime.season ?? undefined}>
+        {/* One wall, grouped by season (or score): each group's first cover carries its tab, the rest its rule. */}
+        <div className="wall dealt prof-wall">{grouped.map((g, gi) => {
+          const at = grouped.slice(0, gi).reduce((n, x) => n + x.items.length, 0)
+          return (
+            <Fragment key={g.key}>
+              {group !== 'flat' && <h3 className="sr-only">{g.label ?? (g.season && g.year ? `${SEASON_LABEL[g.season]} ${g.year}` : g.year ?? 'Date unknown')}, {g.items.length}</h3>}
+              {g.items.map((e, j) => (
+                <Link key={e.anime.id} to={`/anime/${e.anime.id}`} className="tile" data-season={e.anime.season ?? undefined} style={deal(at + j)}>
+                  {group !== 'flat' && (j === 0
+                    ? <TabHead season={group === 'season' ? g.season : null} year={g.year} label={g.label} count={g.items.length} end={g.items.length === 1} />
+                    : <TabBar end={j === g.items.length - 1} plain={group === 'season' && !g.season} />)}
                   <Cover id={e.anime.id} title={e.anime.title} src={e.anime.picture ?? e.anime.thumbnail} color={e.anime.color}
                     status={e.status === 'completed' ? undefined : e.status} score={sc(e.score)} fmt={fmt} />
                   <span className="tile-title">{e.anime.title_en ?? e.anime.title}</span>
                 </Link>
               ))}
-            </CoverGrid>
-          </SeasonBand>
-        ))}</Bands>
+            </Fragment>
+          )
+        })}</div>
       </section>
     ) : null,
   }
@@ -351,7 +365,7 @@ export function ProfilePage() {
               <span className="prof-avatar prof-avatar-art" aria-hidden="true"><img src={avatarArt} alt="" referrerPolicy="no-referrer" /></span>
             )}
             <div>
-              <h1 className="display prof-name">{p.user.display_name}</h1>
+              <Headline words={p.user.display_name.split(' ')} className="prof-name" delay={0.05} />
               <p className="prof-handle">@{p.user.username}{meta.map((m) => <span key={m}> · {m}</span>)} · on Konomi since {p.user.since}</p>
             </div>
           </div>

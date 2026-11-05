@@ -29,10 +29,12 @@ export function Slab({ season, year, name, kanji, sub, to, i = 0, className = ''
   children?: ReactNode
 }) {
   const glyph = kanji ?? (season ? SEASON_KANJI[season] : null)
+  // A long word ("favourites") must fit the slab's width without breaking mid-word.
+  const long = typeof name === 'string' && Math.max(...name.split(' ').map((w) => w.length)) > 8
   const body = (
     <span className="slab-in">
       {glyph && <span className={`slab-kanji display${glyph.length > 1 ? ' is-pair' : ''}`} aria-hidden="true">{glyph}</span>}
-      <span className="slab-name display">
+      <span className={`slab-name display${long ? ' is-long' : ''}`}>
         {name ?? (season ? <>{SEASON_LABEL[season]}<br />{year}</> : year ?? 'Date unknown')}
       </span>
       {sub && <span className="slab-sub">{sub}</span>}

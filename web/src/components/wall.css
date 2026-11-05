@@ -21,9 +21,10 @@
 a.slab { transition: filter 0.2s, translate 0.3s var(--ease-out); }
 a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 .slab-in { display: flex; flex-direction: column; height: 100%; padding: 9cqi 9cqi 10cqi; }
-.slab-kanji { font-size: 58cqi; line-height: 1; margin: -4cqi 0 auto -3cqi; opacity: 0.9; }
+.slab-kanji { font-size: 52cqi; line-height: 1; margin: -4cqi 0 auto -3cqi; opacity: 0.9; }
 .slab-kanji.is-pair { font-size: 38cqi; margin-top: 0; }
-.slab-name { font-size: max(12px, 14cqi); line-height: 1.04; overflow-wrap: anywhere; }
+.slab-name { font-size: max(12px, 14cqi); line-height: 1.04; overflow-wrap: break-word; }
+.slab-name.is-long { font-size: max(11px, 10.5cqi); }
 .slab-sub {
   margin-top: 5cqi; font-size: max(11px, 9.5cqi); font-weight: 700; line-height: 1.25; color: color-mix(in oklab, var(--ink) 82%, transparent);
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
