@@ -100,8 +100,10 @@ function StarCard({ id, at, onChart, score, rec, pinned, onNeighbours }: {
   id: number; at: { x: number; y: number }; onChart: boolean; score: number | null; rec: boolean
   pinned?: boolean; onNeighbours?: () => void
 }) {
-  const { data } = useQuery(animeQuery(id))
+  // Moving to the next star keeps the last card up (dimmed) until the new title arrives: no blink in between.
+  const { data, isPlaceholderData } = useQuery({ ...animeQuery(id), placeholderData: (prev) => prev })
   const ref = useRef<HTMLDivElement>(null)
+  const placed = useRef(false)
   useLayoutEffect(() => {
     const el = ref.current, stage = el?.offsetParent as HTMLElement | null
     if (!el || !stage) return
@@ -109,12 +111,15 @@ function StarCard({ id, at, onChart, score, rec, pinned, onNeighbours }: {
     let x = at.x + 14, y = at.y + 14
     if (x + w > W - m) x = at.x - 14 - w
     if (y + h > H - m) y = at.y - 14 - h
+    // The first placement is instant; after that the card glides from star to star.
+    if (!placed.current) el.style.transition = 'none'
     el.style.left = `${Math.max(m, Math.min(x, W - w - m))}px`
     el.style.top = `${Math.max(m, Math.min(y, H - h - m))}px`
+    if (!placed.current) { void el.offsetWidth; el.style.transition = ''; placed.current = true }
   })
   if (!data) return null
   return (
-    <div ref={ref} className={`g-hover${pinned ? ' is-pinned' : ''}`} role={pinned ? 'dialog' : undefined}
+    <div ref={ref} className={`g-hover${pinned ? ' is-pinned' : ''}${isPlaceholderData ? ' is-stale' : ''}`} role={pinned ? 'dialog' : undefined}
       aria-label={pinned ? data.title_en ?? data.title : undefined}>
       <Cover id={data.id} title={data.title} src={data.thumbnail} color={data.color} size="s" />
       <span className="g-hover-text">
@@ -147,6 +152,7 @@ export default function TastePage() {
   const [pinned, setPinned] = useState<{ id: number; at: { x: number; y: number } } | null>(null)
   const stage = useRef<HTMLElement>(null)
   const overlay = useRef<HTMLDivElement>(null)
+  const dock = useRef<HTMLDivElement>(null)
   const inStage = (p: { x: number; y: number }) => {
     const r = stage.current?.getBoundingClientRect()
     return r ? { x: p.x - r.left, y: p.y - r.top } : p
@@ -198,9 +204,9 @@ export default function TastePage() {
   useEffect(() => {
     if (!picked.current || !focus || innerWidth >= 900) return
     picked.current = false
-    const s = stage.current?.getBoundingClientRect(), o = overlay.current?.getBoundingClientRect()
-    if (!s || !o) return
-    const sky = (o.bottom + s.bottom) / 2
+    const d = dock.current?.getBoundingClientRect(), o = overlay.current?.getBoundingClientRect()
+    if (!d || !o) return
+    const sky = (o.bottom + d.top) / 2
     if (sky > innerHeight * 0.7) {
       scrollBy({ top: sky - (innerHeight + 56) / 2, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
     }
@@ -253,30 +259,6 @@ export default function TastePage() {
               {hoods.map((h, i) => <span key={h.label}>{i > 0 && (i === hoods.length - 1 ? ' and ' : ', ')}<strong>{h.label}</strong> ({h.n})</span>)}.
             </p>
           )}
-          {mineTop.length > 0 && (
-            <div className="g-pick">
-              <p className="g-pick-ask">Pick one of yours to see its neighbours:</p>
-              <div className="g-pick-list">
-                {mineTop.map((e) => (
-                  <button key={e.anime_id} className={`chip${focusId === e.anime_id ? ' is-on' : ''}`} aria-pressed={focusId === e.anime_id}
-                    onClick={() => pick(focusId === e.anime_id ? null : e.anime_id)}>
-                    {e.anime.title_en ?? e.anime.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {focusAnime && near.data && (
-            <div className="g-near" key={focusId}>
-              <p>People who loved <strong>{focusAnime.title_en ?? focusAnime.title}</strong> also loved:</p>
-              <ol>
-                {near.data.items.map((a, i) => (
-                  <li key={a.id} style={{ ['--i' as string]: i }}><Link to={`/anime/${a.id}`}>{a.title_en ?? a.title}</Link>{mine.has(a.id) ? <span className="g-near-seen"> · on your chart</span> : null}</li>
-                ))}
-              </ol>
-              <button className="g-more" onClick={() => pick(null)}>Back to your map</button>
-            </div>
-          )}
           {track.data && track.data.n >= 3 && track.data.within1 != null && (
             <p className="g-track">
               Konomi guessed your score within 1 point on <strong>{Math.round(track.data.within1 * 100)}%</strong> of
@@ -284,12 +266,49 @@ export default function TastePage() {
             </p>
           )}
         </div>
-        {card && <StarCard key={card.id} id={card.id} at={card.at} onChart={mine.has(card.id)} score={mine.get(card.id) ?? null}
+        {/* The picks live in a dock along the foot of the stage, so the sky beside the text stays clear for the
+            stars and the framed title. */}
+        <div className="g-dock page" ref={dock}>
+          {focusAnime && near.data && (
+            <div className="g-near" key={focusId}>
+              <p className="g-near-head">
+                <span>People who loved <strong>{focusAnime.title_en ?? focusAnime.title}</strong> also loved</span>
+                <button className="g-more" onClick={() => pick(null)}>Back to your map</button>
+              </p>
+              <ol className="g-strip">
+                {near.data.items.map((a, i) => (
+                  <li key={a.id} style={{ ['--i' as string]: i }}>
+                    <Link to={`/anime/${a.id}`} className="g-near-item">
+                      <Cover id={a.id} title={a.title} src={a.thumbnail} color={a.color} size="xs" />
+                      <span><strong>{a.title_en ?? a.title}</strong>{mine.has(a.id) && <small>On your chart</small>}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          <div className="g-dock-foot">
+            {mineTop.length > 0 && (
+              <div className="g-pick">
+                <p className="g-pick-ask">Pick one of yours to see its neighbours</p>
+                <div className="g-strip">
+                  {mineTop.map((e) => (
+                    <button key={e.anime_id} className={`chip${focusId === e.anime_id ? ' is-on' : ''}`} aria-pressed={focusId === e.anime_id}
+                      onClick={() => pick(focusId === e.anime_id ? null : e.anime_id)}>
+                      {e.anime.title_en ?? e.anime.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className={`g-hint faint${nudge ? ' is-nudge' : ''}`}>
+              <span className="g-hint-mouse">Drag to turn · pinch or Ctrl + scroll to zoom · click a star</span>
+              <span className="g-hint-touch">Swipe sideways to turn · pinch to zoom · tap a star</span>
+            </p>
+          </div>
+        </div>
+        {card && <StarCard id={card.id} at={card.at} onChart={mine.has(card.id)} score={mine.get(card.id) ?? null}
           rec={recSet.has(card.id)} pinned={!!pinned} onNeighbours={() => pick(card.id)} />}
-        <p className={`g-hint faint${nudge ? ' is-nudge' : ''}`}>
-          <span className="g-hint-mouse">Drag to turn · pinch or Ctrl + scroll to zoom · click a star</span>
-          <span className="g-hint-touch">Swipe sideways to turn · pinch to zoom · tap a star</span>
-        </p>
       </section>
 
       <div className="page taste-body">

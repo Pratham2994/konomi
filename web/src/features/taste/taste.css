@@ -1,7 +1,7 @@
 .g-stage {
   /* At least a screen tall, and taller when the text column needs it (a picked title's neighbours), so nothing is cut. */
   position: relative; min-height: max(520px, min(86dvh, 1000px)); overflow: hidden; padding-bottom: var(--s5);
-  background: var(--ink);
+  background: var(--ink); display: flex; flex-direction: column;
 }
 /* The stars swirl into place in the shader; the canvas itself only fades up. */
 .g-canvas { position: absolute; inset: 0; animation: g-in 0.8s ease-out both; }
@@ -17,7 +17,9 @@
 /* One finger swiping up or down scrolls the page past the galaxy (it fills a phone's screen); sideways turns it,
    two fingers zoom. !important beats the "none" the orbit controls set inline. */
 .g-stage canvas { touch-action: pan-y !important; }
-.g-overlay { position: relative; z-index: 2; pointer-events: none; max-width: 720px; margin: 0; padding-top: var(--s6); }
+.g-overlay { position: relative; z-index: 2; pointer-events: none; padding-top: var(--s6); }
+/* Beats .page (which may load later): the text sits at the left, and the column spans the stage. */
+.g-stage .g-overlay { margin: 0; max-width: none; padding-bottom: var(--s4); }
 .g-title { font-size: clamp(40px, 7vw, 96px); line-height: 1; }
 .g-lead { margin-top: var(--s3); color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 3px var(--ink), 0 0 18px var(--ink); }
 .g-key { font-weight: 700; }
@@ -25,7 +27,6 @@
 .g-key-rec { color: var(--season); }
 .g-track { margin-top: var(--s3); font-size: 15px; }
 .g-track strong { color: var(--season); font-family: var(--display); font-weight: 400; font-size: 20px; }
-.g-hint { position: absolute; z-index: 2; right: var(--gutter); bottom: var(--s4); font-size: 12px; pointer-events: none; transition: color 0.3s; }
 .g-hint.is-nudge { color: var(--paper); }
 .g-hint-touch { display: none; }
 @media (hover: none) { .g-hint-mouse { display: none; } .g-hint-touch { display: inline; } }
@@ -41,7 +42,10 @@
   gap: 10px; pointer-events: none; padding: 8px 12px 8px 8px; border-radius: 14px; background: var(--ink-2);
   border: 1px solid var(--line); box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.9); width: max-content;
   max-width: min(300px, calc(100% - 16px)); animation: g-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Glides calmly from star to star; dims while the next title loads. */
+  transition: left 0.16s cubic-bezier(0.16, 1, 0.3, 1), top 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s;
 }
+.g-hover.is-stale { opacity: 0.6; }
 @keyframes g-pop { from { opacity: 0; scale: 0.96; } }
 .g-hover-text { display: grid; font-size: 13px; line-height: 1.3; }
 .g-hover-note { margin-top: 2px; color: var(--paper-2); font-weight: 700; font-size: 12px; }
@@ -108,8 +112,8 @@
 @media (max-width: 640px) {
   .g-label { font-size: 11px; padding: 2px 8px; white-space: nowrap; }
   .g-overlay { background: linear-gradient(to bottom, rgb(13 12 18 / 0.88) 70%, transparent); padding-bottom: var(--s5); }
-  /* The text fills a phone's first screen: open sky below it, where a picked title and its neighbours are shown. */
-  .g-stage { padding-bottom: min(110vw, 62dvh); }
+  /* Open sky between the text and the dock, where a picked title and its neighbours are shown. */
+  .g-stage .g-overlay { margin-bottom: min(100vw, 56dvh); padding-bottom: var(--s5); }
   .g-name { max-width: 62vw; overflow: hidden; text-overflow: ellipsis; }
 }
 .g-hoods { margin-top: var(--s3); font-size: 15px; color: var(--paper-2); max-width: 52ch; text-shadow: 0 1px 3px var(--ink), 0 0 18px var(--ink); }
@@ -134,19 +138,49 @@
 /* With a title picked, the neighbourhoods step back so its names read first. */
 .g-tag-cluster { transition: opacity 0.4s; }
 .g-tags.is-focused .g-tag-cluster { opacity: 0.35; }
-.g-pick { margin-top: var(--s4); pointer-events: auto; max-width: 560px; }
-.g-pick-ask { font-size: 14px; color: var(--paper-2); margin-bottom: 6px; text-shadow: 0 1px 3px var(--ink); }
-.g-pick-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.g-pick-list .chip { background: rgb(13 12 18 / 0.75); }
-.g-pick-list .chip.is-on { background: var(--season); color: var(--ink); border-color: var(--season); }
-.g-near { margin-top: var(--s3); pointer-events: auto; max-width: 460px; padding: var(--s3) var(--s4); border-radius: var(--r-panel);
-  background: rgb(13 12 18 / 0.85); border: 1px solid var(--line); font-size: 14px; }
-.g-near { animation: g-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* The dock: picks along the foot of the stage, over a soft fade, so the sky beside the text stays open. Only its
+   controls take the pointer; the stars behind the fade can still be turned. */
+.g-dock {
+  position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3);
+  width: 100%; pointer-events: none;
+}
+/* Beats .page: pushed to the foot of the stage, full width, no page padding below. */
+.g-stage .g-dock { margin: auto 0 0; padding: var(--s6) var(--gutter) 0; max-width: none; }
+.g-dock::before {
+  content: ''; position: absolute; z-index: -1; left: 0; right: 0; bottom: calc(-1 * var(--s5)); top: 0; pointer-events: none;
+  background: linear-gradient(to top, rgb(13 12 18 / 0.92) 35%, rgb(13 12 18 / 0.6) 70%, transparent);
+}
+.g-dock a, .g-dock button, .g-strip { pointer-events: auto; }
+.g-dock-foot { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s2) var(--s5); }
+.g-pick { flex: 1 1 520px; min-width: 0; }
+.g-pick-ask { font-size: 14px; color: var(--paper-2); margin-bottom: 8px; text-shadow: 0 1px 3px var(--ink); }
+.g-hint { margin-left: auto; font-size: 12px; pointer-events: none; transition: color 0.3s; }
+@media (max-width: 640px) { .g-stage .g-dock { padding-top: var(--s5); } .g-hint { margin-left: 0; } }
+/* A row of picks: wraps on wide screens, one swipeable line on phones. */
+.g-strip { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.g-strip .chip { background: rgb(13 12 18 / 0.75); }
+.g-strip .chip.is-on { background: var(--season); color: var(--ink); border-color: var(--season); }
+@media (max-width: 700px) {
+  .g-strip {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
+    margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter);
+    mask-image: linear-gradient(to right, transparent, #000 var(--gutter), #000 calc(100% - var(--gutter)), transparent);
+  }
+  .g-strip::-webkit-scrollbar { display: none; }
+  .g-strip > * { flex: none; }
+}
+.g-near { font-size: 14px; animation: g-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.g-near-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s4); margin-bottom: 8px; color: var(--paper-2); text-shadow: 0 1px 3px var(--ink); }
+.g-near-head strong { color: var(--paper); }
+.g-near-head .g-more { font-size: 13px; padding: 2px 0; }
 .g-near li { animation: g-rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.15s + var(--i, 0) * 0.05s); }
 @keyframes g-rise { from { opacity: 0; translate: 0 6px; } }
 @media (prefers-reduced-motion: reduce) { .g-label, .g-name, .g-near, .g-near li, .g-hover { animation: none; } }
-.g-near ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 2px; }
-.g-near .g-more { margin-top: 6px; font-size: 13px; }
-.g-near a { font-weight: 700; text-decoration: none; }
-.g-near a:hover { color: var(--season); }
-.g-near-seen { color: var(--paper-3); font-size: 12px; }
+.g-near-item {
+  display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 10px;
+  background: rgb(13 12 18 / 0.8); border: 1px solid var(--line); text-decoration: none; transition: border-color 0.2s, translate 0.2s;
+}
+.g-near-item:hover { border-color: var(--season); translate: 0 -2px; }
+.g-near-item > span { display: grid; max-width: 18ch; font-size: 13px; line-height: 1.25; }
+.g-near-item strong { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.g-near-item small { color: var(--paper-3); font-size: 11px; font-weight: 700; }

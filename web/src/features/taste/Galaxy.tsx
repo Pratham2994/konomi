@@ -1,5 +1,5 @@
 import { OrbitControls } from '@react-three/drei'
-import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
@@ -69,9 +69,10 @@ const frag = /* glsl */ `
 /** A steady 0-1 number per title, so a star twinkles and arrives the same way on every visit. */
 const seedOf = (id: number) => { const h = Math.sin(id * 12.9898) * 43758.5453; return h - Math.floor(h) }
 
-function Stars({ points, mine, recs, accent, clock, onHover, onPick }: {
+function Stars({ points, mine, recs, accent, clock, onHover, onPick, onMiss }: {
   points: Point[]; mine: Map<number, number | null>; recs: Set<number>; accent: string; clock: React.RefObject<Clock>
-  onHover: (id: number | null, e?: { x: number; y: number }) => void; onPick: (id: number, touch?: { x: number; y: number }) => void
+  onHover: (id: number | null, at?: { x: number; y: number }) => void; onPick: (id: number, touch?: { x: number; y: number }) => void
+  onMiss: () => void
 }) {
   const mat = useRef<THREE.ShaderMaterial>(null)
   const geo = useMemo(() => {
@@ -111,29 +112,127 @@ function Stars({ points, mine, recs, accent, clock, onHover, onPick }: {
 
   const uniforms = useMemo(() => ({ uTime: { value: 0 }, uIntro: { value: 0 }, uPx: { value: Math.min(window.devicePixelRatio, 2) } }), [])
 
-  function idx(e: ThreeEvent<PointerEvent | MouseEvent>) {
-    return e.index != null ? points[e.index]?.[0] ?? null : null
+  /*
+   * Picking happens on screen, from where each star is drawn and how big it is drawn. Three's ray picking used a
+   * fixed 3D radius and took the star nearest the camera inside it: up close that radius reached far past the
+   * cursor (a star up and to the left won), and it ignored that rated and pulsing stars are drawn bigger.
+   */
+  const { camera, gl } = useThree()
+  const m = useMemo(() => new THREE.Matrix4(), [])
+  const prev = useMemo(() => new THREE.Matrix4(), [])
+  /** Where star i is drawn, in client pixels, and its depth. Uses the matrix last set in `m`. */
+  const drawnAt = (i: number, r: DOMRect) => {
+    const e = m.elements, pos = geo.attributes.position.array
+    const px = pos[i * 3], py = pos[i * 3 + 1], pz = pos[i * 3 + 2]
+    const w = e[3] * px + e[7] * py + e[11] * pz + e[15]
+    return {
+      x: r.left + ((e[0] * px + e[4] * py + e[8] * pz + e[12]) / w + 1) * 0.5 * r.width,
+      y: r.top + (1 - (e[1] * px + e[5] * py + e[9] * pz + e[13]) / w) * 0.5 * r.height, w,
+    }
   }
-  // A finger has no hover: a tap shows the title's card instead of leaving the page at once.
-  const touch = useRef(false)
+  /** The star drawn under a client point, or -1. `keep` (the star already picked) holds on until another is clearly closer. */
+  const starAt = (cx: number, cy: number, reach: number, keep: number) => {
+    const r = gl.domElement.getBoundingClientRect()
+    const x = cx - r.left, y = cy - r.top
+    const e = m.elements, pos = geo.attributes.position.array, size = geo.attributes.aSize.array, kind = geo.attributes.aKind.array
+    let best = -1, bestScore = 1, kept = Infinity
+    for (let i = 0; i < points.length; i++) {
+      const px = pos[i * 3], py = pos[i * 3 + 1], pz = pos[i * 3 + 2]
+      const w = e[3] * px + e[7] * py + e[11] * pz + e[15]
+      // Behind the camera, or so close the shader has faded it out.
+      if (w < 0.6) continue
+      const dx = ((e[0] * px + e[4] * py + e[8] * pz + e[12]) / w + 1) * 0.5 * r.width - x
+      if (dx > 40 || dx < -40) continue
+      const dy = (1 - (e[1] * px + e[5] * py + e[9] * pz + e[13]) / w) * 0.5 * r.height - y
+      if (dy > 40 || dy < -40) continue
+      // Drawn size in CSS pixels, as the shader draws it (a pulsing star at its largest), with the same caps.
+      const k = kind[i]
+      const drawn = Math.min((size[i] * (k === 1 ? 1.35 : 1) * 14) / w, k === 2 ? 34 : 18)
+      const score = Math.hypot(dx, dy) / Math.max(reach, drawn * 0.5)
+      if (i === keep) kept = score
+      if (score < bestScore) { bestScore = score; best = i }
+    }
+    // Moving between close stars never flickers: the picked one stays until another is clearly nearer the pointer.
+    if (keep >= 0 && kept < 1.4 && kept - bestScore < 0.35) best = keep
+    return best
+  }
+  const ready = () => clock.current.still || clock.current.t > 2.3
+  // The mouse over the canvas (none while a button is held: that is a drag), and the star it is on.
+  const ptr = useRef<{ x: number; y: number } | null>(null)
+  const hov = useRef(-1)
+  const shown = useRef({ x: NaN, y: NaN })
+  const dirty = useRef(false)
+  const cb = useRef({ onHover, onPick, onMiss })
+  useEffect(() => { cb.current = { onHover, onPick, onMiss } }, [onHover, onPick, onMiss])
+  useEffect(() => { hov.current = -1; dirty.current = true }, [geo])
+
+  const pressed = useRef<{ x: number; y: number; touch: boolean } | null>(null)
+  // Re-bound each render so the handlers see the current stars; the press itself lives in a ref.
+  useEffect(() => {
+    const el = gl.domElement
+    const clear = () => { if (hov.current >= 0) { hov.current = -1; cb.current.onHover(null) } }
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
+      ptr.current = e.buttons ? null : { x: e.clientX, y: e.clientY }
+      dirty.current = true
+      if (e.buttons) clear()
+    }
+    const leave = () => { ptr.current = null; clear() }
+    const press = (e: PointerEvent) => { pressed.current = { x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse' } }
+    // A drag to turn the galaxy ends with a release over some star: only a still press counts as a click. One
+    // click is one title. A mouse click takes the star the ring is on; a finger takes the star under it, with a
+    // wider reach, and gets the title's card instead of leaving the page at once.
+    const release = (e: PointerEvent) => {
+      const d = pressed.current
+      pressed.current = null
+      if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return
+      if (!ready()) return
+      m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+      const i = !d.touch && hov.current >= 0 ? hov.current : starAt(e.clientX, e.clientY, d.touch ? 18 : 7, -1)
+      if (i < 0) { cb.current.onMiss(); return }
+      const at = drawnAt(i, el.getBoundingClientRect())
+      cb.current.onPick(points[i][0], d.touch ? { x: at.x, y: at.y } : undefined)
+    }
+    const cancel = () => { pressed.current = null }
+    // The page scrolled under a still mouse: the stars moved on screen, so look again.
+    const scrolled = () => { dirty.current = true }
+    addEventListener('scroll', scrolled, { passive: true })
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerleave', leave)
+    el.addEventListener('pointerdown', press)
+    el.addEventListener('pointerup', release)
+    el.addEventListener('pointercancel', cancel)
+    return () => {
+      removeEventListener('scroll', scrolled)
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerleave', leave)
+      el.removeEventListener('pointerdown', press)
+      el.removeEventListener('pointerup', release)
+      el.removeEventListener('pointercancel', cancel)
+    }
+  })
+
+  // Hover is found once per frame, and only when the mouse or the camera moved. The card is pinned to the star,
+  // not the cursor, so it sits still while you are on a star and follows it when the camera moves.
+  useFrame(() => {
+    const p = ptr.current
+    if (!p || !ready()) return
+    camera.updateMatrixWorld()
+    m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    if (!dirty.current && m.equals(prev)) return
+    prev.copy(m)
+    dirty.current = false
+    const i = starAt(p.x, p.y, 7, hov.current)
+    if (i < 0) { if (hov.current >= 0) { hov.current = -1; onHover(null) } return }
+    const at = drawnAt(i, gl.domElement.getBoundingClientRect())
+    if (i === hov.current && Math.abs(at.x - shown.current.x) < 0.5 && Math.abs(at.y - shown.current.y) < 0.5) return
+    hov.current = i
+    shown.current = { x: at.x, y: at.y }
+    onHover(points[i][0], { x: at.x, y: at.y })
+  })
 
   return (
-    <points geometry={geo}
-      onPointerDown={(e) => { touch.current = e.nativeEvent.pointerType !== 'mouse' }}
-      onPointerMove={(e) => {
-        e.stopPropagation()
-        if (e.nativeEvent.pointerType === 'mouse') onHover(idx(e), { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY })
-      }}
-      onPointerOut={() => onHover(null)}
-      // A drag to turn the galaxy ends with a release over some star: only a still press counts as a click.
-      // One click is one title: the pointer hits many overlapping stars, and each would otherwise fire its own
-      // click (and push its own page, so Back walked through dozens of titles). The first hit is the nearest star.
-      onClick={(e) => {
-        e.stopPropagation()
-        if (e.delta > 6) return
-        const id = idx(e)
-        if (id != null) onPick(id, touch.current ? { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY } : undefined)
-      }}>
+    <points geometry={geo} raycast={() => null}>
       <shaderMaterial ref={mat} vertexShader={vert} fragmentShader={frag} uniforms={uniforms}
         transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
@@ -350,7 +449,7 @@ function FlyTo({ to, spread, clock, held }: {
     size: { width: number; height: number }; gl: THREE.WebGLRenderer
   }
   const t = useRef(0)
-  const from = useRef<{ pos: THREE.Vector3; target: THREE.Vector3; textEnd: number; dur: number; lift: number; soft: boolean } | null>(null)
+  const from = useRef<{ pos: THREE.Vector3; target: THREE.Vector3; top: number; bottom: number; dur: number; lift: number; soft: boolean } | null>(null)
   const back = useMemo(() => new THREE.Vector3(), [])
   const soft = useRef(false)
   useEffect(() => {
@@ -364,24 +463,29 @@ function FlyTo({ to, spread, clock, held }: {
     if (!to || !controls || t.current >= 1) return
     if (held.current) { t.current = 1; return }
     if (!clock.current.still && clock.current.t < 0.7) return
-    // A picked title is framed so it and all its neighbours fit; your whole area is shown wider.
-    const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
-    const d = spread != null ? THREE.MathUtils.clamp((spread * 1.35) / (tan * Math.min(1, camera.aspect)), 2.6, 12) : 7.5
-    // Shift by a share of the screen, not a fixed distance, so close up and far away both land in the free space:
-    // right of the text on wide screens, below it on narrow ones.
-    const wide = size.width >= 900
+    const W = size.width, H = size.height
+    const wide = W >= 900
     if (!from.current) {
-      // Narrow screens stack the text above the stars: measure where it ends, so the stars below it are the stage.
+      // The free sky: right of the text on wide screens, below it on narrow ones, and above the dock of picks at
+      // the foot of the stage. Measured once per flight.
+      const c = gl.domElement.getBoundingClientRect()
       const text = document.querySelector('.g-overlay')?.getBoundingClientRect()
-      const textEnd = text ? text.bottom - gl.domElement.getBoundingClientRect().top : 0
-      from.current = { pos: camera.position.clone(), target: controls.target.clone(), textEnd, dur: 1.6, lift: 0, soft: soft.current }
+      const dock = document.querySelector('.g-dock')?.getBoundingClientRect()
+      const top = wide || !text ? 0 : THREE.MathUtils.clamp(text.bottom - c.top, 0, H * 0.85)
+      const bottom = dock ? THREE.MathUtils.clamp(dock.top - c.top, top + H * 0.15, H) : H
+      from.current = { pos: camera.position.clone(), target: controls.target.clone(), top, bottom, dur: 1.6, lift: 0, soft: soft.current }
     }
     const f = from.current
-    // Narrow: a little left of centre, since title names sit to the right of their stars.
-    const freeX = wide ? (Math.min(TEXT_W, size.width * 0.45) / 2) / (size.width / 2) : -0.4
-    const below = THREE.MathUtils.clamp(f.textEnd, 0, size.height * 0.85)
-    const freeY = wide ? 0 : (below / 2) / (size.height / 2)
-    const aim = to.clone().add(new THREE.Vector3(-freeX * d * tan * camera.aspect, freeY * d * tan, 0))
+    // A picked title is framed so it and all its neighbours fit in the free sky; your whole area is shown wider.
+    const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    const left = wide ? Math.min(TEXT_W, W * 0.45) : 0
+    const fit = Math.min((f.bottom - f.top) / H, ((W - left) / W) * camera.aspect)
+    const d = spread != null ? THREE.MathUtils.clamp((spread * 1.35) / (tan * fit), 2.6, 12) : 7.5
+    // Shift by a share of the screen, not a fixed distance, so close up and far away both land in the middle of
+    // the free sky. Narrow: a little left of centre, since title names sit to the right of their stars.
+    const freeX = wide ? left / W : -0.4
+    const freeY = (H - f.top - f.bottom) / H
+    const aim = to.clone().add(new THREE.Vector3(-freeX * d * tan * camera.aspect, -freeY * d * tan, 0))
     const goal = aim.clone().add(new THREE.Vector3(0, 0.19 * d, d))
     if (t.current === 0) {
       // Long hops take a little longer and swing out a little further; short ones stay quick.
@@ -451,7 +555,6 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
   /** A plain scroll over the galaxy, which scrolls the page: the hint says how to zoom. */
   onNudge: () => void
 }) {
-  const [moving, setMoving] = useState(false)
   const still = useMemo(() => matchMedia('(prefers-reduced-motion: reduce)').matches, [])
   const clock = useRef<Clock>({ t: still ? 99 : 0, still })
   // Set once you turn or zoom the galaxy yourself, so a flight in progress gives way.
@@ -528,16 +631,15 @@ export function GalaxyCanvas({ points, clusters, mine, recs, centroid, accent, n
   return (
     <div className="g-3d" ref={box}>
     <Canvas camera={{ position: [0, 1.5, 9], fov: 55, near: 0.1, far: 100 }} dpr={[1, 2]} frameloop={seen ? 'always' : 'never'}
-      raycaster={{ params: { Points: { threshold: 0.09 } } } as never} gl={{ antialias: false, alpha: true }}
-      onPointerMissed={() => { onHover(null); onMiss() }}>
+      gl={{ antialias: false, alpha: true }}>
       <Tick clock={clock} />
-      <Stars points={points} mine={mine} recs={recs} accent={accent} clock={clock} onHover={moving ? () => undefined : onHover} onPick={onPick} />
+      <Stars points={points} mine={mine} recs={recs} accent={accent} clock={clock} onHover={onHover} onPick={onPick} onMiss={onMiss} />
       {centroid && <Glow at={centroid} color={accent} />}
       {focus ? <Spokes byId={byId} focus={focus} color={accent} clock={clock} /> : <Constellation byId={byId} top={top} clock={clock} />}
       <Ring at={ring} />
       <Projector tags={tags} els={els} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} autoRotate={!home && !still} autoRotateSpeed={0.35}
-        minDistance={2.5} maxDistance={22} onStart={() => setMoving(true)} onEnd={() => setMoving(false)} />
+        minDistance={2.5} maxDistance={22} />
       <FlyTo to={home} spread={spread} clock={clock} held={held} />
     </Canvas>
     <div className={`g-tags${focus ? ' is-focused' : ''}`} aria-hidden="true">
