@@ -391,6 +391,9 @@ interface Tag {
  * Labels are placed in order (neighbourhoods, then the picked title, then its neighbours); one that would cover a
  * label already placed steps up or down until it is clear.
  */
+/** How close a label may come to the stage's edge. */
+const EDGE = 8
+
 function Projector({ tags, els }: { tags: Tag[]; els: React.MutableRefObject<Map<string, HTMLSpanElement>> }) {
   const { camera, size } = useThree()
   const v = useMemo(() => new THREE.Vector3(), [])
@@ -412,13 +415,19 @@ function Projector({ tags, els }: { tags: Tag[]; els: React.MutableRefObject<Map
         b = { w: r.offsetWidth, h: r.offsetHeight }
         if (b.w) boxes.current.set(t.key, b)
       }
-      // Where the label sits around its point: centred for neighbourhoods, to the right for titles.
-      const ox = t.kind === 'cluster' ? -b.w / 2 : 10, oy = -b.h / 2
+      // Where the label sits around its point: centred for neighbourhoods, to the right for titles (to the left
+      // near the right edge). Then it is nudged inside the stage, so no label is ever cut at the screen edge.
+      const left = t.kind !== 'cluster' && x + 10 + b.w > size.width - EDGE
+      if ((el.dataset.side === 'left') !== left) el.dataset.side = left ? 'left' : ''
+      const ox = t.kind === 'cluster' ? -b.w / 2 : left ? -10 - b.w : 10, oy = -b.h / 2
+      const over = x + ox + b.w - (size.width - EDGE)
+      const sx = x + ox < EDGE ? EDGE - (x + ox) : over > 0 ? -over : 0
+      const xs = x + sx
       // Try the point itself, then one step down, one up, two down...; when all are taken, the least covered one.
       const covered = (dy: number) => {
         const y0 = y + oy + dy
         let a = 0
-        for (const p of placed) a += Math.max(0, Math.min(x + ox + b.w, p.x1) - Math.max(x + ox, p.x0)) * Math.max(0, Math.min(y0 + b.h, p.y1) - Math.max(y0, p.y0))
+        for (const p of placed) a += Math.max(0, Math.min(xs + ox + b.w, p.x1) - Math.max(xs + ox, p.x0)) * Math.max(0, Math.min(y0 + b.h, p.y1) - Math.max(y0, p.y0))
         return a
       }
       let dy = 0, least = covered(0)
@@ -427,8 +436,8 @@ function Projector({ tags, els }: { tags: Tag[]; els: React.MutableRefObject<Map
         const c = covered(step)
         if (c < least) { least = c; dy = step }
       }
-      placed.push({ x0: x + ox, y0: y + oy + dy, x1: x + ox + b.w, y1: y + oy + dy + b.h })
-      el.style.transform = `translate(${x}px, ${y + dy}px)`
+      placed.push({ x0: xs + ox, y0: y + oy + dy, x1: xs + ox + b.w, y1: y + oy + dy + b.h })
+      el.style.transform = `translate(${xs}px, ${y + dy}px)`
     }
   })
   return null

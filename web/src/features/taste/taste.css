@@ -128,6 +128,7 @@
 .g-tag.is-focus { z-index: 1; }
 .g-tag.is-focus .g-name { background: #ff7340; border-color: #ff7340; color: var(--ink); }
 .g-tag > .g-label { transform: translate(-50%, -50%); }
+.g-tag[data-side='left'] > .g-name { transform: translate(calc(-100% - 10px), -50%); }
 .g-label-ex { display: block; margin-top: 1px; font-size: 11px; font-weight: 500; color: var(--paper-2); max-width: 36ch; overflow: hidden; text-overflow: ellipsis; }
 .g-tag > .g-label { text-align: center; border-radius: 12px; }
 /* How many of your titles live in the neighbourhood. */
