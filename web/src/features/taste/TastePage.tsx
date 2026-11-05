@@ -193,15 +193,24 @@ export default function TastePage() {
     queryFn: () => api<{ items: AnimeBrief[] }>(`/api/taste/similar/${focusId}?k=6`),
   })
   const mineTop = useMemo(() => entries.filter((e) => e.score != null).sort(byRank).slice(0, 10), [entries])
-  const focus = useMemo(() => (focusId != null && near.data ? { id: focusId, near: near.data.items.map((a) => a.id) } : null), [focusId, near.data])
   const focused = entries.find((e) => e.anime_id === focusId)
   const focusBrief = useQuery({ ...animeQuery(focusId ?? 0), enabled: focusId != null && !focused })
   const focusAnime = focused?.anime ?? (focusId != null ? focusBrief.data : undefined)
-  // Your three best-rated titles get name tags on the map.
-  const named = useMemo(() => (focus && focusAnime && near.data
-    ? [{ id: focus.id, label: focusAnime.title_en ?? focusAnime.title }, ...near.data.items.map((a) => ({ id: a.id, label: a.title_en ?? a.title }))]
+  // What the map shows. It changes only once the next pick's neighbours and name are in: until then it stays on
+  // the last view, so a flight never swings back to your whole area halfway (that read as zoom out, cut, zoom in).
+  const [focus, setFocus] = useState<{ id: number; near: number[]; items: AnimeBrief[]; label: string } | null>(null)
+  useEffect(() => {
+    if (focusId == null) { setFocus(null); return }
+    if (!near.data || (!focusAnime && !focusBrief.isError)) return
+    const items = near.data.items
+    const label = focusAnime ? focusAnime.title_en ?? focusAnime.title : ''
+    setFocus((f) => (f && f.id === focusId && f.items === items ? f : { id: focusId, near: items.map((a) => a.id), items, label }))
+  }, [focusId, near.data, focusAnime, focusBrief.isError])
+  // Your three best-rated titles get name tags on the map; with a title picked, it and its neighbours do.
+  const named = useMemo(() => (focus
+    ? [...(focus.label ? [{ id: focus.id, label: focus.label }] : []), ...focus.items.map((a) => ({ id: a.id, label: a.title_en ?? a.title }))]
     : entries.filter((e) => e.score != null).sort(byRank).slice(0, 3)
-      .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title }))), [entries, focus, focusAnime, near.data])
+      .map((e) => ({ id: e.anime_id, label: e.anime.title_en ?? e.anime.title }))), [entries, focus])
   // Phones stack the text over the sky: after a pick, glide down so the picked title (framed below the text) is
   // in view, not left under the fold.
   useEffect(() => {
