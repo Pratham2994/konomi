@@ -172,9 +172,12 @@ export default function TastePage() {
   }, [pinned])
   const galaxy = useQuery(galaxyQuery)
   const me = useQuery({ queryKey: ['taste-me'], queryFn: () => api<{ mine: { id: number; score: number | null }[]; centroid: [number, number, number] | null; recs: number[] }>('/api/taste/me') })
-  const dna = useQuery({ queryKey: ['dna'], queryFn: () => api<{ axes: Axis[] | null; need: number }>('/api/taste/dna') })
-  const net = useQuery({ queryKey: ['network'], queryFn: () => api<{ network: { axes: Axis[]; inputs: NetNode[]; outputs: NetNode[] } | null }>('/api/taste/network') })
-  const track = useQuery({ queryKey: ['track'], queryFn: () => api<{ n: number; within1: number | null; mae: number | null }>('/api/taste/track') })
+  // The sections below the map ask once the map's own data is in: on the one small server they would otherwise
+  // queue in front of it, and the map is what you see first.
+  const later = !me.isPending
+  const dna = useQuery({ queryKey: ['dna'], queryFn: () => api<{ axes: Axis[] | null; need: number }>('/api/taste/dna'), enabled: later })
+  const net = useQuery({ queryKey: ['network'], queryFn: () => api<{ network: { axes: Axis[]; inputs: NetNode[]; outputs: NetNode[] } | null }>('/api/taste/network'), enabled: later })
+  const track = useQuery({ queryKey: ['track'], queryFn: () => api<{ n: number; within1: number | null; mae: number | null }>('/api/taste/track'), enabled: later })
   const recs = useRecs(filter)
 
   const mine = useMemo(() => new Map((me.data?.mine ?? []).map((m) => [m.id, m.score])), [me.data])

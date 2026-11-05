@@ -240,7 +240,7 @@ export function HomePage() {
             const a = snap.anime
             return (
               <VtLink key={a.id} animeId={a.id} className="hung-cell" data-season={a.season ?? undefined} style={deal(k + 1)}>
-                <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} vt
+                <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} vt priority={k < 8}
                   status={e && e.status !== 'completed' ? e.status : undefined} score={e?.score} />
                 <span className="wcap">{a.title_en ?? a.title}</span>
               </VtLink>
@@ -254,7 +254,7 @@ export function HomePage() {
               <button key={a.id} type="button" className="hung-cell" data-season={a.season ?? undefined} style={deal(mineCells + k + 1)}
                 aria-pressed={st === 'completed'} aria-label={`${a.title_en ?? a.title}${st ? ', on your chart' : ''}`}
                 title={a.title_en ?? a.title} onClick={() => toggle(a)}>
-                <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={st} animateMark />
+                <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color} status={st} animateMark priority={mineCells + k < 8} />
                 <span className="wcap" aria-hidden="true">{a.title_en ?? a.title}</span>
               </button>
             )
