@@ -1,5 +1,5 @@
 """repair synopses that lost their first letters in the Kaggle source ('hen Subaru...'): AniList's text for the same
-title, kept only where it is the same synopsis with its opening intact (data/synopsis_repair.json.gz)
+title, found by its AniList or MAL id (repair/synopsis_repair.json.gz, 4,097 titles)
 
 Revision ID: e5f6a7b8c9d0
 Revises: d4e5f6a7b8c9
@@ -16,7 +16,7 @@ down_revision = "d4e5f6a7b8c9"
 branch_labels = None
 depends_on = None
 
-DATA = Path(__file__).resolve().parents[1] / "data" / "synopsis_repair.json.gz"
+DATA = Path(__file__).resolve().parents[1] / "repair" / "synopsis_repair.json.gz"
 
 
 def upgrade() -> None:
