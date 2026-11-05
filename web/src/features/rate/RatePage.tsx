@@ -4,13 +4,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cover } from '../../components/Cover'
 import { preloadCovers } from '../../components/coverCache'
+import { EmptyWall } from '../../components/EmptyWall'
+import { Headline } from '../../components/Wall'
+import { deal } from '../../components/wallLayout'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { PageLoading } from '../../components/PageLoading'
 import { api } from '../../lib/api'
 import { asked } from '../../lib/ask'
 import { listChanged, scoresChanged } from '../../lib/sync'
-import { entryLine, useList } from '../../lib/hooks'
+import { entryLine, SEASON_KANJI, SEASON_LABEL, useList } from '../../lib/hooks'
 import type { AnimeBrief, Entry } from '../../lib/types'
 import { Duel } from './Duel'
 import { Feelings } from './Feelings'
@@ -60,13 +63,14 @@ function RoundSummary({ before, onMore, more }: { before: Map<number, number | n
         {moved.length === 0 ? 'Your chart already agreed with these answers.'
           : `${fresh ? `${fresh} new score${fresh === 1 ? '' : 's'}` : ''}${fresh && moved.length - fresh ? ', ' : ''}${moved.length - fresh ? `${moved.length - fresh} score${moved.length - fresh === 1 ? '' : 's'} moved` : ''}. Comparing older titles with newer ones keeps every score honest.`}
       </p>
+      {/* What moved, as covers with their new score on the obi and where they came from under them. */}
       {moved.length > 0 && (
-        <ul className="rate-moved">
-          {moved.slice(0, 6).map(({ e, was }) => (
-            <li key={e.anime_id}>
-              <Cover id={e.anime_id} title={e.anime.title} src={e.anime.thumbnail} color={e.anime.color} size="xs" />
-              <span className="rate-moved-title">{e.anime.title_en ?? e.anime.title}</span>
-              <span className="rate-moved-n">{was == null ? 'new' : was.toFixed(1)} → <strong className="display">{e.score!.toFixed(1)}</strong></span>
+        <ul className="wall dealt rate-moved">
+          {moved.slice(0, 12).map(({ e, was }, k) => (
+            <li key={e.anime_id} className="tile" data-season={e.anime.season ?? undefined} style={deal(k)}>
+              <Cover id={e.anime_id} title={e.anime.title} src={e.anime.picture ?? e.anime.thumbnail} color={e.anime.color} score={e.score} />
+              <span className="tile-title">{e.anime.title_en ?? e.anime.title}</span>
+              <span className="rate-moved-n">{was == null ? 'New score' : <>was {was.toFixed(1)}, now <strong className="display">{e.score!.toFixed(1)}</strong></>}</span>
             </li>
           ))}
         </ul>
@@ -195,7 +199,7 @@ export function RatePage() {
   return (
     <div className="page ratepage">
       <header className="rate-head">
-        <h1 className="display rate-title">Rate titles</h1>
+        <Headline words={['Rate', 'titles']} accent={1} className="rate-title" />
         <p className="muted">
           {answered > 0 && <><strong className="rate-count">{answered}</strong> answered · </>}
           {data && data.unrated > 0 ? `${data.unrated} watched title${data.unrated === 1 ? '' : 's'} still need a feeling` : 'Every answer sharpens your scores and Konomi’s guesses.'}
@@ -229,21 +233,34 @@ export function RatePage() {
             {isLoading ? <PageLoading /> : summary ? (
               <RoundSummary before={before ?? new Map()} onMore={nextRound} more={roundDone && !!data?.question} />
             ) : !q ? (
-              <div className="rate-done">
-                <h2 className="display">All caught up</h2>
-                <p className="muted">Add more anime, or walk through a few past seasons.</p>
-                <div className="rate-done-actions">
-                  <Link to="/sweep" className="btn btn-primary">Add anime</Link>
-                  <Link to="/taste" className="btn">See your taste</Link>
-                </div>
-              </div>
+              <EmptyWall as="h2" words={['All', 'caught', 'up.']} accent={2}
+                text="Every title on your chart has a feeling. Add more anime, or walk back through a few past seasons."
+                actions={<><Link to="/sweep" className="btn btn-primary">Add anime</Link><Link to="/taste" className="btn">See your taste</Link></>} />
             ) : q.kind === 'tier' ? (
-              <div className="rate-tier">
-                <Link to={`/anime/${q.anime.id}`} className="rate-cover" aria-label={`Open ${q.anime.title_en ?? q.anime.title}`}><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></Link>
+              <div className="rate-tier" data-season={q.anime.season ?? undefined}>
+                <div className="rate-art">
+                  <Link to={`/anime/${q.anime.id}`} className="rate-cover" aria-label={`Open ${q.anime.title_en ?? q.anime.title}`}><Cover id={q.anime.id} title={q.anime.title} src={q.anime.picture ?? q.anime.thumbnail} color={q.anime.color} eager /></Link>
+                  {q.anime.season && q.anime.year && (
+                    <span className="rate-spine" aria-hidden="true">
+                      <span className="display rate-spine-kanji">{SEASON_KANJI[q.anime.season]}</span>
+                      <span className="display rate-spine-text">{SEASON_LABEL[q.anime.season]} {q.anime.year}</span>
+                    </span>
+                  )}
+                </div>
                 <div className="rate-tier-side">
                   <h2 className="display rate-ask">How was <Link to={`/anime/${q.anime.id}`} className="rate-name">{asked(q.anime.title_en ?? q.anime.title)[0]}</Link>{asked(q.anime.title_en ?? q.anime.title)[1]}</h2>
                   <p className="rate-which">{entryLine(q.anime)}</p>
                   <Feelings busy={busy} onPick={(t, between) => tier(q.anime.id, t, between)} keys />
+                  {(data?.queue?.length ?? 0) > 0 && (
+                    <div className="rate-next" aria-label="Up next">
+                      <span className="faint">Up next</span>
+                      <span className="rate-next-covers">
+                        {data!.queue!.slice(0, 5).map((x) => (
+                          <Cover key={x.id} id={x.id} title={x.title} src={x.picture ?? x.thumbnail} color={x.color} size="xs" />
+                        ))}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : q.kind === 'duel' ? (
