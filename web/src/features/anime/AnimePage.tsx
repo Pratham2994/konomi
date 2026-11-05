@@ -2,10 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { BackButton } from '../../components/BackButton'
 import { Cover } from '../../components/Cover'
+import { EmptyWall } from '../../components/EmptyWall'
 import { ScoreRail } from '../../components/ScoreRail'
-import { PageLoading } from '../../components/PageLoading'
+import { Slab } from '../../components/Wall'
+import { deal } from '../../components/wallLayout'
 import { api } from '../../lib/api'
-import { SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSignedIn, useSetStatus } from '../../lib/hooks'
+import { SEASON_KANJI, SEASON_LABEL, STATUS_LABEL, TIERS, useListIndex, useMe, useRemoveWithUndo, useSignedIn, useSetStatus } from '../../lib/hooks'
 import type { AnimeDetail, Status } from '../../lib/types'
 import { HowScoring } from '../rate/HowScoring'
 import { useRater } from '../rate/RaterContext'
@@ -61,14 +63,21 @@ export function AnimePage() {
   const rater = useRater()
   if (error) {
     return (
-      <div className="page prof-private">
-        <h1 className="display">Not in the catalogue</h1>
-        <p className="muted">This title doesn’t exist, or it was removed.</p>
-        <Link to="/" className="btn">Back home</Link>
+      <div className="page anime-missing">
+        <EmptyWall words={['Not', 'in', 'the', 'catalogue.']} accent={3} text="This title doesn’t exist, or it was removed. These ones do."
+          actions={<Link to="/" className="btn">Back home</Link>} />
       </div>
     )
   }
-  if (!a) return <PageLoading />
+  // The spread's places, held while the title loads (a cover morph usually has it ready already).
+  if (!a) {
+    return (
+      <div className="page anime-grid anime-wait" role="status" aria-label="Loading">
+        <div className="anime-art"><span className="ghost-art" /><span className="anime-spine ghost-art" /></div>
+        <div className="anime-main"><span className="anime-ghost-line" /><span className="anime-ghost-line is-short" /></div>
+      </div>
+    )
+  }
 
   const entry = onList.get(a.id)
   const name = a.title_en ?? a.title
@@ -86,12 +95,21 @@ export function AnimePage() {
       <div className="anime-wash" aria-hidden="true" />
       <div className="page anime-grid">
         <div className="anime-back"><BackButton /></div>
-        <div className="anime-cover">
-          <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color}
-            score={entry?.score} size="l" eager vt />
+        {/* A magazine spread: the cover as the page, its season down the spine beside it. */}
+        <div className="anime-art">
+          <div className="anime-cover">
+            <Cover id={a.id} title={a.title} src={a.picture ?? a.thumbnail} color={a.color}
+              status={entry && entry.status !== 'completed' ? entry.status : undefined} score={entry?.score} size="l" eager vt />
+          </div>
+          {a.season && a.year ? (
+            <Link to={`/sweep?year=${a.year}&season=${a.season}`} className="anime-spine" aria-label={`More from ${SEASON_LABEL[a.season]} ${a.year}`}>
+              <span className="anime-spine-kanji display" aria-hidden="true">{SEASON_KANJI[a.season]}</span>
+              <span className="anime-spine-text display">{SEASON_LABEL[a.season]} {a.year}</span>
+            </Link>
+          ) : a.year ? <span className="anime-spine is-plain"><span className="anime-spine-text display">{a.year}</span></span> : null}
         </div>
         <div className="anime-main">
-          <h1 className="display anime-title">{name}</h1>
+          <h1 className={`display anime-title${name.length > 38 ? ' is-long' : ''}`}>{name}</h1>
           {a.title_en && a.title_en !== a.title && <p className="anime-alt">{a.title}</p>}
           <p className="anime-meta">
             {a.season && a.year ? <Link to={`/sweep?year=${a.year}&season=${a.season}`}>{SEASON_LABEL[a.season]} {a.year}</Link> : a.year}
@@ -142,22 +160,25 @@ export function AnimePage() {
             </p>
           )}
 
-          {a.synopsis && <p className="anime-synopsis">{a.synopsis}</p>}
-
-          <dl className="anime-facts">
-            {a.studios.length > 0 && <><dt>Studio</dt><dd>{a.studios.slice(0, 3).join(', ')}</dd></>}
-            {a.genres.length > 0 && <><dt>Genres</dt><dd>{a.genres.join(', ')}</dd></>}
-            {a.score && <><dt>Community</dt><dd>{a.score.toFixed(2)} average across sites</dd></>}
-          </dl>
         </div>
+        {(a.synopsis || a.studios.length > 0 || a.genres.length > 0 || a.score) && (
+          <div className="anime-read">
+            {a.synopsis && <p className="anime-synopsis">{a.synopsis}</p>}
+            <dl className="anime-facts">
+              {a.studios.length > 0 && <><dt>Studio</dt><dd>{a.studios.slice(0, 3).join(', ')}</dd></>}
+              {a.genres.length > 0 && <><dt>Genres</dt><dd>{a.genres.join(', ')}</dd></>}
+              {a.score && <><dt>Community</dt><dd>{a.score.toFixed(2)} average across sites</dd></>}
+            </dl>
+          </div>
+        )}
       </div>
 
       {a.related.length > 0 && (
-        <section className="page anime-related">
-          <h2 className="display">Seasons and related</h2>
-          <div className="grid grid-dense">
-            {a.related.map((r) => (
-              <Link key={r.id} to={`/anime/${r.id}`} className="tile">
+        <section className="page anime-related" aria-label="Seasons and related">
+          <div className="wall dealt">
+            <Slab season={null} kanji="続" name="Same story" sub={`${a.related.length} season${a.related.length === 1 ? '' : 's'}, films and side stories`} />
+            {a.related.map((r, k) => (
+              <Link key={r.id} to={`/anime/${r.id}`} className="tile" style={deal(k + 1)} data-season={r.season ?? undefined}>
                 <Cover id={r.id} title={r.title} src={r.picture ?? r.thumbnail} color={r.color} status={onList.get(r.id)?.status} size="m" />
                 <span className="tile-title">{r.title_en ?? r.title}</span>
                 <span className="tile-sub">{[r.year, TYPE[r.type] ?? r.type].filter(Boolean).join(' · ')}</span>

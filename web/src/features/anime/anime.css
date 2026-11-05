@@ -1,42 +1,84 @@
+/* A title's page is a magazine spread: the cover as the page with its season down the spine, the headline and
+   your score beside it, and the reading (synopsis, facts) in its own column on wide screens. */
 .anime { position: relative; isolation: isolate; }
 .anime-wash {
-  position: absolute; inset: 0 0 auto; height: min(70vh, 640px); z-index: -1;
+  position: absolute; inset: 0 0 auto; height: min(78vh, 760px); z-index: -1;
   background: color-mix(in oklab, var(--tint) 28%, var(--ink));
   mask-image: linear-gradient(to bottom, black 30%, transparent);
 }
 .anime-grid {
-  display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 760px); gap: clamp(24px, 5vw, 80px);
-  padding-bottom: var(--s6);
+  display: grid; grid-template-columns: minmax(0, clamp(240px, 24vw, 420px)) minmax(0, 1fr);
+  column-gap: clamp(28px, 4vw, 80px); row-gap: var(--s5); align-items: start; padding-bottom: var(--s6);
 }
-@media (min-width: 1920px) { .anime-grid { grid-template-columns: 400px 860px; } }
 .anime-grid > * { min-width: 0; }
-.anime-cover { position: sticky; top: calc(var(--topbar) + 24px); align-self: start; }
+.anime-back { grid-column: 1 / -1; margin-bottom: calc(var(--s3) * -1); }
+.anime-art { grid-row: 2 / span 2; position: sticky; top: calc(var(--topbar) + 24px); display: flex; gap: clamp(8px, 0.8vw, 14px); }
+.anime-cover { flex: 1; min-width: 0; }
+.anime-main, .anime-read { grid-column: 2; }
+
+.anime-spine {
+  flex: none; width: clamp(40px, 3.2vw, 58px); writing-mode: vertical-rl; display: flex; align-items: center; gap: 14px;
+  padding: 14px 0; border-radius: 4px; background: var(--season); color: var(--ink); text-decoration: none;
+  transition: filter 0.2s, translate 0.3s var(--ease-out);
+}
+a.anime-spine:hover { filter: brightness(1.06); translate: 0 -3px; }
+.anime-spine-kanji { font-size: clamp(26px, 2.4vw, 44px); line-height: 1; }
+.anime-spine-text { font-size: clamp(13px, 1vw, 17px); line-height: 1; white-space: nowrap; }
+.anime-spine.is-plain { background: var(--paper); }
+
+.anime-title { font-variant-numeric: proportional-nums; font-size: clamp(38px, 5vw, 100px); line-height: 0.98; letter-spacing: -0.025em; overflow-wrap: anywhere; text-wrap: balance; }
+.anime-title.is-long { font-size: clamp(30px, 3.4vw, 68px); line-height: 1.02; }
+.anime-alt { color: var(--paper-2); margin-top: var(--s3); font-size: 15px; }
 .anime-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--paper-2); font-size: 14px; font-weight: 700; margin-top: var(--s3); }
 .anime-meta a { color: var(--season); text-decoration: none; }
-.anime-title { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.04; overflow-wrap: anywhere; }
-.anime-alt { color: var(--paper-2); margin-top: var(--s2); }
+.anime-meta a:hover { text-decoration: underline; }
 .anime-actions { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; margin-top: var(--s5); }
-.anime-score { margin-top: var(--s5); padding: var(--s4) var(--s4) var(--s2); border-radius: var(--r-panel); background: rgb(13 12 18 / 0.55); border: 1px solid var(--line); }
-.anime-score-head { display: flex; align-items: baseline; gap: var(--s3); }
+.anime-score { margin-top: var(--s5); padding: var(--s4) var(--s4) var(--s2); border-radius: var(--r-panel); background: rgb(13 12 18 / 0.55); border: 1px solid var(--line); max-width: 760px; }
+.anime-score-head { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
 .anime-score-head .btn { margin-left: auto; min-height: 36px; }
-.anime-score-num { font-size: 44px; color: var(--season); line-height: 1; }
-.anime-guess { margin-top: var(--s4); font-size: 18px; }
-.anime-guess strong { color: var(--season); font-size: 26px; font-weight: 400; margin-left: 4px; }
-.anime-synopsis { margin-top: var(--s5); max-width: 68ch; white-space: pre-line; color: var(--paper-2); line-height: 1.65; }
-.anime-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: var(--s5) 0 0; font-size: 14px; }
-.anime-facts dt { color: var(--paper-3); }
-.anime-facts dd { margin: 0; text-transform: capitalize; }
-.anime-related h2 { font-size: clamp(22px, 2.4vw, 30px); margin-bottom: var(--s4); }
-.anime-related { padding-top: 0; }
-@media (max-width: 760px) {
-  .anime-grid { grid-template-columns: minmax(0, 1fr); }
-  .anime-cover { position: relative; top: 0; width: 56%; max-width: 260px; }
-}
-.prof-private { display: grid; gap: var(--s3); justify-items: center; text-align: center; padding-top: 16vh; }
-.prof-private h1 { font-size: clamp(28px, 4vw, 44px); }
-.anime-back { grid-column: 1 / -1; margin-bottom: calc(clamp(24px, 5vw, 80px) * -1 + 12px); }
+.anime-score-num { font-size: clamp(48px, 4.4vw, 72px); color: var(--season); line-height: 1; }
+.anime-guess { margin-top: var(--s5); font-size: 18px; }
+.anime-guess strong { color: var(--season); font-size: clamp(30px, 2.6vw, 44px); font-weight: 400; margin-left: 6px; vertical-align: -0.1em; }
 .anime-facets { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: var(--s3) 0 var(--s2); padding: 0; }
 .anime-facets li { padding: 4px 12px; border-radius: var(--r-pill); background: var(--ink-3); font-size: 13px; font-weight: 700; color: var(--paper-2); }
 .anime-story { margin: var(--s2) 0 var(--s3); font-size: 14px; color: var(--paper-2); }
 .anime-story strong { color: var(--paper); }
 .anime-score .how { margin: var(--s2) 0 var(--s2); }
+
+/* The reading column: the synopsis opens on a drop cap in the season ink. */
+.anime-read { padding-top: var(--s2); }
+.anime-synopsis { max-width: 68ch; white-space: pre-line; color: var(--paper-2); line-height: 1.7; font-size: 16px; }
+.anime-synopsis::first-letter {
+  float: left; font-family: var(--display); font-size: 3.6em; line-height: 0.82; margin: 0.08em 0.1em 0 0; color: var(--season);
+}
+.anime-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; margin: var(--s5) 0 0; font-size: 14px; max-width: 68ch; }
+.anime-facts dt { color: var(--paper-3); }
+.anime-facts dd { margin: 0; text-transform: capitalize; }
+
+/* Laptops: the facts sit beside the synopsis instead of under it. */
+@media (min-width: 1100px) and (max-width: 1499px) {
+  .anime-read { display: grid; grid-template-columns: minmax(0, 68ch) minmax(180px, 1fr); gap: var(--s4) clamp(28px, 3vw, 56px); align-items: start; }
+  .anime-facts { margin-top: 0; padding-top: var(--s3); border-top: 3px solid var(--season); grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .anime-facts dd { margin-bottom: var(--s3); }
+}
+/* Wide screens: three columns, so the spread fills the page instead of leaving a blank right half. */
+@media (min-width: 1500px) {
+  .anime-grid { grid-template-columns: minmax(0, clamp(300px, 21vw, 460px)) minmax(0, 1.2fr) minmax(0, 0.8fr); }
+  .anime-art { grid-row: 2; }
+  .anime-read { grid-column: 3; grid-row: 2; padding-top: var(--s4); border-top: 3px solid var(--season); }
+}
+
+.anime-related { padding-top: var(--s5); }
+
+@media (max-width: 760px) {
+  .anime-grid { grid-template-columns: minmax(0, 1fr); }
+  .anime-art { grid-row: auto; position: relative; top: 0; width: min(76%, 320px); }
+  .anime-main, .anime-read { grid-column: 1; }
+  .anime-back { margin-bottom: 0; }
+}
+
+.anime-missing.page { padding-top: clamp(12px, 2vh, 24px); }
+.anime-wait .ghost-art { flex: 1; }
+.anime-wait .anime-spine { flex: none; aspect-ratio: auto; background: var(--ink-3); }
+.anime-ghost-line { display: block; height: clamp(38px, 5vw, 90px); width: 80%; border-radius: 8px; background: var(--ink-3); margin-bottom: var(--s3); }
+.anime-ghost-line.is-short { width: 45%; height: 24px; }

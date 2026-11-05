@@ -58,7 +58,7 @@ a.slab:hover { filter: brightness(1.06); translate: 0 -3px; }
 @keyframes w-breathe { 50% { opacity: 0.55; } }
 
 /* Display headline: words rise in, accent words in the season ink, one word circled by the pen. */
-.headline { line-height: 0.98; letter-spacing: -0.025em; text-wrap: balance; }
+.headline { font-variant-numeric: proportional-nums; line-height: 0.98; letter-spacing: -0.025em; text-wrap: balance; }
 .hl-mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .hl-word { display: inline-block; }
 .hl-accent { color: var(--season); }
