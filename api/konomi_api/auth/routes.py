@@ -145,7 +145,12 @@ def logout(db: Db, response: Response, konomi_session: Annotated[str | None, Coo
 def reset_request(body: EmailIn, db: Db) -> dict:
     email = body.email.lower()
     if db.scalars(select(User).where(User.email == email)).first():
-        otp.issue(db, email, "reset")
+        # Inside the resend limits, answer like an email with no account: a 429 here would reveal the account.
+        try:
+            otp.issue(db, email, "reset")
+        except HTTPException as e:
+            if e.status_code != 429:
+                raise
     return {"ok": True}
 
 

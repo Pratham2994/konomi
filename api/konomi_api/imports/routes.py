@@ -75,7 +75,10 @@ def import_mal(file: UploadFile, user: CurrentUser, db: Db) -> dict:
     if raw[:2] == b"\x1f\x8b":
         # Inflate with a ceiling: a small gzip can expand to gigabytes.
         d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-        out = d.decompress(raw, MAX_BYTES * 5)
+        try:
+            out = d.decompress(raw, MAX_BYTES * 5)
+        except zlib.error:
+            raise HTTPException(422, {"code": "not_mal_xml"})
         if d.unconsumed_tail:
             raise HTTPException(413, {"code": "too_large"})
         raw = out

@@ -229,7 +229,8 @@ def public_view(p: dict) -> dict:
     out["stats"] = stats
     if look["scores"] == "off":
         # Hidden scores are removed from the payload, not just from the page.
-        out["entries"] = [e | {"score": None, "strength": None} for e in out["entries"]]
+        # The feeling tier is a score band (5 is 9.0 to 10), so it goes too.
+        out["entries"] = [e | {"score": None, "strength": None, "tier": None} for e in out["entries"]]
         out["favourites"] = [f | {"score": None} for f in out["favourites"]]
         out["hot_takes"], out["track"] = [], None
         if out["hill"]:
